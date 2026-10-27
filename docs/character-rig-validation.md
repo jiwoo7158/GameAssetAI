@@ -5,6 +5,26 @@ modifier to the owned character-base Mesh without changing its geometry. Schema 
 region assignment. Schema v2 uses normalized smooth transition bands between adjacent bones at
 the spine, neck, shoulders, elbows, wrists, hips, knees and ankles.
 
+Schema v3 is the bounded Humanoid adaptation path. It accepts an explicit local A-pose Mesh only
+with complete object-local root/pelvis/spine/chest/neck/head-top and bilateral
+shoulder/elbow/wrist/hand-tip/hip/knee/ankle/toe landmarks. It fits the existing 18-bone hierarchy
+to those points and produces same-side landmark-envelope weights with at most four normalized
+influences. It refuses existing modifiers/groups, Shape Keys, linked data, animation, invalid
+side/order/envelope landmarks and non-`-Y` front instead of guessing.
+
+M2 representative evidence is under
+`D:/Blender/MCP_Test/GameAssetAI_RigAdaptation_M2_20261027/{compact,lanky}`. Both Blender Studio
+CC0 v4 characters passed elbow, knee, shoulder and hip pose checks, exact source-coordinate/UV
+preservation, zero missing weights, zero cross-side influences, post-weight induced-failure
+rollback and Blender 5.0.1 save/reopen. Lanky knee minimum local face-area ratio improved from
+`0.0523` to `0.7322`; Compact improved from `0.1143` to `0.7180`. Multi-view inspection found no
+tear, unintended left/right connection or severe joint collapse in the tested poses. The installed
+Workspace copy independently repeated the Compact run through its own script path.
+
+This evidence accepts M2 only for the explicit-landmark, single-body, local A-pose scope. It does
+not certify automatic landmark discovery, arbitrary production topology, layered clothing/hair,
+existing-rig replacement, facial/twist/corrective rigs, Mixamo or Unity.
+
 The rig mechanics remain tested, but the later connected live candidate is rejected because its
 input topology visibly fused/bridged leg or foot geometry. Do not treat successful binding, full
 weight coverage or pose execution on that candidate as product rig evidence.

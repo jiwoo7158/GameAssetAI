@@ -23,7 +23,7 @@ when character, rigging or export work has higher priority.
 - [x] representative low-poly character base-mesh creation foundation
 - [x] visible live Workbench character creation and multi-angle review
 - [x] replace rejected global-voxel character connection with guarded v3 Boolean topology that preserves bilateral limb/foot clearance
-- [ ] representative rig creation/adaptation workflow
+- [x] representative explicit-landmark A-pose rig fitting and weight-adaptation workflow
 - [x] generated-character 18-bone rig and deterministic first-pass region weights
 - [x] first live six-bone pose/deformation review on the retained character
 - [x] experimental shoulder/hip copy mechanics tested; product evidence invalidated by rejected input topology
@@ -51,7 +51,7 @@ when character, rigging or export work has higher priority.
 - [x] add guarded read-only Add-on source/installed version, compatibility and hash checking
 - [x] verify saved Preferences load and register the Add-on in a fresh Blender 5.0.1 process
 - [x] add hash-bound transactional Add-on update/rollback with preserved prior/replaced versions
-- [ ] rig/deformation review on accepted deformation topology, then existing-character rig adaptation
+- [x] rig/deformation review on the compact and lanky canonical-template outputs with installed-Skill proof
 - [ ] real Mixamo import/round-trip/retarget proof
 - [ ] rigged/animated FBX or GLB export and Unity import proof
 - [ ] reviewed existing-Action copy editing and motion-template workflow
@@ -99,9 +99,14 @@ approved.
   paths. Compact and lanky Blender 5.0.1 Armature probes pass structural/reopen checks, but visual
   acceptance remains open because the lanky knee reached a 0.052 local face-area ratio and the
   generated-fixture rig does not fit this template without probe-only refitting.
-- Next implementation boundary: adapt/fit the existing rig and weights to an explicit existing
-  humanoid Mesh, then repeat elbow/knee/shoulder/hip visual gates. Do not add another topology
-  provider or call v4 product-ready until that gate passes.
+- M2 result: `blender-rig-character-base` schema v3 now fits the retained 18-bone hierarchy from
+  explicit object-local A-pose landmarks and generates normalized, same-side, four-influence
+  envelope weights. Compact/Lanky shoulder, elbow, hip and knee probes passed structural,
+  visual, rollback and saved/reopened gates. Lanky knee minimum face-area ratio improved from
+  0.052 to 0.732. This is accepted for the explicit-landmark/template scope, not arbitrary
+  automatic humanoid rigging.
+- Next implementation boundary: one real Mixamo round trip using an M2-supported character,
+  followed by imported Action inspection/cleanup and only then animated engine export.
 
 ### Retained Add-on/UI work
 

@@ -32,8 +32,13 @@ back to modeling, rigging or Mixamo work must not cause the Add-on UI work to be
   preserves all-quad topology/UV loops, assigns materials and records provenance with owned
   rollback. Lanky knee compression and generated-fixture rig mismatch prevent an accepted
   deformation-ready claim. `VOXEL_CONNECTED` remains suspended after leg/foot fusion.
-- `blender-rig-character-base`: 18-bone generated-fixture rig mechanics are retained, but the
-  rejected connected candidate is not valid product evidence.
+- `blender-rig-character-base`: v1/v2 generated-fixture mechanics remain intact. V3 adds a bounded
+  existing/template Mesh path: explicit object-local A-pose landmarks fit the retained 18-bone
+  hierarchy; landmark-envelope weighting normalizes at most four influences, prevents opposite-
+  side limb weights, preserves coordinates/UVs and rolls back owned groups/modifier/Armature.
+  Compact and lanky canonical-template characters passed representative multi-view deformation,
+  save/reopen and installed-Skill execution. This does not imply automatic landmark detection or
+  support for arbitrary clothing, Shape Keys or existing rigs.
 - `blender-adjust-character-joint-weights-copy`: the copy/preservation algorithm is retained as
   experimental backend evidence only. Its live metrics came from the rejected topology and must
   not be presented as character-quality progress.
@@ -75,14 +80,11 @@ integrated into the Add-on; advanced passes remain explicit opt-in tools.
 
 ## Active product gaps, in order
 
-1. Adapt/fit a rig and weights to an explicit template-derived or existing humanoid Mesh; the
-   current 18-bone generated-fixture rig is not a general adapter.
-2. Repeat representative elbow/knee/shoulder/hip visual gates and only then decide whether v4 may
-   advance from experimental structural evidence to accepted deformation-ready output.
-3. Complete user-visible acceptance without treating one test character as the product objective.
-4. Complete one real Mixamo import/round-trip/retarget validation.
-5. Implement rigged/animated FBX or GLB export and verify it in Unity.
-6. Broaden native static modeling and controlled semantic revision beyond primitive assembly.
+1. Complete one real Mixamo import/round-trip/retarget validation using the bounded M2-supported
+   humanoid path; do not broaden the rig contract during that proof.
+2. Inspect and clean the imported Action while preserving source rig/animation data.
+3. Implement rigged/animated FBX or GLB export and verify it in Unity.
+4. Broaden native static modeling and controlled semantic revision beyond primitive assembly.
 
 Do not insert new collider, LODGroup, auxiliary pass or Unity-only work ahead of these gaps unless
 a concrete user request requires it.

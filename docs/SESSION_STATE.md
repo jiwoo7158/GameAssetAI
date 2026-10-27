@@ -18,15 +18,42 @@ existing narrow inspection/modification Skills constitute the missing 3D generat
 
 ## Current priority
 
-1. Next core implementation: fit/adapt a rig and weights to an explicit existing/template-derived
-   humanoid Mesh, then repeat elbow/knee/shoulder/hip visual gates. The generated-fixture rig is
-   not a general adapter.
-2. Keep v4 explicit/experimental until that visual gate passes; do not route it to Mixamo,
-   animation or export merely because its structural and save/reopen checks passed.
+1. M2 explicit-landmark rig fitting and weight adaptation is complete for the bounded scope
+   recorded below. The next core implementation is one real Mixamo round trip using that scope.
+2. Keep automatic landmark inference, existing-rig replacement, clothing/hair and corrective
+   deformation outside the M3 proof.
 3. Keep the completed Kiln GLB Adapter intact; refreshed-session discovery/use remains its only
    operational gate and imported data must not enter native v2.1 revision without proof.
-4. After accepted deformation and rig adaptation, validate a real Mixamo round trip, then
-   rigged/animated export and Unity import.
+4. After the Mixamo proof, perform imported-Action cleanup and then rigged/animated export plus
+   Unity import validation.
+
+## M2 Humanoid rig fitting and weight adaptation -- 2026-10-27
+
+- `blender-rig-character-base` schema v3 adds `EXPLICIT_LANDMARKS` for a local, non-empty,
+  single Humanoid A-pose Mesh with `-Y` front and no existing modifier, vertex groups, Shape Keys,
+  linked data or animation. It requires 22 object-local landmarks; unreliable joints are refused
+  rather than inferred.
+- The existing 18-bone hierarchy is fitted to those points. `LANDMARK_ENVELOPE_V3` assigns at most
+  four normalized deform influences using bone-segment distance, excludes opposite-side limb
+  bones, reports missing/cross-side/sum-error facts and preserves vertex coordinates and active UV.
+  Failure removes only the new groups, modifier, Armature Object and Armature data.
+- Compact and Lanky M1 v4 characters were recreated and tested in Blender 5.0.1 under
+  `D:/Blender/MCP_Test/GameAssetAI_RigAdaptation_M2_20261027`. Both have zero missing and
+  cross-side influences, maximum four influences and maximum sum error `3.33e-16`. An induced
+  failure after weight creation restored the exact target state; both saved `.blend` files reopen.
+- Knee minimum local face-area ratio improved Compact `0.114 -> 0.718` and Lanky
+  `0.052 -> 0.732`. Multi-view rest/pose review found no tear, unintended bilateral connection or
+  severe elbow/knee/shoulder/hip collapse. Elbow minima are `0.251`/`0.477`; their neighborhoods
+  are broader than M1, so those values are not directly equivalent to the old probe.
+- Existing v1/v2 rig regression remains 13/13. The Workspace installation is hash-aligned and an
+  independent installed-script Compact run passed. Bundle:
+  `.local/source-bundles/blender-rig-character-base-v3-m2-20261027.zip`, SHA-256
+  `11fe27bbd1e45e4e1615cf44c6de8ee446242c589b2c72ae54eede7f668b3501`.
+  Previous installation backup:
+  `D:/AI/GameAssetAI-Workspace/.agents/skill-backups/blender-rig-character-base-20261027-pre-m2-v3`.
+- Decision: M2 is accepted for the explicit-landmark, single-body local A-pose scope. It is not
+  general automatic rigging. M3 may proceed with one M2-supported character and a real Mixamo
+  round trip.
 
 ## Character canonical-template v4 result -- 2026-10-27
 
