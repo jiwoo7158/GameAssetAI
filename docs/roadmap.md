@@ -29,6 +29,8 @@ when character, rigging or export work has higher priority.
 - [x] experimental shoulder/hip copy mechanics tested; product evidence invalidated by rejected input topology
 - [x] add backward-compatible v2 two-bone transition weights and live six-bone pose smoke test
 - [ ] real Mixamo round-trip validation on an actual humanoid asset
+- [x] installable hash-pinned Mixamo-style FBX import and explicit pose-space retarget workflow
+  with rollback, saved/reopened Action and visibly deformed M2 target evidence
 - [x] reusable authored pose Action creation workflow on a real Armature
 - [x] user-reviewed 36-frame upper-body Ready Loop v3 with stable lower body
 - [x] package and focused-test the front-axis-guarded pose Action authoring Skill
@@ -53,6 +55,8 @@ when character, rigging or export work has higher priority.
 - [x] add hash-bound transactional Add-on update/rollback with preserved prior/replaced versions
 - [x] rig/deformation review on the compact and lanky canonical-template outputs with installed-Skill proof
 - [ ] real Mixamo import/round-trip/retarget proof
+- [x] bounded local FBX import/retarget implementation; synthetic external-FBX evidence does not
+  satisfy the unchecked real-service proof above
 - [ ] rigged/animated FBX or GLB export and Unity import proof
 - [ ] reviewed existing-Action copy editing and motion-template workflow
 - [ ] broader native static modeling and controlled semantic revision
@@ -105,7 +109,11 @@ approved.
   visual, rollback and saved/reopened gates. Lanky knee minimum face-area ratio improved from
   0.052 to 0.732. This is accepted for the explicit-landmark/template scope, not arbitrary
   automatic humanoid rigging.
-- Next implementation boundary: one real Mixamo round trip using an M2-supported character,
+- M3 local implementation result: `blender-import-humanoid-animation` now performs hash-pinned
+  FBX import, exact 17-role mapping, rest-aware pose-space sampling and a new bound Action with
+  owned rollback. Blender 5.0.1 synthetic external-FBX evidence passed save/reopen and visible
+  deformation checks. The real Adobe Mixamo service/download proof remains open.
+- Next implementation boundary: one real Mixamo-downloaded FBX through the installed Skill,
   followed by imported Action inspection/cleanup and only then animated engine export.
 
 ### Retained Add-on/UI work

@@ -44,6 +44,10 @@ back to modeling, rigging or Mixamo work must not cause the Add-on UI work to be
   not be presented as character-quality progress.
 - `blender-author-pose-action`: explicit key-pose Action authoring with front-axis and optional
   root/pelvis location channels.
+- `blender-import-humanoid-animation`: explicit hash-pinned Mixamo-style FBX import, exact
+  17-role source/target mapping, rest-pose-aware pose-space sampling, independent bound Action,
+  owned source Collection and rollback. Local synthetic external-FBX mechanics pass; Adobe
+  Mixamo service evidence is still absent.
 
 ### Existing-asset support
 
@@ -80,8 +84,8 @@ integrated into the Add-on; advanced passes remain explicit opt-in tools.
 
 ## Active product gaps, in order
 
-1. Complete one real Mixamo import/round-trip/retarget validation using the bounded M2-supported
-   humanoid path; do not broaden the rig contract during that proof.
+1. Complete one real Adobe Mixamo download/import/retarget validation through the installed M3
+   Skill using the bounded M2-supported humanoid path; do not broaden the mapping contract.
 2. Inspect and clean the imported Action while preserving source rig/animation data.
 3. Implement rigged/animated FBX or GLB export and verify it in Unity.
 4. Broaden native static modeling and controlled semantic revision beyond primitive assembly.
@@ -144,7 +148,8 @@ from both documents.
 - Shoulder/hip copy metrics prove only that the weight-copy algorithm executed and preserved its
   source. Because the input topology is rejected, they are not character-quality evidence.
 - The sword proves explicit low-poly assembly, not arbitrary natural-language modeling.
-- Animation adaptation primitives are tested, but no real Mixamo round trip is complete.
+- Mixamo-style FBX import and pose-space retarget mechanics are tested on an external synthetic
+  FBX, but no real Adobe Mixamo service round trip is complete.
 - Static FBX export is tested; rigged/animated Unity export is not.
 - The v3 Boolean candidate fixes bilateral fusion and is suitable for blockout review, but its
   43 ngons and 324 poles mean it is not yet evidence of deformation topology.

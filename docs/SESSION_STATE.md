@@ -18,14 +18,44 @@ existing narrow inspection/modification Skills constitute the missing 3D generat
 
 ## Current priority
 
-1. M2 explicit-landmark rig fitting and weight adaptation is complete for the bounded scope
-   recorded below. The next core implementation is one real Mixamo round trip using that scope.
-2. Keep automatic landmark inference, existing-rig replacement, clothing/hair and corrective
-   deformation outside the M3 proof.
+1. M3 local implementation is complete for explicit hash-pinned Mixamo-signature FBX import,
+   17-role pose-space retargeting and an independent bound Action. A real Adobe Mixamo download
+   remains the next acceptance gate; do not call the service round trip complete from synthetic
+   evidence.
+2. Keep automatic mapping, existing-rig replacement, clothing/hair and corrective deformation
+   outside the M3 proof.
 3. Keep the completed Kiln GLB Adapter intact; refreshed-session discovery/use remains its only
    operational gate and imported data must not enter native v2.1 revision without proof.
 4. After the Mixamo proof, perform imported-Action cleanup and then rigged/animated export plus
    Unity import validation.
+
+## M3 Humanoid animation import and retarget implementation -- 2026-10-27
+
+- Added `blender-import-humanoid-animation` with schema
+  `gameassetai.humanoid-animation-import-request.v1`. It verifies an explicit FBX path and SHA-256,
+  imports into a temporary Scene, reuses exact Mixamo and Humanoid inspectors, requires explicit
+  17-role source/target mappings, samples pose-space rest deltas, creates a new bound Action and
+  keeps the imported source in an owned Collection. `IN_PLACE` and explicit masked `TRANSFER`
+  root policies are supported; varying Armature-object transforms, non-unit mapped scale, occupied
+  targets and ambiguous imports are refused.
+- Added a bounded Mixamo-handoff exporter for one explicit Mesh and Armature. Its Blender 5.0.1
+  re-import has one Mesh, one 18-bone Armature, a valid Armature modifier and one UV layer.
+- Focused evidence is under
+  `D:/Blender/MCP_Test/GameAssetAI_HumanoidAnimation_M3_20261027`: an external synthetic
+  Mixamo-signature FBX was imported through the real FBX API, retargeted to the M2 Compact Mesh,
+  visibly changed the evaluated Mesh at frames 1/6/12, rendered front/side evidence, saved and
+  reopened with its Action and retained source Collection. An induced post-import mapping failure
+  restored the exact original datablock and animation baseline, including removal of fake-user
+  imported Actions.
+- This is implementation and local representative mechanics evidence, not Adobe Mixamo service
+  evidence. No user-owned Mixamo FBX was found in the checked paths, and no upload/login/download
+  occurred. Exact continuation: run the installed Skill once with a real Mixamo-downloaded FBX,
+  inspect the visible motion, then perform Action cleanup before M4 animated engine export.
+- Portable bundle: `.local/source-bundles/blender-import-humanoid-animation-m3.2-20261027.zip`,
+  SHA-256 `27027305098a690ed064ef7c1cc37c4a291314e8c80cd923f0bb37d0f5b8cd3d`.
+  The new Skill and updated router are source/Workspace hash-aligned; the installed Skill itself
+  repeated the full background run and saved/reopened successfully. Router backup:
+  `D:/AI/GameAssetAI-Workspace/.agents/skill-backups/blender-create-game-asset-20261027-pre-m3-router`.
 
 ## M2 Humanoid rig fitting and weight adaptation -- 2026-10-27
 

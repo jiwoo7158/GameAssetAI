@@ -1,6 +1,6 @@
 ---
 name: blender-create-game-asset
-description: Route a natural-language Blender game-asset request into the existing static creation, character base, rig, Action, inspection, revision and optional 2D/export Skills. Use when the user asks to create or continue a character, weapon, prop, enemy or environment asset and has not named a narrower Skill. This router coordinates reviewed stages; it does not replace their scripts or claim unsupported general modeling, Mixamo automation or rigged export.
+description: Route a natural-language Blender game-asset request into the existing static creation, character base, rig, imported-humanoid animation, Action, inspection, revision and optional 2D/export Skills. Use when the user asks to create or continue a character, weapon, prop, enemy or environment asset and has not named a narrower Skill. This router coordinates reviewed stages; it does not replace their scripts or claim unsupported general modeling, Mixamo web automation or rigged export.
 ---
 
 # Blender Create Game Asset
@@ -18,6 +18,8 @@ Use these creation entries:
   `blender-create-static-asset`;
 - new low-poly humanoid blockout: `blender-create-character-base`;
 - reviewed owned character base that needs its first rig: `blender-rig-character-base`;
+- explicit hash-pinned Mixamo-style FBX Action for an empty compatible Humanoid rig:
+  `blender-import-humanoid-animation`;
 - explicit reviewed key poses on a suitable empty Armature: `blender-author-pose-action`.
 
 For characters, use `VOLUME_ISLANDS` for separated blockouts or guarded v3
@@ -30,6 +32,12 @@ For an existing asset, inspect before choosing a modification Skill. Use the ani
 copy/range/retarget/bake Skills only for their documented narrow inputs; do not treat them as a
 general animation generator. Collider, LOD, masks, render passes and Unity checks are optional
 downstream work, never substitutes for creating the requested asset.
+
+For requests such as "apply this imported Mixamo walk", require only the missing absolute FBX
+path/hash, exact target Mesh/Armature, explicit source/target role mappings, frame range/FPS and
+root-motion policy. Route the complete request through `blender-import-humanoid-animation`; do
+not ask the user to invoke its internal inspection and Action helpers one by one. The Skill does
+not upload to, log into or download from Adobe Mixamo.
 
 Keep one visible current candidate and recoverable checkpoints. Do not accumulate every failed
 revision in the Scene. Continue through multiple stages when the user's request already covers

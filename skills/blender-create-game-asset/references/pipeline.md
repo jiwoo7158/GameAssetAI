@@ -9,6 +9,7 @@
 | Existing static Mesh | `blender-inspect-asset` and `blender-validate-static-mesh` | guarded cleanup/transform/pivot/LOD or static export |
 | Existing character or Armature | `blender-inspect-asset` and `blender-inspect-humanoid` | animation inventory, Mixamo preflight or explicit retarget path |
 | Existing/imported animation | `blender-inspect-animation` | copy/range/loop/root-motion/retarget/bake chain |
+| Explicit Mixamo-style FBX to apply to a compatible empty Humanoid rig | `blender-import-humanoid-animation` | inspect the new Action, then optional cleanup/rendering |
 | Reviewed rig needing a new simple Action | `blender-author-pose-action` | evaluated loop review and Action rendering |
 
 ## Optional downstream routes
@@ -29,8 +30,9 @@
   topology is not a product rig target until edge-flow, UV and pose-deformation gates exist.
 - Character rigging supports only the owned base character and first-pass region weights.
 - Pose authoring requires explicit key poses; it is not full procedural motion generation.
-- Mixamo support stops at inspection/preflight and narrow retarget primitives; no real automated
-  upload/download round trip is proven.
+- Mixamo-style FBX import and explicit pose-space sampled retargeting are implemented for the
+  bounded 17-role mapping, but Adobe login/upload/download remains manual and no real Mixamo
+  service round trip is proven.
 - The current FBX exporter is static-only. Rigged/animated Unity export remains unimplemented.
 
 If a request crosses one of these gaps, complete the supported portion, preserve its output, and
