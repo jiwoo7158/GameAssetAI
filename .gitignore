@@ -1,0 +1,26 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Local development artifacts
+.local/
+tmp/
+dist/
+*.log
+
+# Blender temporary / backup files
+*.blend1
+*.blend2
+*.blend@
+*.blend@*
+
+# Personal workspace should not be committed into this repository
+GameAssetAI-Workspace/

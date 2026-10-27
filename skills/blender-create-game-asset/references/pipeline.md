@@ -1,0 +1,37 @@
+# Game-asset workflow routing
+
+## Choose the source route
+
+| User intent | First Skill | Continue only when applicable |
+| --- | --- | --- |
+| New prop, weapon or simple environment piece | `blender-create-static-asset` | inspection, copy-only cleanup, transform/pivot, static export or 2D rendering |
+| New low-poly humanoid | `blender-create-character-base` v3 `BOOLEAN_CONNECTED` blockout | topology/revision and deformation-readiness gate, then rigging and reviewed Action authoring |
+| Existing static Mesh | `blender-inspect-asset` and `blender-validate-static-mesh` | guarded cleanup/transform/pivot/LOD or static export |
+| Existing character or Armature | `blender-inspect-asset` and `blender-inspect-humanoid` | animation inventory, Mixamo preflight or explicit retarget path |
+| Existing/imported animation | `blender-inspect-animation` | copy/range/loop/root-motion/retarget/bake chain |
+| Reviewed rig needing a new simple Action | `blender-author-pose-action` | evaluated loop review and Action rendering |
+
+## Optional downstream routes
+
+- Static 2D sprite/icon: `blender-render-static-pixel-png`.
+- Animated frames: `blender-render-action-png-sequence`.
+- Equal-cell sheet: `assemble-png-sprite-sheet`.
+- Mixed explicit render batch: `blender-render-2d-batch`.
+- Normal/depth/mask/object-ID/impostor outputs: use only when explicitly required.
+- Static texture-free FBX: `blender-export-static-fbx`.
+
+## Known gaps that must not be hidden
+
+- Static creation is explicit primitive assembly, not arbitrary prompt-to-mesh modeling.
+- Character creation has a guarded v3 exact-Boolean connected candidate. The global
+  `VOXEL_CONNECTED` experiment remains suspended after visible limb/foot fusion. V3 must pass
+  component/manifold/clearance gates and recorded multi-view acceptance. Its current Boolean
+  topology is not a product rig target until edge-flow, UV and pose-deformation gates exist.
+- Character rigging supports only the owned base character and first-pass region weights.
+- Pose authoring requires explicit key poses; it is not full procedural motion generation.
+- Mixamo support stops at inspection/preflight and narrow retarget primitives; no real automated
+  upload/download round trip is proven.
+- The current FBX exporter is static-only. Rigged/animated Unity export remains unimplemented.
+
+If a request crosses one of these gaps, complete the supported portion, preserve its output, and
+state the missing capability rather than routing to an unrelated inspection or rendering Skill.

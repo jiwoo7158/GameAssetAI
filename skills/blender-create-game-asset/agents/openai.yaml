@@ -1,0 +1,4 @@
+interface:
+  display_name: "Blender Game Asset Router"
+  short_description: "Route asset creation through tested Blender skills"
+  default_prompt: "Create or continue this Blender game asset using the appropriate tested GameAssetAI workflow."

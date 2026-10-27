@@ -1,0 +1,456 @@
+import hashlib
+import json
+import math
+import uuid
+
+import bmesh
+import bpy
+from mathutils import Matrix, Vector
+from mathutils.bvhtree import BVHTree
+
+from validate_character_base_request import MATERIAL_KEYS, validate_request
+
+
+OWNER_KEY = "gameassetai_character_owner"
+
+
+def _canonical(value):
+    return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+
+
+def _tag(data_block, token):
+    data_block[OWNER_KEY] = token
+    return data_block
+
+
+def _new_faces(bm, before, material_index):
+    for face in bm.faces:
+        if face not in before:
+            face.material_index = material_index
+
+
+def _add_box(bm, center, dimensions, material_index):
+    before = set(bm.faces)
+    result = bmesh.ops.create_cube(bm, size=1.0)
+    matrix = Matrix.Translation(Vector(center)) @ Matrix.Diagonal((*dimensions, 1.0))
+    bmesh.ops.transform(bm, verts=result["verts"], matrix=matrix)
+    _new_faces(bm, before, material_index)
+
+
+def _add_icosphere(bm, center, dimensions, material_index):
+    before = set(bm.faces)
+    result = bmesh.ops.create_icosphere(bm, subdivisions=2, radius=1.0)
+    scale = Vector(dimensions) * 0.5
+    matrix = Matrix.Translation(Vector(center)) @ Matrix.Diagonal((*scale, 1.0))
+    bmesh.ops.transform(bm, verts=result["verts"], matrix=matrix)
+    _new_faces(bm, before, material_index)
+
+
+def _add_limb(bm, start, end, radius, material_index, segments=8):
+    start, end = Vector(start), Vector(end)
+    direction = end - start
+    length = direction.length
+    before = set(bm.faces)
+    result = bmesh.ops.create_cone(
+        bm, cap_ends=True, cap_tris=False, segments=segments,
+        radius1=1.0, radius2=0.92, depth=1.0,
+    )
+    rotation = Vector((0.0, 0.0, 1.0)).rotation_difference(direction.normalized()).to_matrix().to_4x4()
+    scale = Matrix.Diagonal((radius, radius, length, 1.0))
+    matrix = Matrix.Translation((start + end) * 0.5) @ rotation @ scale
+    bmesh.ops.transform(bm, verts=result["verts"], matrix=matrix)
+    _new_faces(bm, before, material_index)
+
+
+def _make_material(name, color, token, metallic=0.0, roughness=0.65):
+    material = _tag(bpy.data.materials.new(name), token)
+    material.diffuse_color = color
+    material.use_nodes = True
+    principled = next(node for node in material.node_tree.nodes if node.type == "BSDF_PRINCIPLED")
+    principled.inputs["Base Color"].default_value = color
+    principled.inputs["Metallic"].default_value = metallic
+    principled.inputs["Roughness"].default_value = roughness
+    return material
+
+
+def _component_count(mesh):
+    adjacency = {vertex.index: set() for vertex in mesh.vertices}
+    for edge in mesh.edges:
+        a, b = edge.vertices
+        adjacency[a].add(b)
+        adjacency[b].add(a)
+    unseen = set(adjacency)
+    count = 0
+    while unseen:
+        count += 1
+        stack = [unseen.pop()]
+        while stack:
+            for neighbor in adjacency[stack.pop()]:
+                if neighbor in unseen:
+                    unseen.remove(neighbor)
+                    stack.append(neighbor)
+    return count
+
+
+def _voxel_connect(obj, voxel_size):
+    mesh = obj.data
+    source_vertices = [tuple(vertex.co) for vertex in mesh.vertices]
+    source_polygons = [tuple(polygon.vertices) for polygon in mesh.polygons]
+    source_materials = [polygon.material_index for polygon in mesh.polygons]
+    source_tree = BVHTree.FromPolygons(source_vertices, source_polygons, all_triangles=False)
+    window = bpy.context.window
+    original_scene = window.scene if window else None
+    original_active = bpy.context.view_layer.objects.active
+    original_selected = list(bpy.context.selected_objects)
+    try:
+        if window:
+            window.scene = obj.users_scene[0]
+        for selected in bpy.context.selected_objects:
+            selected.select_set(False)
+        obj.select_set(True)
+        bpy.context.view_layer.objects.active = obj
+        mesh.remesh_voxel_size = voxel_size
+        mesh.remesh_voxel_adaptivity = 0.0
+        bpy.ops.object.voxel_remesh()
+        for polygon in mesh.polygons:
+            nearest = source_tree.find_nearest(polygon.center)
+            if nearest and nearest[2] is not None:
+                polygon.material_index = source_materials[nearest[2]]
+        mesh.update()
+    finally:
+        obj.select_set(False)
+        if window and original_scene:
+            window.scene = original_scene
+        for selected in original_selected:
+            if bpy.data.objects.get(selected.name) is selected:
+                selected.select_set(True)
+        if original_active and bpy.data.objects.get(original_active.name) is original_active:
+            bpy.context.view_layer.objects.active = original_active
+
+
+def _mesh_components(mesh):
+    adjacency = {vertex.index: set() for vertex in mesh.vertices}
+    for edge in mesh.edges:
+        a, b = edge.vertices
+        adjacency[a].add(b)
+        adjacency[b].add(a)
+    remaining = set(adjacency)
+    components = []
+    while remaining:
+        component = {remaining.pop()}
+        stack = list(component)
+        while stack:
+            for neighbor in adjacency[stack.pop()]:
+                if neighbor in remaining:
+                    remaining.remove(neighbor)
+                    component.add(neighbor)
+                    stack.append(neighbor)
+        components.append(component)
+    return components
+
+
+def _boolean_connect(obj, token):
+    """Union semantic volumes without the global voxel remesh that fused both legs."""
+    source_mesh = obj.data
+    components = _mesh_components(source_mesh)
+    if len(components) < 2:
+        return
+    polygon_sets = []
+    for vertices in components:
+        polygons = [polygon for polygon in source_mesh.polygons if polygon.vertices[0] in vertices]
+        if polygons:
+            polygon_sets.append((vertices, polygons))
+    polygon_sets.sort(key=lambda item: len(item[1]), reverse=True)
+    collection = obj.users_collection[0]
+    operands = []
+    window = bpy.context.window
+    original_scene = window.scene if window else None
+    original_active = bpy.context.view_layer.objects.active
+    original_selected = list(bpy.context.selected_objects)
+    try:
+        for index, (vertex_indices, polygons) in enumerate(polygon_sets):
+            ordered = sorted(vertex_indices)
+            remap = {old: new for new, old in enumerate(ordered)}
+            vertices = [tuple(source_mesh.vertices[old].co) for old in ordered]
+            faces = [[remap[old] for old in polygon.vertices] for polygon in polygons]
+            part_mesh = _tag(bpy.data.meshes.new(f"{source_mesh.name} Boolean Part {index:02d}"), token)
+            part_mesh.from_pydata(vertices, [], faces)
+            part_mesh.update()
+            for material in source_mesh.materials:
+                part_mesh.materials.append(material)
+            for target, source in zip(part_mesh.polygons, polygons):
+                target.material_index = source.material_index
+            part = _tag(bpy.data.objects.new(f"{obj.name} Boolean Part {index:02d}", part_mesh), token)
+            collection.objects.link(part)
+            operands.append(part)
+
+        base = operands.pop(0)
+        base.name = f"{obj.name} Boolean Working"
+        if window:
+            window.scene = obj.users_scene[0]
+        for operand in operands:
+            for selected in bpy.context.selected_objects:
+                selected.select_set(False)
+            base.select_set(True)
+            bpy.context.view_layer.objects.active = base
+            modifier = base.modifiers.new(name="GameAssetAI Semantic Union", type="BOOLEAN")
+            modifier.operation = "UNION"
+            modifier.solver = "EXACT"
+            modifier.object = operand
+            bpy.ops.object.modifier_apply(modifier=modifier.name)
+            operand_mesh = operand.data
+            bpy.data.objects.remove(operand, do_unlink=True)
+            if operand_mesh.users == 0:
+                bpy.data.meshes.remove(operand_mesh)
+
+        result_mesh = base.data
+        requested_mesh_name = source_mesh.name
+        obj.data = result_mesh
+        bpy.data.objects.remove(base, do_unlink=True)
+        if source_mesh.users == 0:
+            bpy.data.meshes.remove(source_mesh)
+        result_mesh.name = requested_mesh_name
+        obj.data.update()
+    except Exception:
+        for operand in list(operands):
+            if bpy.data.objects.get(operand.name) is operand:
+                bpy.data.objects.remove(operand, do_unlink=True)
+        raise
+    finally:
+        if window and original_scene:
+            window.scene = original_scene
+        for selected in original_selected:
+            if bpy.data.objects.get(selected.name) is selected:
+                selected.select_set(True)
+        if original_active and bpy.data.objects.get(original_active.name) is original_active:
+            bpy.context.view_layer.objects.active = original_active
+
+
+def _semantic_clearance(mesh, height):
+    foot_vertices = [vertex.co for vertex in mesh.vertices if vertex.co.z < height * 0.09]
+    lower_vertices = [vertex.co for vertex in mesh.vertices if height * 0.075 < vertex.co.z < height * 0.34]
+
+    def clearance(vertices):
+        negative = [point.x for point in vertices if point.x < 0.0]
+        positive = [point.x for point in vertices if point.x > 0.0]
+        return min(positive) - max(negative) if negative and positive else 0.0
+
+    cross_side_edges = 0
+    for edge in mesh.edges:
+        a, b = (mesh.vertices[index].co for index in edge.vertices)
+        if a.x * b.x < 0.0 and max(a.z, b.z) < height * 0.30:
+            cross_side_edges += 1
+    return {
+        "foot_centerline_clearance": clearance(foot_vertices),
+        "lower_leg_centerline_clearance": clearance(lower_vertices),
+        "cross_side_edges_below_knee": cross_side_edges,
+    }
+
+
+def _non_manifold_edge_count(mesh):
+    topology = bmesh.new()
+    try:
+        topology.from_mesh(mesh)
+        return sum(1 for edge in topology.edges if len(edge.link_faces) != 2)
+    finally:
+        topology.free()
+
+
+def _quadriflow_micro_edge_count(mesh, tolerance=1.0e-4):
+    """Match Blender's QuadriFlow preflight coordinate comparison."""
+    return sum(
+        1 for edge in mesh.edges
+        if all(abs(mesh.vertices[edge.vertices[0]].co[axis]
+                   - mesh.vertices[edge.vertices[1]].co[axis]) <= tolerance
+               for axis in range(3))
+    )
+
+
+def _cleanup_boolean_micro_edges(mesh, tolerance=1.0e-4):
+    """Remove exact-Boolean sliver edges that Blender QuadriFlow rejects."""
+    before = _quadriflow_micro_edge_count(mesh, tolerance)
+    if before:
+        topology = bmesh.new()
+        try:
+            topology.from_mesh(mesh)
+            bmesh.ops.dissolve_degenerate(
+                topology, dist=tolerance, edges=list(topology.edges))
+            bmesh.ops.recalc_face_normals(topology, faces=list(topology.faces))
+            topology.to_mesh(mesh)
+            mesh.update()
+        finally:
+            topology.free()
+    return before, _quadriflow_micro_edge_count(mesh, tolerance)
+
+
+def _rollback(token):
+    for obj in list(bpy.data.objects):
+        if obj.get(OWNER_KEY) == token:
+            bpy.data.objects.remove(obj, do_unlink=True)
+    for mesh in list(bpy.data.meshes):
+        if mesh.get(OWNER_KEY) == token and mesh.users == 0:
+            bpy.data.meshes.remove(mesh)
+    for material in list(bpy.data.materials):
+        if material.get(OWNER_KEY) == token and material.users == 0:
+            bpy.data.materials.remove(material)
+    for collection in list(bpy.data.collections):
+        if collection.get(OWNER_KEY) == token:
+            bpy.data.collections.remove(collection)
+
+
+def create_character(request, *, authorized=False):
+    if not authorized:
+        raise ValueError("authorized=true is required for persistent character creation")
+    validated = validate_request(request)
+    data = validated["request"]
+    scene = bpy.data.scenes.get(data["scene_name"])
+    if scene is None:
+        raise ValueError(f"Scene does not exist: {data['scene_name']}")
+    for database, name, label in (
+        (bpy.data.collections, data["collection_name"], "collection_name"),
+        (bpy.data.objects, data["object_name"], "object_name"),
+        (bpy.data.meshes, data["mesh_name"], "mesh_name"),
+    ):
+        if database.get(name):
+            raise ValueError(f"{label} is already in use: {name}")
+
+    token = uuid.uuid4().hex
+    material_names = {key: f"{data['character_name']} {key.title()}" for key in MATERIAL_KEYS}
+    occupied = [name for name in material_names.values() if bpy.data.materials.get(name)]
+    if occupied:
+        raise ValueError(f"material names are already in use: {occupied}")
+
+    try:
+        collection = _tag(bpy.data.collections.new(data["collection_name"]), token)
+        scene.collection.children.link(collection)
+        materials = []
+        for key in MATERIAL_KEYS:
+            metallic = 0.08 if key == "secondary" else 0.0
+            roughness = 0.5 if key == "boots" else 0.68
+            materials.append(_make_material(material_names[key], data["colors"][key], token, metallic, roughness))
+
+        p = data["proportions"]
+        h = p["height"]
+        shoulder = h * p["shoulder_width_ratio"]
+        hip = h * p["hip_width_ratio"]
+        depth = h * p["body_depth_ratio"]
+        limb = h * p["limb_thickness_ratio"]
+        head_h = h * p["head_height_ratio"]
+        bm = bmesh.new()
+
+        # V1 retains separate volumes; V2 may fuse overlapping volumes after construction.
+        _add_box(bm, (0, 0, h * 0.59), (hip, depth * 0.92, h * 0.10), 2)
+        _add_box(bm, (0, 0, h * 0.735), (shoulder * 0.82, depth, h * 0.22), 1)
+        _add_limb(bm, (0, 0, h * 0.82), (0, 0, h * 0.845), limb * 0.72, 0, 8)
+        _add_icosphere(bm, (0, 0, h * 0.91), (head_h * 0.72, head_h * 0.68, head_h), 0)
+
+        hip_x = hip * 0.27
+        knee_z, ankle_z = h * 0.32, h * 0.085
+        for side in (-1.0, 1.0):
+            upper_start = (side * hip_x, 0, h * 0.56)
+            knee = (side * hip_x * 1.04, 0, knee_z)
+            ankle = (side * hip_x * 1.02, 0, ankle_z)
+            _add_limb(bm, upper_start, knee, limb * 1.18, 1, 10)
+            _add_limb(bm, knee, ankle, limb, 0, 10)
+            # Meet the ankle volume deliberately; the older 0.07h-high boot left
+            # a 0.015h gap that global voxel remeshing used to conceal.
+            _add_box(bm, (side * hip_x * 1.02, -depth * 0.18, h * 0.045), (limb * 2.15, depth * 1.25, h * 0.09), 3)
+
+        shoulder_z = h * 0.79
+        shoulder_x = shoulder * 0.46
+        upper = h * 0.17
+        lower = h * 0.16
+        drop = 0.0 if data["pose"] == "T_POSE" else h * 0.085
+        for side in (-1.0, 1.0):
+            start = Vector((side * shoulder_x, 0, shoulder_z))
+            elbow = start + Vector((side * upper, 0, -drop))
+            hand = elbow + Vector((side * lower, 0, -drop * 0.72))
+            _add_limb(bm, start, elbow, limb, 1, 8)
+            _add_limb(bm, elbow, hand, limb * 0.86, 0, 8)
+            _add_icosphere(bm, hand + Vector((side * limb * 0.8, 0, -limb * 0.15)), (limb * 1.7, limb * 1.45, limb * 2.1), 0)
+
+        mesh = _tag(bpy.data.meshes.new(data["mesh_name"]), token)
+        bm.to_mesh(mesh)
+        bm.free()
+        mesh.update()
+        obj = _tag(bpy.data.objects.new(data["object_name"], mesh), token)
+        obj["gameassetai_character_request"] = _canonical(data)
+        obj["gameassetai_character_front_axis"] = "-Y"
+        collection.objects.link(obj)
+        for material in materials:
+            mesh.materials.append(material)
+        topology_mode = data.get("topology_mode", "VOLUME_ISLANDS")
+        components_before = _component_count(mesh)
+        if topology_mode == "VOXEL_CONNECTED":
+            _voxel_connect(obj, h * 0.018)
+        elif topology_mode == "BOOLEAN_CONNECTED":
+            _boolean_connect(obj, token)
+            mesh = obj.data
+            micro_edges_before, micro_edges_after = _cleanup_boolean_micro_edges(mesh)
+            if micro_edges_after:
+                raise RuntimeError(
+                    "connected topology retained QuadriFlow-incompatible micro edges: "
+                    f"{micro_edges_after}"
+                )
+        else:
+            micro_edges_before = micro_edges_after = 0
+        components_after = _component_count(mesh)
+        if topology_mode in {"VOXEL_CONNECTED", "BOOLEAN_CONNECTED"} and components_after != 1:
+            raise RuntimeError(f"connected topology produced {components_after} components")
+        semantic_checks = _semantic_clearance(mesh, h)
+        non_manifold_edges = _non_manifold_edge_count(mesh)
+        if topology_mode == "BOOLEAN_CONNECTED":
+            minimum_clearance = h * 0.005
+            if semantic_checks["foot_centerline_clearance"] <= minimum_clearance:
+                raise RuntimeError("connected topology failed foot centerline clearance")
+            if semantic_checks["lower_leg_centerline_clearance"] <= minimum_clearance:
+                raise RuntimeError(
+                    "connected topology failed lower-leg centerline clearance: "
+                    f"{semantic_checks['lower_leg_centerline_clearance']}"
+                )
+            if semantic_checks["cross_side_edges_below_knee"]:
+                raise RuntimeError("connected topology created cross-side edges below the knee")
+            if non_manifold_edges:
+                raise RuntimeError(f"connected topology produced {non_manifold_edges} non-manifold edges")
+
+        world_corners = [obj.matrix_world @ Vector(corner) for corner in obj.bound_box]
+        minimum = [min(point[i] for point in world_corners) for i in range(3)]
+        maximum = [max(point[i] for point in world_corners) for i in range(3)]
+        receipt = {
+            "status": "created",
+            "character_name": data["character_name"],
+            "collection_name": collection.name,
+            "object_name": obj.name,
+            "mesh_name": mesh.name,
+            "pose": data["pose"],
+            "vertices": len(mesh.vertices),
+            "polygons": len(mesh.polygons),
+            "material_names": [material.name for material in materials],
+            "topology_mode": topology_mode,
+            "components_before": components_before,
+            "components_after": components_after,
+            "semantic_checks": semantic_checks,
+            "non_manifold_edges": non_manifold_edges,
+            "quadriflow_micro_edges_before": micro_edges_before,
+            "quadriflow_micro_edges_after": micro_edges_after,
+            "world_bounds": {"min": minimum, "max": maximum},
+            "request_sha256": validated["request_sha256"],
+            "rigged": False,
+        }
+        receipt["receipt_sha256"] = hashlib.sha256(_canonical(receipt).encode("utf-8")).hexdigest()
+        return receipt
+    except Exception:
+        _rollback(token)
+        raise
+
+
+def remove_created_character(receipt):
+    obj = bpy.data.objects.get(receipt["object_name"])
+    collection = bpy.data.collections.get(receipt["collection_name"])
+    if obj is None or collection is None:
+        return
+    token = obj.get(OWNER_KEY)
+    if not token or collection.get(OWNER_KEY) != token:
+        raise RuntimeError("character ownership cannot be verified; refusing cleanup")
+    _rollback(token)
+
