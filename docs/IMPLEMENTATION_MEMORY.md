@@ -84,8 +84,10 @@ integrated into the Add-on; advanced passes remain explicit opt-in tools.
 
 ## Active product gaps, in order
 
-1. Complete one real Adobe Mixamo download/import/retarget validation through the installed M3
-   Skill using the bounded M2-supported humanoid path; do not broaden the mapping contract.
+1. Correct the M3 parent-local rest-basis conversion exposed by the real Adobe Mixamo Walking
+   test, then repeat that bounded 32-frame validation. Import, mapping, Action creation and
+   preservation pass, but the current target arm/leg pose is visibly wrong; do not broaden the
+   mapping contract or proceed to export first.
 2. Inspect and clean the imported Action while preserving source rig/animation data.
 3. Implement rigged/animated FBX or GLB export and verify it in Unity.
 4. Broaden native static modeling and controlled semantic revision beyond primitive assembly.
@@ -148,8 +150,10 @@ from both documents.
 - Shoulder/hip copy metrics prove only that the weight-copy algorithm executed and preserved its
   source. Because the input topology is rejected, they are not character-quality evidence.
 - The sword proves explicit low-poly assembly, not arbitrary natural-language modeling.
-- Mixamo-style FBX import and pose-space retarget mechanics are tested on an external synthetic
-  FBX, but no real Adobe Mixamo service round trip is complete.
+- A real Adobe Mixamo Walking FBX now passes import, mapping, Action creation, preservation and
+  save/reopen. Its source motion is valid, but target arms fold across the torso and legs
+  over-cross because the current global rest-delta conversion is not compatible with the
+  source-T/target-A rest difference. The service round trip remains visually rejected.
 - Static FBX export is tested; rigged/animated Unity export is not.
 - The v3 Boolean candidate fixes bilateral fusion and is suitable for blockout review, but its
   43 ngons and 324 poles mean it is not yet evidence of deformation topology.

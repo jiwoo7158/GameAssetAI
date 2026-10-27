@@ -31,6 +31,8 @@ when character, rigging or export work has higher priority.
 - [ ] real Mixamo round-trip validation on an actual humanoid asset
 - [x] installable hash-pinned Mixamo-style FBX import and explicit pose-space retarget workflow
   with rollback, saved/reopened Action and visibly deformed M2 target evidence
+- [ ] replace the global rest-delta bake with parent-local rest-basis alignment; the 2026-10-28
+  real Walking FBX passes structure/preservation but fails visible arm and leg motion acceptance
 - [x] reusable authored pose Action creation workflow on a real Armature
 - [x] user-reviewed 36-frame upper-body Ready Loop v3 with stable lower body
 - [x] package and focused-test the front-axis-guarded pose Action authoring Skill

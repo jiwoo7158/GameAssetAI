@@ -57,6 +57,25 @@ existing narrow inspection/modification Skills constitute the missing 3D generat
   repeated the full background run and saved/reopened successfully. Router backup:
   `D:/AI/GameAssetAI-Workspace/.agents/skill-backups/blender-create-game-asset-20261027-pre-m3-router`.
 
+### Real Mixamo Walking compatibility check -- 2026-10-28
+
+- User-supplied Adobe Mixamo `Walking.fbx` (SHA-256
+  `6411f45c8a6461c3e83a61d8884d4a4970cbd9b3f0c5a1f3de308d5f34c6e677`) imports as one
+  `Armature`, one `Armature|mixamo.com|Layer0` Action over frames 1–32 and a complete required
+  17-role Mixamo mapping. The installed M3 Skill created and bound `GAA M3 Mixamo Walking`, kept
+  the source Armature/Action, preserved target geometry/UV/rest data and saved/reopened normally.
+- Structural results and comparison renders are under
+  `D:/Blender/MCP_Test/GameAssetAI_Mixamo_Walking_20261028`. The source character shows an
+  ordinary walk with arms at its sides, while the M2 target folds both arms across the torso and
+  over-crosses the legs. This is a **visual rejection**, not accepted Mixamo compatibility.
+- The evidence strongly indicates a rest-pose/bone-basis retarget defect: the current global
+  armature-space rest-delta method does not correctly reconcile the source and target rest poses.
+  Extra animated shoulders, `Spine1`, fingers and toes are reported, but the exact contribution of
+  those omitted roles has not yet been isolated.
+- Exact continuation: correct the existing M3 pose-space conversion with parent-local rest-basis
+  alignment, then rerun only this real 32-frame FBX and compare Source/Target views. Do not start
+  M4 export or mark the Mixamo round trip accepted until that visible gate passes.
+
 ## M2 Humanoid rig fitting and weight adaptation -- 2026-10-27
 
 - `blender-rig-character-base` schema v3 adds `EXPLICIT_LANDMARKS` for a local, non-empty,

@@ -56,7 +56,7 @@ def point_at(obj, location, target):
     obj.rotation_euler = (Vector(target) - obj.location).to_track_quat("-Z", "Y").to_euler()
 
 
-def render_frames(output, mesh, height):
+def render_frames(output, mesh, height, frames=(1, 6, 12)):
     scene = bpy.context.scene
     hidden = {obj: obj.hide_render for obj in scene.objects if obj != mesh}
     for obj in hidden: obj.hide_render = True
@@ -72,7 +72,7 @@ def render_frames(output, mesh, height):
     scene.render.resolution_y = 512; scene.render.resolution_percentage = 100
     scene.render.image_settings.file_format = "PNG"; scene.render.film_transparent = True
     result = {}
-    for frame in (1, 6, 12):
+    for frame in frames:
         scene.frame_set(frame)
         for view, location in {"front": (0, -height * 3.2, height * .51),
                                "side": (height * 3.2, 0, height * .51)}.items():
