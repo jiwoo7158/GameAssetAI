@@ -7,8 +7,9 @@ explicit proportions, pose and colors. Schema v1 preserves the original separate
 blockout. Schema v2 retains `VOLUME_ISLANDS` and refuses the rejected `VOXEL_CONNECTED` mode.
 Schema v3 adds guarded `BOOLEAN_CONNECTED`, which unions deliberately overlapping semantic
 volumes without whole-body voxel remeshing.
-It establishes a visible character blockout for a later topology/revision stage; it is not yet a
-direct product input for Armature, weight or animation stages.
+Schema v4 adds explicit `DEFORMATION_TEMPLATE`, which duplicates a hash-pinned local CC0 Mesh,
+preserves topology and UV loops, and applies bounded non-affine proportion controls. V4 remains
+experimental evidence, not accepted product input for general rigging or animation.
 
 ## Current status
 
@@ -23,6 +24,16 @@ micro-edge gates. A live four-view check
 showed separate legs and feet with intended ankle/hip/shoulder connections. This is agent-reviewed
 engineering evidence; user visual acceptance is still required, followed by a separate
 deformation-topology/UV/pose gate before downstream product rigging.
+
+The v4 path was validated with Blender Studio Human Base Meshes v1.4.1
+`GEO-body_male_stylized` (`CC0-1.0`), supplied by absolute path and exact SHA-256 rather than
+vendored. Compact and lanky outputs each retain 12,502 vertices, 12,500 quads, one closed
+component and 50,000 UV loops. A bad-hash request restored the exact datablock baseline; the
+external source hash stayed unchanged; both `.blend` files reopened in Blender 5.0.1. Armature
+probes exercised elbow, knee, shoulder and hip, but the lanky knee reached a minimum local
+face-area ratio of 0.052 and the generated-fixture rig needed validation-only arm refitting.
+Therefore the provider is implemented and representative, while the `deformation-ready`
+acceptance gate remains failed pending rig/weight adaptation.
 
 ## Output
 

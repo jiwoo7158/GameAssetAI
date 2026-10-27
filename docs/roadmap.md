@@ -43,8 +43,10 @@ when character, rigging or export work has higher priority.
 - [x] enforce the suspension in the character request validator and regression tests
 - [x] implement guarded v3 Boolean-connected topology with component, manifold and bilateral-clearance gates
 - [ ] complete user-visible multi-view acceptance of the v3 blockout
-- [ ] implement deformation-suitable character topology/revision with edge-flow,
-  self-intersection, UV and representative pose-deformation gates before product rigging
+- [x] implement an optional hash-pinned CC0 canonical-template path that preserves all-quad
+  topology and UVs across two non-affine proportions, with rollback and saved-file evidence
+- [ ] pass representative visual deformation acceptance; lanky knee compression and the
+  blockout-rig mismatch prevent promotion to accepted deformation-ready output
 - [x] install and enable the Blender Add-on in saved Blender 5.0 Preferences
 - [x] add guarded read-only Add-on source/installed version, compatibility and hash checking
 - [x] verify saved Preferences load and register the Add-on in a fresh Blender 5.0.1 process
@@ -91,11 +93,15 @@ approved.
   appendable, one-component/closed/all-quad, UV-complete and visually survived the bounded bend;
   MakeHuman offers stronger target breadth but its raw data did not prove a rigging handoff, and
   MPFB 2.0.18 remains uninstalled/unverified as an automation dependency.
-- Next decision, pending approval: specify a minimal optional canonical-template mode inside the
-  existing Skill, preserving the blockout mode and rollback contract. First prove non-affine
-  proportion adaptation and actual Armature/weight deformation on a duplicated CC0 template. Do
-  not vendor the asset, install MPFB, change the request schema or implement integration without
-  approval.
+- Implemented decision: schema v4 `DEFORMATION_TEMPLATE` is an explicit optional path inside the
+  existing Skill. It duplicates a hash-pinned Blender Studio v1.4.1 CC0 Mesh, retains topology and
+  UV loops, applies bounded regional proportions, records provenance and preserves v1/v3 native
+  paths. Compact and lanky Blender 5.0.1 Armature probes pass structural/reopen checks, but visual
+  acceptance remains open because the lanky knee reached a 0.052 local face-area ratio and the
+  generated-fixture rig does not fit this template without probe-only refitting.
+- Next implementation boundary: adapt/fit the existing rig and weights to an explicit existing
+  humanoid Mesh, then repeat elbow/knee/shoulder/hip visual gates. Do not add another topology
+  provider or call v4 product-ready until that gate passes.
 
 ### Retained Add-on/UI work
 

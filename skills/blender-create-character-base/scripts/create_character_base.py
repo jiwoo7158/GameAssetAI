@@ -2,6 +2,7 @@ import hashlib
 import json
 import math
 import uuid
+from pathlib import Path
 
 import bmesh
 import bpy
@@ -12,6 +13,11 @@ from validate_character_base_request import MATERIAL_KEYS, validate_request
 
 
 OWNER_KEY = "gameassetai_character_owner"
+SOURCE_KIND_KEY = "gameassetai_character_source_kind"
+SOURCE_SHA_KEY = "gameassetai_character_source_sha256"
+SOURCE_NAME_KEY = "gameassetai_character_source_name"
+SOURCE_VERSION_KEY = "gameassetai_character_source_version"
+SOURCE_LICENSE_KEY = "gameassetai_character_source_license"
 
 
 def _canonical(value):
@@ -283,6 +289,119 @@ def _cleanup_boolean_micro_edges(mesh, tolerance=1.0e-4):
     return before, _quadriflow_micro_edge_count(mesh, tolerance)
 
 
+def _smoothstep(value):
+    value = max(0.0, min(1.0, value))
+    return value * value * (3.0 - 2.0 * value)
+
+
+def _blend(low, high, factor):
+    return low + (high - low) * _smoothstep(factor)
+
+
+def _load_template_mesh(data, token):
+    template = data["template"]
+    source = Path(template["source_file"])
+    if not source.is_file() or source.is_symlink():
+        raise ValueError("template source_file must be an existing regular, non-symbolic .blend file")
+    actual_sha = hashlib.sha256(source.read_bytes()).hexdigest()
+    if actual_sha != template["source_sha256"]:
+        raise ValueError(
+            f"template source SHA-256 mismatch: expected {template['source_sha256']}, got {actual_sha}"
+        )
+    before_materials = {item.as_pointer() for item in bpy.data.materials}
+    before_images = {item.as_pointer() for item in bpy.data.images}
+    with bpy.data.libraries.load(str(source), link=False) as (source_data, target_data):
+        if template["mesh_name"] not in source_data.meshes:
+            raise ValueError(f"template Mesh does not exist: {template['mesh_name']}")
+        target_data.meshes = [template["mesh_name"]]
+    mesh = target_data.meshes[0] if target_data.meshes else None
+    if mesh is None:
+        raise RuntimeError("template Mesh could not be loaded")
+    _tag(mesh, token)
+    for material in bpy.data.materials:
+        if material.as_pointer() not in before_materials:
+            _tag(material, token)
+    for image in bpy.data.images:
+        if image.as_pointer() not in before_images:
+            _tag(image, token)
+    if mesh.shape_keys is not None:
+        raise ValueError("template Mesh with Shape Keys is not supported")
+    if mesh.materials:
+        raise ValueError("template Mesh must not carry external Material dependencies")
+    if not mesh.vertices or not mesh.polygons:
+        raise ValueError("template Mesh must be non-empty")
+    mesh.name = data["mesh_name"]
+    return mesh, actual_sha
+
+
+def _adapt_template_mesh(mesh, proportions):
+    """Apply a bounded smooth regional warp without changing topology or UV loops."""
+    coordinates = [vertex.co.copy() for vertex in mesh.vertices]
+    minimum_z = min(point.z for point in coordinates)
+    maximum_z = max(point.z for point in coordinates)
+    source_height = maximum_z - minimum_z
+    if source_height <= 0.0:
+        raise ValueError("template Mesh has no positive height")
+    target_height = proportions["height"]
+    shoulder_scale = proportions["shoulder_width_ratio"] / 0.34
+    hip_scale = proportions["hip_width_ratio"] / 0.24
+    depth_scale = proportions["body_depth_ratio"] / 0.17
+    limb_scale = proportions["limb_thickness_ratio"] / 0.055
+    head_scale = proportions["head_height_ratio"] / 0.17
+    target_head_base = 1.0 - proportions["head_height_ratio"]
+
+    def vertical(normalized):
+        landmarks = (
+            (0.0, 0.0), (0.075, 0.07), (0.29, 0.30), (0.52, 0.52),
+            (0.78, 0.78), (0.84, target_head_base), (1.0, 1.0),
+        )
+        for (source_a, target_a), (source_b, target_b) in zip(landmarks, landmarks[1:]):
+            if normalized <= source_b:
+                factor = (normalized - source_a) / (source_b - source_a)
+                return _blend(target_a, target_b, factor)
+        return 1.0
+
+    for vertex, original in zip(mesh.vertices, coordinates):
+        normalized = max(0.0, min(1.0, (original.z - minimum_z) / source_height))
+        if normalized < 0.52:
+            x_scale = 0.72 * hip_scale + 0.28 * limb_scale
+            y_scale = 0.45 * depth_scale + 0.55 * limb_scale
+        elif normalized < 0.78:
+            factor = (normalized - 0.52) / 0.26
+            x_scale = _blend(hip_scale, shoulder_scale, factor)
+            y_scale = depth_scale
+        elif normalized < 0.84:
+            x_scale = shoulder_scale
+            y_scale = _blend(depth_scale, head_scale, (normalized - 0.78) / 0.06)
+        else:
+            x_scale = head_scale
+            y_scale = head_scale
+        vertex.co.x = original.x * x_scale * target_height / source_height
+        vertex.co.y = original.y * y_scale * target_height / source_height
+        vertex.co.z = vertical(normalized) * target_height
+    mesh.update()
+    return {
+        "source_height": source_height,
+        "target_height": target_height,
+        "warp": "SMOOTH_REGIONAL_V1",
+    }
+
+
+def _assign_template_materials(mesh, materials, height):
+    for material in materials:
+        mesh.materials.append(material)
+    for polygon in mesh.polygons:
+        center = polygon.center
+        if center.z < height * 0.105:
+            polygon.material_index = 3
+        elif center.z < height * 0.54:
+            polygon.material_index = 2
+        elif center.z > height * 0.82 or abs(center.x) > height * 0.16:
+            polygon.material_index = 0
+        else:
+            polygon.material_index = 1
+
+
 def _rollback(token):
     for obj in list(bpy.data.objects):
         if obj.get(OWNER_KEY) == token:
@@ -293,6 +412,9 @@ def _rollback(token):
     for material in list(bpy.data.materials):
         if material.get(OWNER_KEY) == token and material.users == 0:
             bpy.data.materials.remove(material)
+    for image in list(bpy.data.images):
+        if image.get(OWNER_KEY) == token and image.users == 0:
+            bpy.data.images.remove(image)
     for collection in list(bpy.data.collections):
         if collection.get(OWNER_KEY) == token:
             bpy.data.collections.remove(collection)
@@ -336,50 +458,63 @@ def create_character(request, *, authorized=False):
         depth = h * p["body_depth_ratio"]
         limb = h * p["limb_thickness_ratio"]
         head_h = h * p["head_height_ratio"]
-        bm = bmesh.new()
+        topology_mode = data.get("topology_mode", "VOLUME_ISLANDS")
+        source_sha = None
+        adaptation = None
+        if topology_mode == "DEFORMATION_TEMPLATE":
+            mesh, source_sha = _load_template_mesh(data, token)
+            adaptation = _adapt_template_mesh(mesh, p)
+            _assign_template_materials(mesh, materials, h)
+        else:
+            bm = bmesh.new()
+            # V1 retains separate volumes; V2 may fuse overlapping volumes after construction.
+            _add_box(bm, (0, 0, h * 0.59), (hip, depth * 0.92, h * 0.10), 2)
+            _add_box(bm, (0, 0, h * 0.735), (shoulder * 0.82, depth, h * 0.22), 1)
+            _add_limb(bm, (0, 0, h * 0.82), (0, 0, h * 0.845), limb * 0.72, 0, 8)
+            _add_icosphere(bm, (0, 0, h * 0.91), (head_h * 0.72, head_h * 0.68, head_h), 0)
 
-        # V1 retains separate volumes; V2 may fuse overlapping volumes after construction.
-        _add_box(bm, (0, 0, h * 0.59), (hip, depth * 0.92, h * 0.10), 2)
-        _add_box(bm, (0, 0, h * 0.735), (shoulder * 0.82, depth, h * 0.22), 1)
-        _add_limb(bm, (0, 0, h * 0.82), (0, 0, h * 0.845), limb * 0.72, 0, 8)
-        _add_icosphere(bm, (0, 0, h * 0.91), (head_h * 0.72, head_h * 0.68, head_h), 0)
+            hip_x = hip * 0.27
+            knee_z, ankle_z = h * 0.32, h * 0.085
+            for side in (-1.0, 1.0):
+                upper_start = (side * hip_x, 0, h * 0.56)
+                knee = (side * hip_x * 1.04, 0, knee_z)
+                ankle = (side * hip_x * 1.02, 0, ankle_z)
+                _add_limb(bm, upper_start, knee, limb * 1.18, 1, 10)
+                _add_limb(bm, knee, ankle, limb, 0, 10)
+                _add_box(bm, (side * hip_x * 1.02, -depth * 0.18, h * 0.045), (limb * 2.15, depth * 1.25, h * 0.09), 3)
 
-        hip_x = hip * 0.27
-        knee_z, ankle_z = h * 0.32, h * 0.085
-        for side in (-1.0, 1.0):
-            upper_start = (side * hip_x, 0, h * 0.56)
-            knee = (side * hip_x * 1.04, 0, knee_z)
-            ankle = (side * hip_x * 1.02, 0, ankle_z)
-            _add_limb(bm, upper_start, knee, limb * 1.18, 1, 10)
-            _add_limb(bm, knee, ankle, limb, 0, 10)
-            # Meet the ankle volume deliberately; the older 0.07h-high boot left
-            # a 0.015h gap that global voxel remeshing used to conceal.
-            _add_box(bm, (side * hip_x * 1.02, -depth * 0.18, h * 0.045), (limb * 2.15, depth * 1.25, h * 0.09), 3)
+            shoulder_z = h * 0.79
+            shoulder_x = shoulder * 0.46
+            upper = h * 0.17
+            lower = h * 0.16
+            drop = 0.0 if data["pose"] == "T_POSE" else h * 0.085
+            for side in (-1.0, 1.0):
+                start = Vector((side * shoulder_x, 0, shoulder_z))
+                elbow = start + Vector((side * upper, 0, -drop))
+                hand = elbow + Vector((side * lower, 0, -drop * 0.72))
+                _add_limb(bm, start, elbow, limb, 1, 8)
+                _add_limb(bm, elbow, hand, limb * 0.86, 0, 8)
+                _add_icosphere(bm, hand + Vector((side * limb * 0.8, 0, -limb * 0.15)), (limb * 1.7, limb * 1.45, limb * 2.1), 0)
 
-        shoulder_z = h * 0.79
-        shoulder_x = shoulder * 0.46
-        upper = h * 0.17
-        lower = h * 0.16
-        drop = 0.0 if data["pose"] == "T_POSE" else h * 0.085
-        for side in (-1.0, 1.0):
-            start = Vector((side * shoulder_x, 0, shoulder_z))
-            elbow = start + Vector((side * upper, 0, -drop))
-            hand = elbow + Vector((side * lower, 0, -drop * 0.72))
-            _add_limb(bm, start, elbow, limb, 1, 8)
-            _add_limb(bm, elbow, hand, limb * 0.86, 0, 8)
-            _add_icosphere(bm, hand + Vector((side * limb * 0.8, 0, -limb * 0.15)), (limb * 1.7, limb * 1.45, limb * 2.1), 0)
-
-        mesh = _tag(bpy.data.meshes.new(data["mesh_name"]), token)
-        bm.to_mesh(mesh)
-        bm.free()
-        mesh.update()
+            mesh = _tag(bpy.data.meshes.new(data["mesh_name"]), token)
+            bm.to_mesh(mesh)
+            bm.free()
+            mesh.update()
+            for material in materials:
+                mesh.materials.append(material)
         obj = _tag(bpy.data.objects.new(data["object_name"], mesh), token)
         obj["gameassetai_character_request"] = _canonical(data)
         obj["gameassetai_character_front_axis"] = "-Y"
+        if topology_mode == "DEFORMATION_TEMPLATE":
+            template = data["template"]
+            obj[SOURCE_KIND_KEY] = "CC0_TEMPLATE"
+            obj[SOURCE_SHA_KEY] = source_sha
+            obj[SOURCE_NAME_KEY] = template["source_name"]
+            obj[SOURCE_VERSION_KEY] = template["source_version"]
+            obj[SOURCE_LICENSE_KEY] = template["license"]
+            for key in (SOURCE_KIND_KEY, SOURCE_SHA_KEY, SOURCE_NAME_KEY, SOURCE_VERSION_KEY, SOURCE_LICENSE_KEY):
+                mesh[key] = obj[key]
         collection.objects.link(obj)
-        for material in materials:
-            mesh.materials.append(material)
-        topology_mode = data.get("topology_mode", "VOLUME_ISLANDS")
         components_before = _component_count(mesh)
         if topology_mode == "VOXEL_CONNECTED":
             _voxel_connect(obj, h * 0.018)
@@ -392,10 +527,12 @@ def create_character(request, *, authorized=False):
                     "connected topology retained QuadriFlow-incompatible micro edges: "
                     f"{micro_edges_after}"
                 )
+        elif topology_mode != "DEFORMATION_TEMPLATE":
+            micro_edges_before = micro_edges_after = 0
         else:
             micro_edges_before = micro_edges_after = 0
         components_after = _component_count(mesh)
-        if topology_mode in {"VOXEL_CONNECTED", "BOOLEAN_CONNECTED"} and components_after != 1:
+        if topology_mode in {"VOXEL_CONNECTED", "BOOLEAN_CONNECTED", "DEFORMATION_TEMPLATE"} and components_after != 1:
             raise RuntimeError(f"connected topology produced {components_after} components")
         semantic_checks = _semantic_clearance(mesh, h)
         non_manifold_edges = _non_manifold_edge_count(mesh)
@@ -412,6 +549,13 @@ def create_character(request, *, authorized=False):
                 raise RuntimeError("connected topology created cross-side edges below the knee")
             if non_manifold_edges:
                 raise RuntimeError(f"connected topology produced {non_manifold_edges} non-manifold edges")
+        if topology_mode == "DEFORMATION_TEMPLATE":
+            if non_manifold_edges:
+                raise RuntimeError(f"template topology produced {non_manifold_edges} non-manifold edges")
+            if any(len(polygon.vertices) != 4 for polygon in mesh.polygons):
+                raise RuntimeError("template topology must remain all-quad")
+            if not mesh.uv_layers or len(mesh.uv_layers.active.data) != len(mesh.loops):
+                raise RuntimeError("template topology must retain one complete active UV layer")
 
         world_corners = [obj.matrix_world @ Vector(corner) for corner in obj.bound_box]
         minimum = [min(point[i] for point in world_corners) for i in range(3)]
@@ -437,6 +581,17 @@ def create_character(request, *, authorized=False):
             "request_sha256": validated["request_sha256"],
             "rigged": False,
         }
+        if topology_mode == "DEFORMATION_TEMPLATE":
+            receipt["template"] = {
+                "source_name": data["template"]["source_name"],
+                "source_version": data["template"]["source_version"],
+                "license": data["template"]["license"],
+                "mesh_name": data["template"]["mesh_name"],
+                "source_sha256": source_sha,
+            }
+            receipt["adaptation"] = adaptation
+            receipt["uv_layers"] = [layer.name for layer in mesh.uv_layers]
+            receipt["all_quad"] = all(len(polygon.vertices) == 4 for polygon in mesh.polygons)
         receipt["receipt_sha256"] = hashlib.sha256(_canonical(receipt).encode("utf-8")).hexdigest()
         return receipt
     except Exception:

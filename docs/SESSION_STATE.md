@@ -18,19 +18,42 @@ existing narrow inspection/modification Skills constitute the missing 3D generat
 
 ## Current priority
 
-1. Review the completed optional Kiln GLB Adapter result recorded below. Source, package and
-   installed Workspace hash alignment passed; refreshed-session discovery/use is the only
-   remaining operational gate. Do not route imported data into native v2.1 revision yet.
-2. Treat the completed canonical-topology evaluation recorded below as preserved research. Blender
-   Studio Human Base Meshes v1.4.1 remains the provisional topology candidate, but no asset or
-   dependency is integrated and character work is explicitly outside the active package.
-3. If later approved, design the smallest extension of `blender-create-character-base` that appends a
-   pinned CC0 Blender Studio body on a duplicated output and applies bounded semantic proportion
-   controls. Keep the current blockout path and rollback contract. Require a real Armature/weight
-   deformation gate before making the provider default.
-4. Re-run rig/deformation only on accepted deformation topology, then adapt one existing
-   representative humanoid and validate a real Mixamo round trip.
-5. Implement rigged/animated export and Unity import proof; keep new auxiliary/Unity-only work behind it.
+1. Next core implementation: fit/adapt a rig and weights to an explicit existing/template-derived
+   humanoid Mesh, then repeat elbow/knee/shoulder/hip visual gates. The generated-fixture rig is
+   not a general adapter.
+2. Keep v4 explicit/experimental until that visual gate passes; do not route it to Mixamo,
+   animation or export merely because its structural and save/reopen checks passed.
+3. Keep the completed Kiln GLB Adapter intact; refreshed-session discovery/use remains its only
+   operational gate and imported data must not enter native v2.1 revision without proof.
+4. After accepted deformation and rig adaptation, validate a real Mixamo round trip, then
+   rigged/animated export and Unity import.
+
+## Character canonical-template v4 result -- 2026-10-27
+
+- `blender-create-character-base` now has optional schema v4 `DEFORMATION_TEMPLATE`. It duplicates
+  an explicit absolute, non-symlink `.blend` Mesh after exact SHA-256 verification, requires
+  declared `CC0-1.0` provenance and `-Y` front, applies bounded `SMOOTH_REGIONAL_V1` proportions,
+  preserves connectivity/UV loops, assigns four materials and uses the existing owned rollback.
+  Native v1/v3 paths are unchanged; no asset is vendored or required.
+- Representative Blender 5.0.1 evidence is under
+  `D:/Blender/MCP_Test/GameAssetAI_DeformationReady_20261027/{compact,lanky}`. Each saved/reopened
+  result has 12,502 vertices, 12,500 quads, one closed component and 50,000 UV loops. Source SHA
+  `3c121505651140ceb4d69fd1d8923f7788ffadd81672f5be14845a5f2c75c137` remained unchanged;
+  an induced bad-hash request restored the exact Blender datablock baseline.
+- Both Armature probes exercised elbow, knee, shoulder and hip. Compact visual continuity is
+  usable as representative evidence. Lanky knee compression reached a 0.052 minimum local
+  face-area ratio, and the existing blockout-oriented rig required validation-only arm refitting.
+  Therefore implementation/structure passed, but `deformation-ready` visual acceptance did not.
+  Do not route v4 to product animation, Mixamo or export until rig fitting and weight adaptation
+  pass the repeated multi-view gate.
+- Portable experimental bundle:
+  `.local/source-bundles/blender-create-character-base-v4-experimental-20261027.zip`, SHA-256
+  `5a081c027f943f9cdf159f719aa0ee184fed9b1972b335a8c5e1661c5a35a9f3`.
+  The personal Workspace installation is hash-aligned with repository source. The previous
+  installation is preserved at
+  `D:/AI/GameAssetAI-Workspace/.agents/skill-backups/blender-create-character-base-20261027-pre-v4-experimental`.
+  Client discovery in a refreshed Codex session remains unverified; deployment alignment is not
+  discovery evidence.
 
 ## Static semantic revision work package — 2026-10-27
 

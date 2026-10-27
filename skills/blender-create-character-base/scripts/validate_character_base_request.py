@@ -1,12 +1,14 @@
 import hashlib
 import json
 import math
+from pathlib import Path
 
 
 SCHEMAS = {
     "gameassetai.character-base-request.v1",
     "gameassetai.character-base-request.v2",
     "gameassetai.character-base-request.v3",
+    "gameassetai.character-base-request.v4",
 }
 POSES = {"A_POSE", "T_POSE"}
 MATERIAL_KEYS = ("skin", "primary", "secondary", "boots")
@@ -30,8 +32,10 @@ def validate_request(request):
         raise ValueError("request must be an object")
     schema = request.get("schema")
     expected = {"schema", "scene_name", "character_name", "collection_name", "object_name", "mesh_name", "pose", "proportions", "colors", "policy"}
-    if schema in {"gameassetai.character-base-request.v2", "gameassetai.character-base-request.v3"}:
+    if schema in {"gameassetai.character-base-request.v2", "gameassetai.character-base-request.v3", "gameassetai.character-base-request.v4"}:
         expected.add("topology_mode")
+    if schema == "gameassetai.character-base-request.v4":
+        expected.add("template")
     if set(request) != expected:
         raise ValueError(f"request fields must be exactly {sorted(expected)}")
     if schema not in SCHEMAS:
@@ -42,6 +46,8 @@ def validate_request(request):
         raise ValueError("VOXEL_CONNECTED is suspended after unintended humanoid limb/foot fusion")
     if schema.endswith(".v3") and request["topology_mode"] != "BOOLEAN_CONNECTED":
         raise ValueError("v3 topology_mode must be BOOLEAN_CONNECTED")
+    if schema.endswith(".v4") and request["topology_mode"] != "DEFORMATION_TEMPLATE":
+        raise ValueError("v4 topology_mode must be DEFORMATION_TEMPLATE")
     for key in ("scene_name", "character_name", "collection_name", "object_name", "mesh_name"):
         if not isinstance(request[key], str) or not request[key].strip() or len(request[key]) > 128:
             raise ValueError(f"{key} must be a non-empty string up to 128 characters")
@@ -49,6 +55,32 @@ def validate_request(request):
         raise ValueError("collection_name, object_name and mesh_name must be distinct")
     if request["pose"] not in POSES:
         raise ValueError(f"pose must be one of {sorted(POSES)}")
+    if schema.endswith(".v4") and request["pose"] != "A_POSE":
+        raise ValueError("v4 template creation currently requires A_POSE")
+
+    if schema.endswith(".v4"):
+        template = request["template"]
+        template_fields = {
+            "source_file", "source_sha256", "mesh_name", "source_name",
+            "source_version", "license", "front_axis",
+        }
+        if not isinstance(template, dict) or set(template) != template_fields:
+            raise ValueError(f"template fields must be exactly {sorted(template_fields)}")
+        source_file = template["source_file"]
+        if not isinstance(source_file, str) or not Path(source_file).is_absolute() or Path(source_file).suffix.casefold() != ".blend":
+            raise ValueError("template.source_file must be an absolute .blend path")
+        digest = template["source_sha256"]
+        if (not isinstance(digest, str) or len(digest) != 64
+                or any(character not in "0123456789abcdef" for character in digest)):
+            raise ValueError("template.source_sha256 must be a lowercase SHA-256")
+        for key in ("mesh_name", "source_name", "source_version"):
+            value = template[key]
+            if not isinstance(value, str) or not value.strip() or len(value) > 128:
+                raise ValueError(f"template.{key} must be a non-empty string up to 128 characters")
+        if template["license"] != "CC0-1.0":
+            raise ValueError("v4 currently accepts only an explicitly identified CC0-1.0 template")
+        if template["front_axis"] != "-Y":
+            raise ValueError("template.front_axis must be -Y")
 
     proportions = request["proportions"]
     fields = {"height", "shoulder_width_ratio", "hip_width_ratio", "body_depth_ratio", "limb_thickness_ratio", "head_height_ratio"}

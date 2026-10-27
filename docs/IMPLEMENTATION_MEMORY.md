@@ -26,10 +26,12 @@ back to modeling, rigging or Mixamo work must not cause the Add-on UI work to be
 - `blender-create-game-asset`: routing-only natural-language entry. Do not host-promote it until
   the selected creation specialist passes a representative visible acceptance gate.
 - `blender-create-static-asset`: explicit primitive-based low-poly props/weapons/environment parts.
-- `blender-create-character-base`: V1 separate-volume humanoid blockout remains a fixture;
-  guarded v3 `BOOLEAN_CONNECTED` passes structural and agent multi-view gates but still needs user
-  acceptance. It remains Boolean blockout topology, not deformation-ready output.
-  `VOXEL_CONNECTED` remains suspended after unintended leg/foot fusion.
+- `blender-create-character-base`: V1 separate-volume and guarded v3 Boolean blockout paths remain
+  intact. Experimental v4 `DEFORMATION_TEMPLATE` duplicates an explicit hash-pinned Blender
+  Studio Human Base Meshes v1.4.1 CC0 Mesh, applies two tested non-affine proportion ranges,
+  preserves all-quad topology/UV loops, assigns materials and records provenance with owned
+  rollback. Lanky knee compression and generated-fixture rig mismatch prevent an accepted
+  deformation-ready claim. `VOXEL_CONNECTED` remains suspended after leg/foot fusion.
 - `blender-rig-character-base`: 18-bone generated-fixture rig mechanics are retained, but the
   rejected connected candidate is not valid product evidence.
 - `blender-adjust-character-joint-weights-copy`: the copy/preservation algorithm is retained as
@@ -73,11 +75,11 @@ integrated into the Add-on; advanced passes remain explicit opt-in tools.
 
 ## Active product gaps, in order
 
-1. Complete user-visible multi-angle acceptance of the guarded v3 blockout.
-2. Implement a deformation-suitable topology/revision stage with edge-flow, self-intersection,
-   UV and representative pose-deformation gates. Do not treat visual acceptance as rig readiness.
-3. Re-run rig and deformation work only on accepted deformation topology; then adapt a rig to one existing
-   representative humanoid mesh.
+1. Adapt/fit a rig and weights to an explicit template-derived or existing humanoid Mesh; the
+   current 18-bone generated-fixture rig is not a general adapter.
+2. Repeat representative elbow/knee/shoulder/hip visual gates and only then decide whether v4 may
+   advance from experimental structural evidence to accepted deformation-ready output.
+3. Complete user-visible acceptance without treating one test character as the product objective.
 4. Complete one real Mixamo import/round-trip/retarget validation.
 5. Implement rigged/animated FBX or GLB export and verify it in Unity.
 6. Broaden native static modeling and controlled semantic revision beyond primitive assembly.
@@ -106,12 +108,11 @@ Rigify; Rokoko's repository advertises MIT but its install may download librarie
 is AGPL while bundled base assets are CC0. Recheck exact version, license and Blender compatibility
 at the time of any proposed integration.
 
-The first implementation work package remains the existing `blender-create-character-base`
-deformation-topology extension. The current v3 asset is one available representative fixture, not
-a product requirement or a mandatory source artifact. The first QuadriFlow/ReQuad experiment is
-evidence for a source-surface prerequisite, not permission to integrate ReQuad or replace the
-generator: native QuadriFlow should be retried only after a semantic, consistently oriented,
-self-intersection-free source can be produced without global voxel bridging.
+The optional canonical-template work package is implemented in the existing
+`blender-create-character-base`; no new Skill or required dependency was added. The v3 and v4
+compact/lanky outputs are evidence fixtures, not product requirements. Automatic
+QuadriFlow/ReQuad integration remains rejected. The next core gate is existing-mesh rig fitting
+and weight adaptation, not another topology provider.
 
 ## Deferred but retained Add-on/UI backlog
 
