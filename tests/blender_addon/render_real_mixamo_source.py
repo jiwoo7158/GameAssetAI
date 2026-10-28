@@ -15,6 +15,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args(sys.argv[sys.argv.index("--") + 1:])
+    args.output.mkdir(parents=True, exist_ok=True)
     scene = bpy.context.scene
     collection = bpy.data.collections["GAA M3 Real Mixamo Source"]
     meshes = [obj for obj in collection.objects if obj.type == "MESH"]

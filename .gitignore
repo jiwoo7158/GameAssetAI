@@ -1,6 +1,7 @@
 # OS / editor
 .DS_Store
 Thumbs.db
+desktop.ini
 .vscode/
 .idea/
 
@@ -15,6 +16,8 @@ venv/
 tmp/
 dist/
 *.log
+artifacts/runs/
+validation-runs/
 
 # Blender temporary / backup files
 *.blend1

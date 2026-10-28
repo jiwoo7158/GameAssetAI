@@ -69,6 +69,29 @@ in isolation before integration, keep its provenance and license explicit, and p
 adapter behind an existing Skill boundary when that Skill already owns the task. Installation and
 integration require separate user approval.
 
+## Development artifact boundary
+
+Repository source and local run output are separate layers:
+
+```text
+Git repository: Skills + tests + small fixtures
+External inputs: user/external FBX, Blend, templates (path + hash + provenance)
+Development runs: <artifact-root>/<milestone>/<unique-run-id>/manifest.json
+Workspace: installed Skills + profiles + project mappings + recovery backups
+```
+
+`scripts/artifact_lifecycle.py` creates and verifies unique development runs and provides a
+manifest-gated cleanup operation. The normal default root is
+`D:/Blender/MCP_Test/GameAssetAI/runs`, but every command takes an explicit root so another machine
+or CI environment can choose its own location. A run manifest records the Skill/version, Git
+identity, external input hashes, output hashes, validation state, preservation class,
+reproduction command and deletion eligibility.
+
+`ACCEPTED_EVIDENCE` is a minimal representative record, not a requirement to retain every Blend or
+render. `TEMPORARY_RUN` is removable only after its manifest explicitly marks it deletion-eligible.
+`EXTERNAL_INPUT` and `WORKSPACE_STATE` are never cleanup-tool-owned. Historical paths in validation
+documents are citations and do not make those local files runtime dependencies.
+
 ## Responsibilities
 
 ### Installed skills

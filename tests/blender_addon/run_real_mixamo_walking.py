@@ -34,12 +34,36 @@ def parse_args():
     parser.add_argument("--artifact-root", type=Path, required=True)
     parser.add_argument("--source-fbx", type=Path, required=True)
     parser.add_argument("--skill-script-root", type=Path, required=True)
+    parser.add_argument("--require-external-inputs", action="store_true")
     return parser.parse_args(sys.argv[sys.argv.index("--") + 1:])
 
 
 def main():
     args = parse_args()
-    args.artifact_root.mkdir(parents=True, exist_ok=False)
+    missing = []
+    if not args.source_fbx.is_file():
+        missing.append(f"source FBX is absent: {args.source_fbx}")
+    if not (args.skill_script_root / "import_humanoid_animation.py").is_file():
+        missing.append(f"installed/source Skill script is absent: {args.skill_script_root}")
+    for name in ("GAA M2 Compact Rig", "GAA M2 Compact Mesh Object"):
+        if bpy.context.scene.objects.get(name) is None:
+            missing.append(f"loaded external target is absent: {name}")
+    if missing:
+        result = {"status": "skipped_external_input_unavailable", "reasons": missing}
+        print("GAMEASSETAI_REAL_MIXAMO " + json.dumps(result))
+        if args.require_external_inputs:
+            raise FileNotFoundError("; ".join(missing))
+        return
+    if args.artifact_root.exists():
+        manifest = args.artifact_root / "manifest.json"
+        if not manifest.is_file():
+            raise FileExistsError("existing artifact root is not a managed run")
+        identity = json.loads(manifest.read_text(encoding="utf-8"))
+        if (identity.get("schema") != "gameassetai.artifact-run.v1"
+                or identity.get("run_id") != args.artifact_root.name):
+            raise ValueError("artifact run manifest identity is invalid")
+    else:
+        args.artifact_root.mkdir(parents=True)
     sys.path.insert(0, str(args.skill_script_root))
     sys.path.insert(0, str(args.repo_root / "tests" / "blender_addon"))
     from import_humanoid_animation import import_and_retarget
@@ -146,7 +170,9 @@ def main():
             side_clearance[str(frame)]["hands_x"][0] - side_clearance[str(frame)]["hands_x"][1])
         side_clearance[str(frame)]["foot_separation"] = abs(
             side_clearance[str(frame)]["feet_x"][0] - side_clearance[str(frame)]["feet_x"][1])
-    images = render_frames(args.artifact_root, mesh, 1.58, frames=review_frames,
+    preview_root = args.artifact_root / "previews"
+    preview_root.mkdir(exist_ok=True)
+    images = render_frames(preview_root, mesh, 1.58, frames=review_frames,
                            views=("front", "side", "three_quarter"))
     blend_path = args.artifact_root / "m3-real-mixamo-walking.blend"
     bpy.ops.wm.save_as_mainfile(filepath=str(blend_path), check_existing=False)

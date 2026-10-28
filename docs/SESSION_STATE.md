@@ -18,13 +18,38 @@ existing narrow inspection/modification Skills constitute the missing 3D generat
 
 ## Current priority
 
-1. M3 `IN_PLACE` import/retarget is accepted for one real Adobe Mixamo Walking FBX and the bounded
+1. Artifact lifecycle is now standardized: repository source is authoritative, external inputs
+   remain path/hash-pinned, and development runs use explicit manifest-owned output directories.
+2. M3 `IN_PLACE` import/retarget is accepted for one real Adobe Mixamo Walking FBX and the bounded
    M2 17-role rig. The next core step is imported-Action inspection/cleanup before M4 export.
-2. Keep automatic mapping, existing-rig replacement, clothing/hair and corrective deformation
+3. Keep automatic mapping, existing-rig replacement, clothing/hair and corrective deformation
    outside the M3 proof.
-3. Keep the completed Kiln GLB Adapter intact; refreshed-session discovery/use remains its only
+4. Keep the completed Kiln GLB Adapter intact; refreshed-session discovery/use remains its only
    operational gate and imported data must not enter native v2.1 revision without proof.
-4. Perform imported-Action cleanup, then rigged/animated export plus Unity import validation.
+5. Perform imported-Action cleanup, then rigged/animated export plus Unity import validation.
+
+## Artifact lifecycle gate -- 2026-10-28
+
+- `scripts/artifact_lifecycle.py` creates unique, hash-bound development run manifests, verifies
+  external inputs and outputs, and only cleans exact manifest-owned `TEMPORARY_RUN` directories
+  explicitly marked deletion-eligible. Cleanup defaults to dry-run and rejects links, junctions,
+  out-of-root targets and protected Repository/Workspace intersections.
+- Standard development output root is `D:/Blender/MCP_Test/GameAssetAI/runs`; callers may supply
+  another root. This convention does not constrain normal user asset destinations.
+- Active Skill/test code has no required `D:/Blender/MCP_Test` or past `D:/AI` experiment path.
+  Real Mixamo, CC0 template and Kiln files are optional `EXTERNAL_INPUT` data and must be supplied
+  explicitly with hashes. Historical absolute paths below are evidence citations only.
+- M3 visual review recording now requires reviewer, timezone-bearing review time, explicit
+  decision, every reviewed image path/hash and explicit findings. Automatic structural success
+  remains `visual_review_required` until such a receipt exists.
+- The installed M3.3 Skill was rerun from an explicit Mixamo FBX and M2 Blend into a newly created
+  standard run. Its 17 generated files were fully registered and verified; cleanup dry-run and
+  apply then removed only that 31,906,707-byte temporary run. An earlier lifecycle probe also
+  removed its 31,903,400-byte owned temporary run.
+- Eight confirmed M3 synthetic, rejected, intermediate and installed-duplicate directories were
+  removed from `D:/Blender/MCP_Test`, freeing 168,813,599 bytes. Total cleanup in this work package
+  was 232,623,706 bytes (221.85 MiB). The accepted Walking evidence, M2 input, user Mixamo FBX,
+  Workspace/install backups, Kiln runtime/source and curated topology/retopology evidence remain.
 
 ## M3 Humanoid animation import and retarget implementation -- 2026-10-27
 
@@ -37,15 +62,16 @@ existing narrow inspection/modification Skills constitute the missing 3D generat
   targets and ambiguous imports are refused.
 - Added a bounded Mixamo-handoff exporter for one explicit Mesh and Armature. Its Blender 5.0.1
   re-import has one Mesh, one 18-bone Armature, a valid Armature modifier and one UV layer.
-- Focused evidence is under
-  `D:/Blender/MCP_Test/GameAssetAI_HumanoidAnimation_M3_20261027`: an external synthetic
+- The focused synthetic run formerly stored under
+  `D:/Blender/MCP_Test/GameAssetAI_HumanoidAnimation_M3_20261027` showed that an external synthetic
   Mixamo-signature FBX was imported through the real FBX API, retargeted to the M2 Compact Mesh,
   visibly changed the evaluated Mesh at frames 1/6/12, rendered front/side evidence, saved and
   reopened with its Action and retained source Collection. An induced post-import mapping failure
   restored the exact original datablock and animation baseline, including removal of fake-user
   imported Actions.
-- That synthetic evidence remains the rollback/mechanics baseline; the real service evidence and
-  corrected conversion are recorded immediately below.
+- Its generated files and two duplicate synthetic/install runs were removed as reproducible
+  `TEMPORARY_RUN` output on 2026-10-28. The Repository test and Skill implementation remain the
+  rollback/mechanics baseline; real service evidence is recorded immediately below.
 - Portable bundle: `.local/source-bundles/blender-import-humanoid-animation-m3.3-20261028.zip`,
   SHA-256 `6a23d186c75b43759cce508e4711e4438d78144ff396fe1084cfcb9e8d17c4e3`.
   The new Skill and updated router are source/Workspace hash-aligned; the installed Skill itself
@@ -59,11 +85,13 @@ existing narrow inspection/modification Skills constitute the missing 3D generat
   `Armature`, one `Armature|mixamo.com|Layer0` Action over frames 1-32 and a complete required
   17-role Mixamo mapping. The installed M3 Skill created and bound `GAA M3 Mixamo Walking`, kept
   the source Armature/Action, preserved target geometry/UV/rest data and saved/reopened normally.
-- The first global-rest-delta result under
-  `D:/Blender/MCP_Test/GameAssetAI_Mixamo_Walking_20261028` remains rejected: it folded arms across
+- The first global-rest-delta result formerly stored under
+  `D:/Blender/MCP_Test/GameAssetAI_Mixamo_Walking_20261028` was rejected: it folded arms across
   the torso and over-crossed legs. Direct-parent probes showed ordinary Source bones matched
   `matrix_basis`, while omitted `Spine1`/shoulder chains and Source-T/Target-A rest differences
-  exposed the global conversion defect.
+  exposed the global conversion defect. That rejected output and four intermediate/installed
+  duplicates were removed as `TEMPORARY_RUN` data after the defect and accepted replacement were
+  recorded.
 - `PARENT_LOCAL_SWING_TWIST_V3` now collapses mapped-parent chains, maps each evaluated Source bone
   direction, retains Target rest roll, transfers Source local-Y twist and solves the Target basis
   with `Bone.convert_local_to_pose()`. The receipt reports collapsed `Spine1`, `LeftShoulder` and
@@ -74,8 +102,9 @@ existing narrow inspection/modification Skills constitute the missing 3D generat
   error `0.0` radians). Frames 1/8/16/24/32 passed Source/Target Front/Side/Three-quarter review:
   arms no longer cross, arm/leg phases correspond, legs do not over-cross, and no severe tear or
   collapse is visible. Saved Blend and retained Source/Action reopen successfully.
-- Visual review receipt SHA-256:
-  `f62f79e06f9c93936dadbede5523cdcafd77217f36e20139a773daed53bad22e`.
+- Strengthened visual review receipt `m3-real-mixamo-visual-review-v2.json` records reviewer,
+  timezone-bearing review time and hashes of all 15 reviewed images; review SHA-256:
+  `c32db1c904d7379c1f845d6909380d13c4f1f99631ca4d4e9e6aef592759cbf6`.
   Decision: real Mixamo `IN_PLACE` import/retarget is accepted for the bounded M2-compatible
   17-role scope. `TRANSFER` root motion, fingers/toes/facial animation and arbitrary rigs remain
   unapproved. Exact continuation is imported-Action inspection/cleanup, not M4 export yet.

@@ -312,3 +312,27 @@ target is resolved from the caller's working directory. Use an absolute target f
 See `docs/workspace-contract.md` for creation, `--force` risks, and Profile examples.
 These tools do not install MCP, manage Blender, or access mapped external projects.
 See `docs/skill-packaging.md` for payload/bundle usage and their verification boundaries.
+
+## Development artifact runs
+
+`artifact_lifecycle.py` keeps development outputs separate from source. It creates a unique run
+with `manifest.json`, `previews/` and `logs/`, records external input hashes, verifies registered
+outputs, and cleans only manifest-owned temporary runs. Cleanup is a dry-run unless `--apply` is
+present.
+
+```powershell
+python -B scripts\artifact_lifecycle.py create `
+  --root "D:\Blender\MCP_Test\GameAssetAI\runs" --milestone M3 `
+  --case walking-cleanup --purpose "Imported Action cleanup validation" `
+  --skill blender-import-humanoid-animation --skill-version 3.3 --repo . `
+  --input "EXTERNAL_INPUT:C:\path\to\Walking.fbx::Adobe Mixamo user download::Adobe Terms::Download again from the user's Mixamo account"
+
+python -B scripts\artifact_lifecycle.py verify --run "<created-run-directory>"
+python -B scripts\artifact_lifecycle.py cleanup `
+  --root "D:\Blender\MCP_Test\GameAssetAI\runs" --run "<temporary-run>" `
+  --protect "D:\GitHub\GameAssetAI" --protect "D:\AI\GameAssetAI-Workspace"
+```
+
+Use `finalize` to register explicit `CLASS:relative-path` artifacts, the validation status,
+reproduction command, preservation class and optional deletion eligibility. External inputs and
+Workspace state are never owned by this cleanup workflow.

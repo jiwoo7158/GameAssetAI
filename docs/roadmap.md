@@ -56,9 +56,8 @@ when character, rigging or export work has higher priority.
 - [x] verify saved Preferences load and register the Add-on in a fresh Blender 5.0.1 process
 - [x] add hash-bound transactional Add-on update/rollback with preserved prior/replaced versions
 - [x] rig/deformation review on the compact and lanky canonical-template outputs with installed-Skill proof
-- [ ] real Mixamo import/round-trip/retarget proof
-- [x] bounded local FBX import/retarget implementation; synthetic external-FBX evidence does not
-  satisfy the unchecked real-service proof above
+- [x] real Mixamo-downloaded Walking FBX import and bounded `IN_PLACE` retarget proof
+- [ ] M2-character upload/download service round trip and `TRANSFER` root-motion proof
 - [ ] rigged/animated FBX or GLB export and Unity import proof
 - [ ] reviewed existing-Action copy editing and motion-template workflow
 - [ ] broader native static modeling and controlled semantic revision
@@ -116,6 +115,14 @@ approved.
   real Adobe Mixamo Walking FBX passed 32-frame structure/direction/clearance checks, save/reopen
   and explicit Front/Side/Three-quarter acceptance on M2 Compact for `IN_PLACE`.
 - Next implementation boundary: imported Action inspection/cleanup, then animated engine export.
+
+### Artifact lifecycle gate -- 2026-10-28
+
+- [x] make Repository source independent of private validation-output directories
+- [x] add unique run manifests, verification and manifest-gated dry-run/apply cleanup
+- [x] separate external inputs and Workspace state from cleanup-owned outputs
+- [x] require explicit reviewer/time/image hashes/findings for M3 visual acceptance receipts
+- [ ] use the standard run structure for each subsequent imported-Action cleanup validation
 
 ### Retained Add-on/UI work
 

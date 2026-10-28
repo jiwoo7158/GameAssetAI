@@ -49,6 +49,10 @@ back to modeling, rigging or Mixamo work must not cause the Add-on UI work to be
   transfer through `Bone.convert_local_to_pose()`, independent bound Action, owned Source
   Collection and rollback. A real Adobe Mixamo Walking FBX passed 32-frame automatic checks and
   explicit multi-view acceptance on the M2 Compact rig for `IN_PLACE`.
+  Automatic results remain structurally qualified until a separate review receipt records an
+  explicit reviewer, review time, decision and exact image hashes. Generated failed/intermediate
+  runs are disposable; the Repository implementation/tests and minimal accepted evidence are the
+  durable baseline.
 
 ### Existing-asset support
 

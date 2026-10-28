@@ -12,7 +12,7 @@ from validate_unity_lodgroup_request import SCHEMA, validate_unity_lodgroup_requ
 
 def valid_request():
     return {"schema": SCHEMA,
-            "project_path": r"C:\Users\jiwoo\UnityProject\GameAssetAI_UnityWorkbench",
+            "project_path": r"C:\GameAssetAIFixture\UnityProject",
             "prefab_asset_path": "Assets/Blender/Tree.prefab",
             "levels": [
                 {"level_index": 0, "renderer_paths": ["LOD0"],

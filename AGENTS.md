@@ -223,6 +223,29 @@ The Blender Add-on is a retained core product layer. Do not infer availability f
 or session-only registration. Persistent Preferences installation, version/update verification,
 and survival in a fresh Blender process are required before calling it installed or available.
 
+## Development artifact lifecycle
+
+The Git repository is the only source baseline for reusable Skill code, tests and small legal
+fixtures. Local `.blend`, `.fbx`, `.png`, `.json`, ZIP and experiment directories are evidence or
+inputs, never implicit runtime dependencies.
+
+- Put new development/validation outputs under an explicit artifact root, normally
+  `D:/Blender/MCP_Test/GameAssetAI/runs`, using `scripts/artifact_lifecycle.py`. Do not force this
+  location on normal user asset output.
+- Give each run a unique directory and manifest. Never silently overwrite an earlier run.
+- Classify files as `PERMANENT_SOURCE`, `ACCEPTED_EVIDENCE`, `TEMPORARY_RUN`, `EXTERNAL_INPUT`, or
+  `WORKSPACE_STATE`. Only source belongs automatically in Git; retain accepted evidence minimally.
+- Treat user-supplied Mixamo files, external templates and original assets as `EXTERNAL_INPUT`.
+  Record path/hash/provenance when used; do not copy or delete them implicitly.
+- Active tests must accept external input and output paths. If an optional binary input is absent,
+  skip or refuse with the exact reason instead of depending on a developer's private directory.
+- Cleanup is dry-run by default. Delete only an exact, manifest-owned `TEMPORARY_RUN` explicitly
+  marked deletion-eligible; never follow links/junctions or intersect the repository, Workspace,
+  personal profiles, external projects, or original inputs.
+- At work-package closeout, verify accepted evidence, remove owned disposable intermediates, and
+  record reproduction instructions. Historical absolute paths may remain as evidence citations,
+  but must not be described as required current inputs.
+
 ## Completion policy
 
 A skill is not "done" because its `SKILL.md` exists.
