@@ -1,6 +1,6 @@
 ---
 name: blender-create-game-asset
-description: Route a natural-language Blender game-asset request into the existing static creation, character base, rig, imported-humanoid animation, Action, inspection, revision and optional 2D/export Skills. Use when the user asks to create or continue a character, weapon, prop, enemy or environment asset and has not named a narrower Skill. This router coordinates reviewed stages; it does not replace their scripts or claim unsupported general modeling, Mixamo web automation or rigged export.
+description: Route a natural-language Blender game-asset request into the existing static creation, character base, rig, imported-humanoid animation, game-Action preparation, inspection, revision and optional 2D/export Skills. Use when the user asks to create or continue a character, weapon, prop, enemy or environment asset and has not named a narrower Skill. This router coordinates reviewed stages; it does not replace their scripts or claim unsupported general modeling, Mixamo web automation or rigged export.
 ---
 
 # Blender Create Game Asset
@@ -20,6 +20,8 @@ Use these creation entries:
 - reviewed owned character base that needs its first rig: `blender-rig-character-base`;
 - explicit hash-pinned Mixamo-style FBX Action for an empty compatible Humanoid rig:
   `blender-import-humanoid-animation`;
+- explicit range/FPS cleanup of an imported or existing Armature Action into a new independent
+  game clip: `blender-prepare-game-action`;
 - explicit reviewed key poses on a suitable empty Armature: `blender-author-pose-action`.
 
 For characters, use `VOLUME_ISLANDS` for separated blockouts or guarded v3
@@ -38,6 +40,12 @@ path/hash, exact target Mesh/Armature, explicit source/target role mappings, fra
 root-motion policy. Route the complete request through `blender-import-humanoid-animation`; do
 not ask the user to invoke its internal inspection and Action helpers one by one. The Skill does
 not upload to, log into or download from Adobe Mixamo.
+
+For requests such as "cut frames 1-24 into a separate Action starting at frame 1", inspect the
+exact Armature, Action/slot, range, source/target FPS and root bone. Use strict
+`blender-extract-action-range` when its exact-boundary LINEAR contract accepts the Action;
+otherwise route once through `blender-prepare-game-action`. Do not silently repair a loop, convert
+root motion, bind/replace the current Action or edit NLA.
 
 Keep one visible current candidate and recoverable checkpoints. Do not accumulate every failed
 revision in the Scene. Continue through multiple stages when the user's request already covers

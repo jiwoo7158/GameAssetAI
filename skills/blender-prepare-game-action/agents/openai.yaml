@@ -1,0 +1,4 @@
+interface:
+  display_name: "Prepare Game Action"
+  short_description: "Extract and bake a protected Blender Action clip"
+  default_prompt: "Prepare the selected Armature Action as an independent game clip while preserving the source."

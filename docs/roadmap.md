@@ -59,7 +59,8 @@ when character, rigging or export work has higher priority.
 - [x] real Mixamo-downloaded Walking FBX import and bounded `IN_PLACE` retarget proof
 - [ ] M2-character upload/download service round trip and `TRANSFER` root-motion proof
 - [ ] rigged/animated FBX or GLB export and Unity import proof
-- [ ] reviewed existing-Action copy editing and motion-template workflow
+- [x] representative imported/existing Action range/FPS preparation with evaluated-pose baking,
+  exact redundant-key cleanup, source preservation and saved/reopened real Walking evidence
 - [ ] broader native static modeling and controlled semantic revision
 
 ### Proposed planning boundary for the next implementation
@@ -114,7 +115,12 @@ approved.
   mapping, parent-local swing/twist conversion and a new bound Action with owned rollback. The
   real Adobe Mixamo Walking FBX passed 32-frame structure/direction/clearance checks, save/reopen
   and explicit Front/Side/Three-quarter acceptance on M2 Compact for `IN_PLACE`.
-- Next implementation boundary: imported Action inspection/cleanup, then animated engine export.
+- M3.4 result: `blender-prepare-game-action` creates an independent unbound game clip from one
+  explicit Armature Action using evaluated-pose range/FPS sampling. It supports Bezier/missing
+  boundary keys beyond the strict extractor, preserves source references, bounds sampled-pose
+  error and reports loop/root facts without automatic repair. Real Walking frames 1-24 passed
+  representative Mesh comparison and reopen; the partial range is explicitly not a seamless loop.
+- Next implementation boundary: animated engine export and Unity import validation.
 
 ### Artifact lifecycle gate -- 2026-10-28
 
@@ -122,7 +128,7 @@ approved.
 - [x] add unique run manifests, verification and manifest-gated dry-run/apply cleanup
 - [x] separate external inputs and Workspace state from cleanup-owned outputs
 - [x] require explicit reviewer/time/image hashes/findings for M3 visual acceptance receipts
-- [ ] use the standard run structure for each subsequent imported-Action cleanup validation
+- [x] use the standard run structure for imported-Action cleanup validation
 
 ### Retained Add-on/UI work
 

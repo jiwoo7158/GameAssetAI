@@ -1,4 +1,4 @@
-# Current Session State — 2026-10-27
+# Current Session State — 2026-10-28
 
 This is the active continuation checkpoint. The former 2,994-line append-only log is preserved
 unchanged at `docs/session-history/SESSION_STATE-through-2026-10-25.md` (SHA-256
@@ -20,13 +20,48 @@ existing narrow inspection/modification Skills constitute the missing 3D generat
 
 1. Artifact lifecycle is now standardized: repository source is authoritative, external inputs
    remain path/hash-pinned, and development runs use explicit manifest-owned output directories.
-2. M3 `IN_PLACE` import/retarget is accepted for one real Adobe Mixamo Walking FBX and the bounded
-   M2 17-role rig. The next core step is imported-Action inspection/cleanup before M4 export.
+2. M3.4 imported-Action cleanup is representative on the accepted real Walking result: explicit
+   range/FPS sampling now produces an independent unbound game clip without changing its source.
 3. Keep automatic mapping, existing-rig replacement, clothing/hair and corrective deformation
    outside the M3 proof.
 4. Keep the completed Kiln GLB Adapter intact; refreshed-session discovery/use remains its only
    operational gate and imported data must not enter native v2.1 revision without proof.
-5. Perform imported-Action cleanup, then rigged/animated export plus Unity import validation.
+5. Next core milestone is M4 rigged/animated export plus Unity import validation.
+
+## M3.4 game Action preparation -- 2026-10-28
+
+- Work package: advance `REQ-ANIM`, `REQ-SAFE` and `REQ-WORKFLOW` by filling the user-facing gap
+  between imported/existing Action inspection and engine export. Reuse the slot-aware animation
+  inventory, Action fingerprint/reference helpers, strict range extractor where eligible, loop/root
+  inspectors and later binding/replacement Skills. Non-goals were retarget changes, automatic loop
+  repair, root-motion conversion, NLA editing, IK/constraint baking and engine export.
+- Added `blender-prepare-game-action` with request schema
+  `gameassetai.game-action-preparation-request.v1`. It supports one explicit local Armature and
+  Object-slot pose Action, explicit source range/FPS, target FPS, output start 0/1, evaluated-pose
+  sampling, quaternion normalization/sign continuity and `NONE` or `EXACT_REDUNDANT` key cleanup.
+  The result is a fake-user-protected independent Action and remains unbound.
+- The focused Blender 5.0.1 fixture accepted a Bezier Action with missing range-boundary keys,
+  rebased frames 2-4 to 1-3, removed only exact redundant scalar samples, and passed collision,
+  authorization, induced-failure rollback, source/reference preservation and full fixture cleanup.
+- Representative run:
+  `D:/Blender/MCP_Test/GameAssetAI/runs/m3.4/20261028T140456Z-real-mixamo-action-cleanup-c9ab7468`.
+  It prepared frames 1-24 of `GAA M3 Mixamo Walking` at 30 FPS as
+  `GAA M3 Walking Clip 01-24`, retained 2,385 keys after removing 1,695 exact redundant samples,
+  and matched the source Mesh at frames 1/12/24 within `2.53e-7` Blender units. Mesh movement was
+  `0.451`; six Front/Side previews were rendered and inspected, the Blend reopened with range
+  1-24 and the original Walking Action still bound. Artifact verification passed for eight files.
+- Loop/root results are inspection-only: endpoint rotation delta is `0.796` radians and boundary
+  angular-velocity delta is `1.288` radians/second, so this 1-24 extraction is explicitly not
+  approved as seamless. Pelvis translation delta is zero under the accepted `IN_PLACE` source.
+- Implementation evidence is `representative`, not engine-proven. Approximate/perceptual key
+  reduction, automatic loop repair, root-motion conversion, constraints/drivers, object/custom
+  channels, NLA editing and persistent binding remain outside the contract.
+- Packaged source bundle:
+  `.local/source-bundles/blender-prepare-game-action-v1.0.0-m3.4-20261028.zip`, SHA-256
+  `37b4fcc463c7d795e246eb2f1cd92fd6c347680197b74e514109fbc1d3e584dd`. The new Skill and
+  updated `blender-create-game-asset` router are source/Workspace hash-aligned. The installed
+  Skill repeated the full focused Blender Background fixture. The prior router is preserved at
+  `D:/AI/GameAssetAI-Workspace/.agents/skill-backups/blender-create-game-asset-20261028-pre-m3.4`.
 
 ## Artifact lifecycle gate -- 2026-10-28
 

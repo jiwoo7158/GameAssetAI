@@ -53,6 +53,13 @@ back to modeling, rigging or Mixamo work must not cause the Add-on UI work to be
   explicit reviewer, review time, decision and exact image hashes. Generated failed/intermediate
   runs are disposable; the Repository implementation/tests and minimal accepted evidence are the
   durable baseline.
+- `blender-prepare-game-action`: user-facing non-destructive clip preparation for one explicit
+  Armature Action. It evaluates an explicit range at explicit source/target FPS, rebases to frame
+  0 or 1, bakes sign-continuous quaternion pose channels, optionally removes only exact redundant
+  scalar samples, reports loop/root metrics and returns an independent unbound Action. A real
+  accepted Mixamo-retargeted Walking range passed Mesh-pose comparison, save/reopen and multi-frame
+  preview evidence. It does not repair loops, convert root motion, edit NLA or approximately reduce
+  keys.
 
 ### Existing-asset support
 
@@ -89,9 +96,8 @@ integrated into the Add-on; advanced passes remain explicit opt-in tools.
 
 ## Active product gaps, in order
 
-1. Inspect and clean the accepted imported Walking Action while preserving Source rig/animation.
-2. Implement rigged/animated FBX or GLB export and verify it in Unity.
-3. Broaden native static modeling and controlled semantic revision beyond primitive assembly.
+1. Implement rigged/animated FBX or GLB export and verify it in Unity.
+2. Broaden native static modeling and controlled semantic revision beyond primitive assembly.
 
 Do not insert new collider, LODGroup, auxiliary pass or Unity-only work ahead of these gaps unless
 a concrete user request requires it.

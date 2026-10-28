@@ -8,7 +8,7 @@
 | New low-poly humanoid | `blender-create-character-base` v3 `BOOLEAN_CONNECTED` blockout | topology/revision and deformation-readiness gate, then rigging and reviewed Action authoring |
 | Existing static Mesh | `blender-inspect-asset` and `blender-validate-static-mesh` | guarded cleanup/transform/pivot/LOD or static export |
 | Existing character or Armature | `blender-inspect-asset` and `blender-inspect-humanoid` | animation inventory, Mixamo preflight or explicit retarget path |
-| Existing/imported animation | `blender-inspect-animation` | copy/range/loop/root-motion/retarget/bake chain |
+| Existing/imported animation needing a game clip | `blender-prepare-game-action` after inventory | strict range extraction when eligible; otherwise evaluated-pose range/FPS bake with loop/root inspection |
 | Explicit Mixamo-style FBX to apply to a compatible empty Humanoid rig | `blender-import-humanoid-animation` | inspect the new Action, then optional cleanup/rendering |
 | Reviewed rig needing a new simple Action | `blender-author-pose-action` | evaluated loop review and Action rendering |
 
@@ -33,6 +33,9 @@
 - Mixamo-style FBX import and explicit pose-space sampled retargeting are implemented for the
   bounded 17-role mapping, but Adobe login/upload/download remains manual and no real Mixamo
   service round trip is proven.
+- Game Action preparation supports explicit pose-bone Actions, sampled range/FPS rebasing and
+  exact redundant-key cleanup. Seamless-loop repair, root-motion conversion, NLA editing and
+  approximate key reduction remain outside its contract.
 - The current FBX exporter is static-only. Rigged/animated Unity export remains unimplemented.
 
 If a request crosses one of these gaps, complete the supported portion, preserve its output, and
