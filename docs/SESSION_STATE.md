@@ -50,6 +50,17 @@ existing narrow inspection/modification Skills constitute the missing 3D generat
   removed from `D:/Blender/MCP_Test`, freeing 168,813,599 bytes. Total cleanup in this work package
   was 232,623,706 bytes (221.85 MiB). The accepted Walking evidence, M2 input, user Mixamo FBX,
   Workspace/install backups, Kiln runtime/source and curated topology/retopology evidence remain.
+- Legacy cleanup then removed all 50 GameAssetAI-generated loose files from the `MCP_Test` root,
+  including the September/early-October PNG/JSON outputs, superseded Character/Workbench Blends,
+  and the inspected GAA-owned `MCPTest.blend/.blend1`. It also removed the GitHub-install E2E copy,
+  M2 installed-smoke duplicate, Kiln adapter/render intermediates, Canonical evaluation renders and
+  duplicate MakeHuman files, plus M1 Compact/Lanky generated outputs. This second cleanup removed
+  145 files across 9 deleted directories and freed 29,143,778 bytes (27.79 MiB).
+- Retained inputs/evidence are the actual M2 Compact/Lanky results, accepted M3 Walking evidence,
+  the M1 CC0 template Blend, the Canonical CC0/source bundle and minimal report, and the Kiln
+  source/GLBs/runtime. The Retopology evidence remains because an earlier explicit preservation
+  decision covered its three selected runs/report/ReQuad ZIP; deleting it now requires an explicit
+  superseding decision.
 
 ## M3 Humanoid animation import and retarget implementation -- 2026-10-27
 
@@ -223,16 +234,14 @@ the current character “had to be maintained” was an incorrect attribution. P
 work through verified checkpoints, but do not convert that safety choice into a claimed user
 constraint.
 
-## Current environment facts
+## Historical environment facts (superseded)
 
 - Repository: `D:/GitHub/GameAssetAI`.
-- Repository has no `.git` directory in the current workspace, so Git status/history is
-  unavailable here.
-- Blender 5.0.1 is connected through MCP.
-- Blender MCP Add-on protocol is 13 while the server expects 15; execution fallback works.
-- Current Blender file: `D:/Blender/MCP_Test/MCPTest.blend`.
-- Original Blender Scene `Scene` remains preserved with `Cube`, `Camera`, `Light`. The active
-  Scene is the separate character Workbench described below.
+- The following lower character/Scene entries describe historical development sessions, not
+  current live Blender state. The GAA-owned `MCPTest.blend`, its `.blend1`, loose Character
+  checkpoints and loose preview outputs were deleted in the 2026-10-28 legacy cleanup after
+  inspection and reference checks. Repository tests and the retained M1/M2/M3 inputs/evidence are
+  the reproduction path.
 - The Add-on is installed and enabled in saved Blender 5.0 Preferences. A fresh Blender 5.0.1
   process proved automatic enablement and panel/property registration.
 - External asset libraries and 3D generators reported by MCP are disabled.

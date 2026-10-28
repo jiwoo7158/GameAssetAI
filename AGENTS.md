@@ -39,7 +39,9 @@ Existing models, rigs, animations, Blender scenes, Unity projects, and Unreal pr
 Current scope decision (2026-09-21): do not develop Unreal-specific support or
 external/public Skill distribution. Keep local Skill installation and regression
 testing so the personal GameAssetAI-Workspace remains usable. Do not delete or
-relocate any pre-existing Unreal project or historical development artifacts.
+relocate any pre-existing Unreal project, user source asset, Git-tracked decision history, or
+non-reproducible external input. This does not require permanent retention of GameAssetAI-owned
+local test output that is reproducible from Repository code and explicit external inputs.
 
 Game-specific settings belong in a workspace profile, not in reusable skills.
 
@@ -242,6 +244,11 @@ inputs, never implicit runtime dependencies.
 - Cleanup is dry-run by default. Delete only an exact, manifest-owned `TEMPORARY_RUN` explicitly
   marked deletion-eligible; never follow links/junctions or intersect the repository, Workspace,
   personal profiles, external projects, or original inputs.
+- Pre-lifecycle legacy output may lack a manifest. It may be deleted only in a bounded cleanup
+  requested by the user after active code/reference checks establish GameAssetAI ownership,
+  reproducibility and that it is not a unique input. Exact paths/patterns, dry-run facts and the
+  deletion result must be recorded; absence of `manifest.json` alone is neither protection nor
+  deletion authority.
 - At work-package closeout, verify accepted evidence, remove owned disposable intermediates, and
   record reproduction instructions. Historical absolute paths may remain as evidence citations,
   but must not be described as required current inputs.
