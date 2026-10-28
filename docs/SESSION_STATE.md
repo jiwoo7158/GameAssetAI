@@ -26,7 +26,60 @@ existing narrow inspection/modification Skills constitute the missing 3D generat
    outside the M3 proof.
 4. Keep the completed Kiln GLB Adapter intact; refreshed-session discovery/use remains its only
    operational gate and imported data must not enter native v2.1 revision without proof.
-5. Next core milestone is M4 rigged/animated export plus Unity import validation.
+5. M4 Unity Generic animated-FBX export is now engine-proven for its bounded v1 contract. Keep
+   Humanoid Avatar certification, root-motion conversion, loop editing and Animator Controller
+   authoring separate rather than expanding the accepted claim.
+
+## M4 work package (completed) -- 2026-10-28
+
+- Requirements: `REQ-ENGINE`, `REQ-CHAR`, `REQ-ANIM`, `REQ-SAFE`, `REQ-WORKFLOW`.
+- Reuse: M3.4 prepared Action, static staged/no-overwrite publication, Mixamo handoff Mesh/rig
+  checks, Blender FBX API, existing Unity import-validation pattern and Artifact Lifecycle.
+- Gap: static export deliberately rejects rigs/animation; there is no installable path that selects
+  one unbound Action, exports a skinned single-Mesh/single-Armature FBX, proves Blender round-trip,
+  and verifies Unity Generic import/deformation.
+- Affected scope: one new user-facing animated-FBX export Skill, two focused Blender tests, one
+  isolated Unity Editor validator, router, and the active capability documents. Do not change M1-
+  M3.4 algorithms, static export, Add-on UI, other engine support or Animator Controller systems.
+- Representative asset: M2 Compact plus unbound `GAA M3 Walking Clip 01-24` from the standard M3.4
+  run. Acceptance requires no-overwrite staged publication, exact selected Action/range/FPS,
+  preserved source state, Blender 5.0.1 reimport with weighted Mesh/bones/animation/deformation,
+  and Unity 6000.3.9f1 Generic import with non-looping clip and sampled skin deformation.
+
+## M4 animated FBX export and Unity proof -- 2026-10-28
+
+- Added `blender-export-animated-fbx` with schema
+  `gameassetai.animated-fbx-export-request.v1`. It exports one explicit local skinned Mesh,
+  Armature and Object-slot pose Action through owned temporary copies, including an unbound
+  selected Action. The Unity v1 policy is `-Z/Y`, unit scale, deform bones, `IN_PLACE`, explicit
+  non-loop and one Action-named temporary NLA take; source NLA and other Actions are excluded.
+- The exporter reuses the static export hard-link/no-overwrite publisher, verifies target and
+  `.meta` collisions, fingerprints source Mesh/weights/UV/rig/rest/Action references, removes exact
+  stage/temporary data on failure and records a SHA-256 receipt after publication.
+- Accepted run:
+  `D:/Blender/MCP_Test/GameAssetAI/runs/m4/20261028T144308Z-animated-fbx-unity-005addc5`.
+  It exported `GAA M3 Walking Clip 01-24` as a 1,099,276-byte FBX with SHA-256
+  `8c8c2cbb20b6e4dcab9c7b72e2ec3823612bcaefe11dbb30460aeae49fe2399d`.
+  Authorization, missing Action, output collision and induced publication failure all failed
+  closed; the original bound Walking Action and the unbound prepared Action were preserved.
+- Fresh Blender 5.0.1 reimport found one weighted 18-bone Armature, one 44,329-vertex skinned Mesh,
+  UV/material slots and the exact `GAA M3 Walking Clip 01-24` take. Frames 1/12/24 matched source
+  evaluated vertex samples within `4.31e-7`, joint heads within `3.88e-7`, bounds within
+  `3.58e-7`, and the Mesh moved `0.451`. FBX bone-tail/roll representation differed by `0.161`;
+  this is recorded but did not alter joint heads or evaluated skin.
+- Unity 6000.3.9f1 imported the exact hash in an isolated temporary Assets folder as Generic. It
+  produced one `SkinnedMeshRenderer`, 18 valid bone references, 44,329 weighted vertices and the
+  exact Action-named clip at 30 FPS for 0.766667 seconds. `loopTime=false`, sampled skin movement
+  was `0.657`, and the existing Unity Scene was preserved. The validation folder and `.meta` were
+  removed after recording the report. Generic is **engine-proven**; Humanoid Avatar was absent and
+  remains unapproved.
+- Source bundle: `.local/source-bundles/blender-export-animated-fbx-v1.0.0-m4-20261028.zip`,
+  SHA-256 `cd72fade5bf8d96cdfbd0c91dd922bd6ae0e0631e601c3988b53b1f4fbd18074`.
+  The new Skill and updated router are installed and source/Workspace hash-aligned. The prior
+  router is preserved at
+  `D:/AI/GameAssetAI-Workspace/.agents/skill-backups/blender-create-game-asset-20261028-pre-m4`.
+  The installed Skill repeated all eight focused export/refusal/preservation checks from its
+  Workspace path; its manifest-owned temporary Run was then verified and removed.
 
 ## M3.4 game Action preparation -- 2026-10-28
 

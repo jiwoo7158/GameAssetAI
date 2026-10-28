@@ -60,6 +60,11 @@ back to modeling, rigging or Mixamo work must not cause the Add-on UI work to be
   accepted Mixamo-retargeted Walking range passed Mesh-pose comparison, save/reopen and multi-frame
   preview evidence. It does not repair loops, convert root motion, edit NLA or approximately reduce
   keys.
+- `blender-export-animated-fbx`: engine-proven bounded Unity Generic export for one explicit local
+  skinned Mesh, Armature and Object-slot pose Action. It stages without overwrite, binds only
+  owned temporary data, emits one Action-named non-loop `IN_PLACE` take, and has passed fresh
+  Blender reimport plus live Unity 6000.3.9f1 sampled-skin playback. Humanoid Avatar, root-motion
+  conversion, loop repair and Animator Controller authoring are not included.
 
 ### Existing-asset support
 
@@ -96,8 +101,9 @@ integrated into the Add-on; advanced passes remain explicit opt-in tools.
 
 ## Active product gaps, in order
 
-1. Implement rigged/animated FBX or GLB export and verify it in Unity.
-2. Broaden native static modeling and controlled semantic revision beyond primitive assembly.
+1. Broaden native static modeling and controlled semantic revision beyond primitive assembly.
+2. Decide a separate bounded gate for Unity Humanoid Avatar and root-motion support only when a
+   concrete game requirement needs it; Generic animated FBX is already engine-proven.
 
 Do not insert new collider, LODGroup, auxiliary pass or Unity-only work ahead of these gaps unless
 a concrete user request requires it.
@@ -161,7 +167,9 @@ from both documents.
   parent-local swing/twist conversion passed the same real Walking FBX, all 32-frame numerical
   checks and explicit Source/Target multi-view review on M2 Compact. Acceptance is limited to the
   17-role `IN_PLACE` scope; root transfer and omitted finger/toe/facial motion remain unproven.
-- Static FBX export is tested; rigged/animated Unity export is not.
+- Static FBX export is tested. Rigged/animated FBX is engine-proven for one local Mesh/Armature,
+  one explicit Action, Unity Generic, `IN_PLACE` and non-loop clips; Humanoid Avatar and converted
+  root motion remain unproven.
 - The v3 Boolean candidate fixes bilateral fusion and is suitable for blockout review, but its
   43 ngons and 324 poles mean it is not yet evidence of deformation topology.
 - Add-on 0.1.5 is installed and enabled in Blender Preferences, and its 14 source files are

@@ -1,6 +1,6 @@
 ---
 name: blender-create-game-asset
-description: Route a natural-language Blender game-asset request into the existing static creation, character base, rig, imported-humanoid animation, game-Action preparation, inspection, revision and optional 2D/export Skills. Use when the user asks to create or continue a character, weapon, prop, enemy or environment asset and has not named a narrower Skill. This router coordinates reviewed stages; it does not replace their scripts or claim unsupported general modeling, Mixamo web automation or rigged export.
+description: Route a natural-language Blender game-asset request into the existing static creation, character base, rig, imported-humanoid animation, game-Action preparation, inspection, revision and optional 2D/Unity FBX export Skills. Use when the user asks to create or continue a character, weapon, prop, enemy or environment asset and has not named a narrower Skill. This router coordinates reviewed stages; it does not replace their scripts or claim unsupported general modeling, Mixamo web automation or broad multi-rig export.
 ---
 
 # Blender Create Game Asset
@@ -22,6 +22,8 @@ Use these creation entries:
   `blender-import-humanoid-animation`;
 - explicit range/FPS cleanup of an imported or existing Armature Action into a new independent
   game clip: `blender-prepare-game-action`;
+- reviewed single-Mesh/single-Armature Action for Unity Generic FBX:
+  `blender-export-animated-fbx`;
 - explicit reviewed key poses on a suitable empty Armature: `blender-author-pose-action`.
 
 For characters, use `VOLUME_ISLANDS` for separated blockouts or guarded v3
@@ -47,10 +49,18 @@ exact Armature, Action/slot, range, source/target FPS and root bone. Use strict
 otherwise route once through `blender-prepare-game-action`. Do not silently repair a loop, convert
 root motion, bind/replace the current Action or edit NLA.
 
+For requests such as "export this character and Walking Clip for Unity", require the exact Scene,
+Mesh, Armature, Action/slot, inclusive range/FPS, new `.fbx` target, Unity axis/unit policy,
+non-loop policy and `IN_PLACE` root-motion policy. Route once through
+`blender-export-animated-fbx`; it selects the named Action on an owned temporary rig even when the
+source Action is unbound. Do not substitute the current bound Action or route the rig through the
+static exporter.
+
 Keep one visible current candidate and recoverable checkpoints. Do not accumulate every failed
 revision in the Scene. Continue through multiple stages when the user's request already covers
 them, but validate each stage before using it as the next stage's input.
 
-Only offer 2D Pixel/Cel/Toon rendering after the 3D source is reviewable. Only offer engine export
-when an exporter actually supports that asset type. Never route a rigged character through the
-current static-only FBX exporter.
+Only offer 2D Pixel/Cel/Toon rendering after the 3D source is reviewable. Never route a rigged
+character through the static-only FBX exporter. Animated FBX v1 is limited to the explicit
+single-Mesh/single-Armature/single-Action Unity Generic contract; Humanoid Avatar certification,
+loop repair, root-motion conversion and Animator Controller authoring remain separate gaps.

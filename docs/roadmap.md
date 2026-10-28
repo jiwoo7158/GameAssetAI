@@ -58,7 +58,8 @@ when character, rigging or export work has higher priority.
 - [x] rig/deformation review on the compact and lanky canonical-template outputs with installed-Skill proof
 - [x] real Mixamo-downloaded Walking FBX import and bounded `IN_PLACE` retarget proof
 - [ ] M2-character upload/download service round trip and `TRANSFER` root-motion proof
-- [ ] rigged/animated FBX or GLB export and Unity import proof
+- [x] bounded single-Mesh/single-Armature/single-Action animated FBX export and Unity Generic
+  import/playback proof (`IN_PLACE`, non-loop)
 - [x] representative imported/existing Action range/FPS preparation with evaluated-pose baking,
   exact redundant-key cleanup, source preservation and saved/reopened real Walking evidence
 - [ ] broader native static modeling and controlled semantic revision
@@ -120,7 +121,12 @@ approved.
   boundary keys beyond the strict extractor, preserves source references, bounds sampled-pose
   error and reports loop/root facts without automatic repair. Real Walking frames 1-24 passed
   representative Mesh comparison and reopen; the partial range is explicitly not a seamless loop.
-- Next implementation boundary: animated engine export and Unity import validation.
+- M4 result: `blender-export-animated-fbx` stages one selected Action on owned temporary rig data,
+  preserves an unbound prepared Action/source state, emits an Action-named FBX take and passed
+  fresh Blender 5.0.1 skin/pose comparison plus Unity 6000.3.9f1 Generic clip playback. Humanoid
+  Avatar, root-motion conversion, loop repair and Animator Controllers remain separate gaps.
+- Next implementation boundary: return to broader native static modeling/semantic revision unless
+  a concrete Unity Humanoid or root-motion requirement is explicitly selected.
 
 ### Artifact lifecycle gate -- 2026-10-28
 
