@@ -28,11 +28,11 @@ when character, rigging or export work has higher priority.
 - [x] first live six-bone pose/deformation review on the retained character
 - [x] experimental shoulder/hip copy mechanics tested; product evidence invalidated by rejected input topology
 - [x] add backward-compatible v2 two-bone transition weights and live six-bone pose smoke test
-- [ ] real Mixamo round-trip validation on an actual humanoid asset
+- [x] real Mixamo `IN_PLACE` round-trip validation on an actual M2 humanoid asset
 - [x] installable hash-pinned Mixamo-style FBX import and explicit pose-space retarget workflow
   with rollback, saved/reopened Action and visibly deformed M2 target evidence
-- [ ] replace the global rest-delta bake with parent-local rest-basis alignment; the 2026-10-28
-  real Walking FBX passes structure/preservation but fails visible arm and leg motion acceptance
+- [x] replace the rejected global rest-delta bake with parent-local chain collapse plus
+  swing/twist rest-basis alignment; real Walking passed 32-frame and multi-view acceptance
 - [x] reusable authored pose Action creation workflow on a real Armature
 - [x] user-reviewed 36-frame upper-body Ready Loop v3 with stable lower body
 - [x] package and focused-test the front-axis-guarded pose Action authoring Skill
@@ -111,12 +111,11 @@ approved.
   visual, rollback and saved/reopened gates. Lanky knee minimum face-area ratio improved from
   0.052 to 0.732. This is accepted for the explicit-landmark/template scope, not arbitrary
   automatic humanoid rigging.
-- M3 local implementation result: `blender-import-humanoid-animation` now performs hash-pinned
-  FBX import, exact 17-role mapping, rest-aware pose-space sampling and a new bound Action with
-  owned rollback. Blender 5.0.1 synthetic external-FBX evidence passed save/reopen and visible
-  deformation checks. The real Adobe Mixamo service/download proof remains open.
-- Next implementation boundary: one real Mixamo-downloaded FBX through the installed Skill,
-  followed by imported Action inspection/cleanup and only then animated engine export.
+- M3 result: `blender-import-humanoid-animation` performs hash-pinned FBX import, exact 17-role
+  mapping, parent-local swing/twist conversion and a new bound Action with owned rollback. The
+  real Adobe Mixamo Walking FBX passed 32-frame structure/direction/clearance checks, save/reopen
+  and explicit Front/Side/Three-quarter acceptance on M2 Compact for `IN_PLACE`.
+- Next implementation boundary: imported Action inspection/cleanup, then animated engine export.
 
 ### Retained Add-on/UI work
 
@@ -290,7 +289,8 @@ preparation remain separate tasks; no production rig cleanup was performed.
 - [x] humanoid inspection source/ZIP/installed-helper regression and no-overwrite local deployment
 - [ ] existing rig preservation
 - [x] read-only exact-signature Mixamo preparation preflight (not upload/retarget)
-- [ ] Mixamo rig import workflow
+- [x] bounded Mixamo animation-FBX rig import and 17-role `IN_PLACE` retarget on M2 Compact
+- [ ] M2-character Mixamo upload/download round trip and `TRANSFER` root-motion approval
 - [ ] deform-bone export policy
 - [ ] Unity Humanoid compatibility checks
 

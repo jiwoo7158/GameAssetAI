@@ -1,10 +1,12 @@
 import argparse
 import hashlib
 import json
+import math
 import sys
 from pathlib import Path
 
 import bpy
+from mathutils import Vector
 
 
 SOURCE_MAPPING = {
@@ -81,20 +83,71 @@ def main():
     }
     rest = evaluated(mesh)
     receipt = import_and_retarget(request, authorized=True)
+    source = bpy.data.objects[receipt["source_armature"]]
     samples = {}
     poses = {}
-    for frame in (1, 16, 32):
+    direction_errors = {}
+    direction_roles = ("spine", "head", "upper_arm_l", "lower_arm_l", "upper_arm_r",
+                       "lower_arm_r", "upper_leg_l", "lower_leg_l", "foot_l",
+                       "upper_leg_r", "lower_leg_r", "foot_r")
+    review_frames = (1, 8, 16, 24, 32)
+    all_frame_clearance = {}
+    all_frame_bounds_diagonal = {}
+    for frame in range(1, 33):
         scene.frame_set(frame)
         bpy.context.view_layer.update()
-        poses[frame] = evaluated(mesh)
-        samples[str(frame)] = max((a - b).length for a, b in zip(rest, poses[frame]))
-    changes = {
-        "1_16": max((a - b).length for a, b in zip(poses[1], poses[16])),
-        "16_32": max((a - b).length for a, b in zip(poses[16], poses[32])),
-    }
+        evaluated_vertices = evaluated(mesh)
+        if not all(math.isfinite(value) for vertex in evaluated_vertices for value in vertex):
+            raise AssertionError(f"non-finite evaluated Mesh coordinate at frame {frame}")
+        low = Vector(tuple(min(vertex[index] for vertex in evaluated_vertices) for index in range(3)))
+        high = Vector(tuple(max(vertex[index] for vertex in evaluated_vertices) for index in range(3)))
+        all_frame_bounds_diagonal[str(frame)] = (high - low).length
+        if frame in review_frames:
+            poses[frame] = evaluated_vertices
+            samples[str(frame)] = max((a - b).length for a, b in zip(rest, poses[frame]))
+        direction_errors[str(frame)] = {}
+        for role in direction_roles:
+            source_direction = (source.matrix_world.to_3x3() @
+                                source.pose.bones[SOURCE_MAPPING[role]].matrix.to_3x3() @
+                                Vector((0.0, 1.0, 0.0))).normalized()
+            target_direction = (target.matrix_world.to_3x3() @
+                                target.pose.bones[TARGET_MAPPING[role]].matrix.to_3x3() @
+                                Vector((0.0, 1.0, 0.0))).normalized()
+            direction_errors[str(frame)][role] = source_direction.angle(target_direction)
+        all_frame_clearance[str(frame)] = {
+            "hand_separation": abs(target.pose.bones["hand.L"].head.x -
+                                   target.pose.bones["hand.R"].head.x),
+            "foot_separation": abs(target.pose.bones["foot.L"].head.x -
+                                   target.pose.bones["foot.R"].head.x),
+        }
+    maximum_direction_error = max(value for frame in direction_errors.values()
+                                  for value in frame.values())
+    if maximum_direction_error > 0.05:
+        raise AssertionError(f"mapped joint direction error is too large: {maximum_direction_error}")
+    minimum_hand_separation = min(item["hand_separation"] for item in all_frame_clearance.values())
+    minimum_foot_separation = min(item["foot_separation"] for item in all_frame_clearance.values())
+    if minimum_hand_separation < 0.10 or minimum_foot_separation < 0.05:
+        raise AssertionError("left/right limb clearance collapsed during the Action")
+    changes = {f"{left}_{right}": max((a - b).length for a, b in zip(poses[left], poses[right]))
+               for left, right in zip(review_frames, review_frames[1:])}
     if min(changes.values()) < 0.01:
         raise AssertionError("real Mixamo Action did not visibly change the target Mesh")
-    images = render_frames(args.artifact_root, mesh, 1.58, frames=(1, 16, 32))
+    side_clearance = {}
+    for frame in review_frames:
+        scene.frame_set(frame)
+        bpy.context.view_layer.update()
+        side_clearance[str(frame)] = {
+            "hands_x": [target.pose.bones["hand.L"].head.x,
+                        target.pose.bones["hand.R"].head.x],
+            "feet_x": [target.pose.bones["foot.L"].head.x,
+                       target.pose.bones["foot.R"].head.x],
+        }
+        side_clearance[str(frame)]["hand_separation"] = abs(
+            side_clearance[str(frame)]["hands_x"][0] - side_clearance[str(frame)]["hands_x"][1])
+        side_clearance[str(frame)]["foot_separation"] = abs(
+            side_clearance[str(frame)]["feet_x"][0] - side_clearance[str(frame)]["feet_x"][1])
+    images = render_frames(args.artifact_root, mesh, 1.58, frames=review_frames,
+                           views=("front", "side", "three_quarter"))
     blend_path = args.artifact_root / "m3-real-mixamo-walking.blend"
     bpy.ops.wm.save_as_mainfile(filepath=str(blend_path), check_existing=False)
     report = {
@@ -102,14 +155,25 @@ def main():
         "status": "structural_pass_visual_review_required",
         "source_fbx": str(args.source_fbx), "source_fbx_sha256": source_sha,
         "mixamo_service_download_user_supplied": True,
+        "checks": {"import_mapping": "pass", "action_binding": "pass",
+                   "source_target_preservation": "pass", "retarget_motion": "pass",
+                   "visual_quality": "pending_review"},
         "receipt": receipt, "mesh_displacement_from_rest": samples,
         "mesh_displacement_between_samples": changes, "images": images,
+        "left_right_joint_clearance": side_clearance,
+        "joint_direction_error_radians": direction_errors,
+        "maximum_joint_direction_error_radians": maximum_direction_error,
+        "all_frame_clearance": all_frame_clearance,
+        "minimum_hand_separation": minimum_hand_separation,
+        "minimum_foot_separation": minimum_foot_separation,
+        "all_frame_bounds_diagonal": all_frame_bounds_diagonal,
         "blend": str(blend_path), "blender_version": bpy.app.version_string,
     }
     report["report_sha256"] = hashlib.sha256(canonical(report).encode()).hexdigest()
     report_path = args.artifact_root / "m3-real-mixamo-validation.json"
     report_path.write_text(json.dumps(report, indent=2), encoding="utf-8")
-    print("GAMEASSETAI_REAL_MIXAMO " + json.dumps({"status": "pass",
+    print("GAMEASSETAI_REAL_MIXAMO " + json.dumps({
+          "status": "automatic_pass_visual_review_required",
           "report": str(report_path), "blend": str(blend_path), "changes": changes}))
 
 

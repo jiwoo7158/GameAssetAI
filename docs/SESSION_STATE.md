@@ -18,23 +18,20 @@ existing narrow inspection/modification Skills constitute the missing 3D generat
 
 ## Current priority
 
-1. M3 local implementation is complete for explicit hash-pinned Mixamo-signature FBX import,
-   17-role pose-space retargeting and an independent bound Action. A real Adobe Mixamo download
-   remains the next acceptance gate; do not call the service round trip complete from synthetic
-   evidence.
+1. M3 `IN_PLACE` import/retarget is accepted for one real Adobe Mixamo Walking FBX and the bounded
+   M2 17-role rig. The next core step is imported-Action inspection/cleanup before M4 export.
 2. Keep automatic mapping, existing-rig replacement, clothing/hair and corrective deformation
    outside the M3 proof.
 3. Keep the completed Kiln GLB Adapter intact; refreshed-session discovery/use remains its only
    operational gate and imported data must not enter native v2.1 revision without proof.
-4. After the Mixamo proof, perform imported-Action cleanup and then rigged/animated export plus
-   Unity import validation.
+4. Perform imported-Action cleanup, then rigged/animated export plus Unity import validation.
 
 ## M3 Humanoid animation import and retarget implementation -- 2026-10-27
 
 - Added `blender-import-humanoid-animation` with schema
   `gameassetai.humanoid-animation-import-request.v1`. It verifies an explicit FBX path and SHA-256,
   imports into a temporary Scene, reuses exact Mixamo and Humanoid inspectors, requires explicit
-  17-role source/target mappings, samples pose-space rest deltas, creates a new bound Action and
+  17-role source/target mappings, creates a new bound Action and
   keeps the imported source in an owned Collection. `IN_PLACE` and explicit masked `TRANSFER`
   root policies are supported; varying Armature-object transforms, non-unit mapped scale, occupied
   targets and ambiguous imports are refused.
@@ -47,34 +44,41 @@ existing narrow inspection/modification Skills constitute the missing 3D generat
   reopened with its Action and retained source Collection. An induced post-import mapping failure
   restored the exact original datablock and animation baseline, including removal of fake-user
   imported Actions.
-- This is implementation and local representative mechanics evidence, not Adobe Mixamo service
-  evidence. No user-owned Mixamo FBX was found in the checked paths, and no upload/login/download
-  occurred. Exact continuation: run the installed Skill once with a real Mixamo-downloaded FBX,
-  inspect the visible motion, then perform Action cleanup before M4 animated engine export.
-- Portable bundle: `.local/source-bundles/blender-import-humanoid-animation-m3.2-20261027.zip`,
-  SHA-256 `27027305098a690ed064ef7c1cc37c4a291314e8c80cd923f0bb37d0f5b8cd3d`.
+- That synthetic evidence remains the rollback/mechanics baseline; the real service evidence and
+  corrected conversion are recorded immediately below.
+- Portable bundle: `.local/source-bundles/blender-import-humanoid-animation-m3.3-20261028.zip`,
+  SHA-256 `6a23d186c75b43759cce508e4711e4438d78144ff396fe1084cfcb9e8d17c4e3`.
   The new Skill and updated router are source/Workspace hash-aligned; the installed Skill itself
-  repeated the full background run and saved/reopened successfully. Router backup:
-  `D:/AI/GameAssetAI-Workspace/.agents/skill-backups/blender-create-game-asset-20261027-pre-m3-router`.
+  repeated the full background run and saved/reopened successfully. The pre-M3.3 installation is
+  preserved at `D:/AI/GameAssetAI-Workspace/.agents/skill-backups/blender-import-humanoid-animation-20261028-pre-m3.3`.
 
 ### Real Mixamo Walking compatibility check -- 2026-10-28
 
 - User-supplied Adobe Mixamo `Walking.fbx` (SHA-256
   `6411f45c8a6461c3e83a61d8884d4a4970cbd9b3f0c5a1f3de308d5f34c6e677`) imports as one
-  `Armature`, one `Armature|mixamo.com|Layer0` Action over frames 1–32 and a complete required
+  `Armature`, one `Armature|mixamo.com|Layer0` Action over frames 1-32 and a complete required
   17-role Mixamo mapping. The installed M3 Skill created and bound `GAA M3 Mixamo Walking`, kept
   the source Armature/Action, preserved target geometry/UV/rest data and saved/reopened normally.
-- Structural results and comparison renders are under
-  `D:/Blender/MCP_Test/GameAssetAI_Mixamo_Walking_20261028`. The source character shows an
-  ordinary walk with arms at its sides, while the M2 target folds both arms across the torso and
-  over-crosses the legs. This is a **visual rejection**, not accepted Mixamo compatibility.
-- The evidence strongly indicates a rest-pose/bone-basis retarget defect: the current global
-  armature-space rest-delta method does not correctly reconcile the source and target rest poses.
-  Extra animated shoulders, `Spine1`, fingers and toes are reported, but the exact contribution of
-  those omitted roles has not yet been isolated.
-- Exact continuation: correct the existing M3 pose-space conversion with parent-local rest-basis
-  alignment, then rerun only this real 32-frame FBX and compare Source/Target views. Do not start
-  M4 export or mark the Mixamo round trip accepted until that visible gate passes.
+- The first global-rest-delta result under
+  `D:/Blender/MCP_Test/GameAssetAI_Mixamo_Walking_20261028` remains rejected: it folded arms across
+  the torso and over-crossed legs. Direct-parent probes showed ordinary Source bones matched
+  `matrix_basis`, while omitted `Spine1`/shoulder chains and Source-T/Target-A rest differences
+  exposed the global conversion defect.
+- `PARENT_LOCAL_SWING_TWIST_V3` now collapses mapped-parent chains, maps each evaluated Source bone
+  direction, retains Target rest roll, transfers Source local-Y twist and solves the Target basis
+  with `Bone.convert_local_to_pose()`. The receipt reports collapsed `Spine1`, `LeftShoulder` and
+  `RightShoulder`; fingers/toes remain intentionally unmapped.
+- Accepted evidence is under
+  `D:/Blender/MCP_Test/GameAssetAI_Mixamo_Walking_Accepted_20261028`. All 32 frames passed finite
+  geometry, left/right hand/foot clearance and mapped-joint direction checks (maximum direction
+  error `0.0` radians). Frames 1/8/16/24/32 passed Source/Target Front/Side/Three-quarter review:
+  arms no longer cross, arm/leg phases correspond, legs do not over-cross, and no severe tear or
+  collapse is visible. Saved Blend and retained Source/Action reopen successfully.
+- Visual review receipt SHA-256:
+  `f62f79e06f9c93936dadbede5523cdcafd77217f36e20139a773daed53bad22e`.
+  Decision: real Mixamo `IN_PLACE` import/retarget is accepted for the bounded M2-compatible
+  17-role scope. `TRANSFER` root motion, fingers/toes/facial animation and arbitrary rigs remain
+  unapproved. Exact continuation is imported-Action inspection/cleanup, not M4 export yet.
 
 ## M2 Humanoid rig fitting and weight adaptation -- 2026-10-27
 
@@ -224,7 +228,9 @@ Mixamo completion or animation authoring.
   requires installed-client host validation and the specialist creation Skills remain narrow.
 - A guarded v3 connected character candidate now exists and passes structural/agent multi-view
   gates; user visual acceptance, production topology, weights and animation polish remain incomplete.
-- No completed Mixamo round trip.
+- The actual Adobe Mixamo-downloaded Walking FBX now has an accepted `IN_PLACE` import/retarget
+  proof on the M2 Compact target. Uploading an M2 character to Mixamo and downloading animation
+  back for that same character has not been completed, and `TRANSFER` root motion is unapproved.
 - The Add-on now has Scene, Compositor, material, single PNG, Action sequence and sprite-sheet
   controls. A live non-Cube Blender-created character -> Cel style -> 2D sheet proof exists.
 - Rigged/animated export and Unity import proof remain missing.

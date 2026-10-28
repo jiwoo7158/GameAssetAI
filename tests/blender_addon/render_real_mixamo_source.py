@@ -47,7 +47,7 @@ def main():
     scene.render.resolution_percentage = 100
     scene.render.image_settings.file_format = "PNG"
     scene.render.film_transparent = True
-    for frame in (1, 16, 32):
+    for frame in (1, 8, 16, 24, 32):
         scene.frame_set(frame)
         for view, offset in {"front": (0, -height * 3.2, 0),
                              "side": (height * 3.2, 0, 0)}.items():

@@ -4,7 +4,7 @@ description: Import one explicit hash-pinned Humanoid FBX, verify an exact Mixam
 metadata:
   contract: gameassetai.skill-contract.v1
   requirements: REQ-CHAR, REQ-ANIM, REQ-SAFE
-  evidence: tested
+  evidence: accepted
   external-dependencies: none
 ---
 
@@ -47,12 +47,18 @@ the Skill and always remains a user-controlled external action.
 - integer inclusive frame range, step 1, explicit FPS;
 - `IN_PLACE` or explicit scaled/masked `TRANSFER` hips translation.
 
-The rotation bake samples evaluated source pose matrices and converts each mapped armature-space
-rest delta onto the target rest orientation before keying target quaternion rotation. It is not a
-stored local-Euler name copy. Unmapped animated source bones are reported; mapped descendants still
-include their evaluated parent motion. Time-varying Armature-object channels, unsupported non-bone
-channels and non-unit mapped scale channels are refused; constant FBX axis-conversion channels and
-unit scale bakes are accepted.
+The rotation bake collapses each Source role to its nearest mapped ancestor, so optional Mixamo
+`Spine1` and shoulder motion reaches the mapped chest/upper-arm exactly once. It maps the evaluated
+Source bone direction to the Target, preserves Target rest roll, transfers Source local-Y twist,
+and uses `Bone.convert_local_to_pose()` with the actual Target parent pose/rest matrices before
+keying quaternion rotation. This handles Source/Target rest-pose and Bone Roll differences without
+editing either rest rig. It is not a stored local-Euler name copy or global rest-delta copy.
+
+Unmapped animated Source bones are reported. Finger/toe motion is not represented by the current
+18-bone Target, while mapped descendants retain the relevant parent-chain direction. Time-varying
+Armature-object channels, unsupported non-bone channels and non-unit mapped scale channels are
+refused; constant FBX axis-conversion channels and unit scale bakes are accepted. `IN_PLACE` has
+representative acceptance; `TRANSFER` root motion remains implemented but not service-approved.
 
 ## Preservation
 
@@ -67,7 +73,8 @@ selection. Never overwrite a file or replace existing animation.
 Completion requires an imported Armature/Action, complete explicit mappings, actual target Mesh
 movement over the requested frames, preserved source/target data, rollback after a forced
 mid-operation failure, saved-file reopen, multi-frame visual review and installed-source hash
-alignment. Synthetic FBX evidence is labeled local validation, not Mixamo service proof.
+alignment. Automatic structure/motion checks and explicit visual acceptance are recorded
+separately.
 
 `scripts/export_mixamo_handoff.py` is a separate bounded helper in this Skill for a new, explicit
 FBX handoff file containing only one target Mesh and Armature. It does not upload anything and is
@@ -75,7 +82,8 @@ not the Unity export workflow.
 
 ## Boundary
 
-The local synthetic Mixamo-signature FBX regression proves import, mapping, pose-space sampling,
-target deformation, rollback, save/reopen and installed-Skill execution. It is not an Adobe
-Mixamo service round trip. Do not call Mixamo integration complete until a real downloaded Mixamo
-FBX passes the same workflow and visible review.
+The synthetic Mixamo-signature regression still proves rollback and bounded mechanics. A real
+Adobe Mixamo Walking FBX also passed import, exact mapping, 32-frame direction/clearance checks,
+Source/Target preservation, save/reopen and explicit Front/Side/Three-quarter visual acceptance
+on the M2 Compact character. This acceptance is limited to the documented 17-role M2-compatible
+rig and `IN_PLACE`; it does not certify arbitrary rigs, facial/finger animation or root transfer.

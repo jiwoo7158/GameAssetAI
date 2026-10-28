@@ -6,7 +6,7 @@ import uuid
 from pathlib import Path
 
 import bpy
-from mathutils import Matrix, Vector
+from mathutils import Matrix, Quaternion, Vector
 
 # Reuse the installed sibling inspection Skills in a normal standalone Workspace.
 # The same layout exists under repository ``skills/`` during development.
@@ -34,6 +34,14 @@ ROLE_ORDER = (
     "upper_leg_l", "lower_leg_l", "foot_l", "upper_leg_r", "lower_leg_r", "foot_r",
     "upper_arm_l", "lower_arm_l", "hand_l", "upper_arm_r", "lower_arm_r", "hand_r",
 )
+ROLE_PARENT = {
+    "hips": None,
+    "spine": "hips", "chest": "spine", "neck": "chest", "head": "neck",
+    "upper_leg_l": "hips", "lower_leg_l": "upper_leg_l", "foot_l": "lower_leg_l",
+    "upper_leg_r": "hips", "lower_leg_r": "upper_leg_r", "foot_r": "lower_leg_r",
+    "upper_arm_l": "chest", "lower_arm_l": "upper_arm_l", "hand_l": "lower_arm_l",
+    "upper_arm_r": "chest", "lower_arm_r": "upper_arm_r", "hand_r": "lower_arm_r",
+}
 
 
 def _canonical(value):
@@ -147,6 +155,121 @@ def _mapped_channels(action, mapping):
     return sorted(animated), sorted(unmapped), sorted(set(non_bone)), sorted(set(mapped_scale))
 
 
+def _bone_is_ancestor(ancestor, bone):
+    current = bone.parent
+    while current is not None:
+        if current == ancestor:
+            return True
+        current = current.parent
+    return False
+
+
+def _validate_retarget_hierarchies(source, target, source_mapping, target_mapping):
+    collapsed = {}
+    for role in ROLE_ORDER:
+        parent_role = ROLE_PARENT[role]
+        source_bone = source.data.bones[source_mapping[role]]
+        target_bone = target.data.bones[target_mapping[role]]
+        if parent_role is None:
+            collapsed[role] = []
+            continue
+        source_parent = source.data.bones[source_mapping[parent_role]]
+        target_parent = target.data.bones[target_mapping[parent_role]]
+        if not _bone_is_ancestor(source_parent, source_bone):
+            raise ValueError(f"source mapped hierarchy is incompatible at role {role}")
+        if target_bone.parent != target_parent:
+            raise ValueError(f"target mapped hierarchy is not directly supported at role {role}")
+        intermediate = []
+        current = source_bone.parent
+        while current is not None and current != source_parent:
+            intermediate.append(current.name)
+            current = current.parent
+        collapsed[role] = list(reversed(intermediate))
+    return collapsed
+
+
+def _source_local_delta(source, mapping, role):
+    """Return the evaluated rotation relative to rest and the nearest mapped ancestor.
+
+    Collapsing the source chain this way folds optional Mixamo Spine1/Shoulder motion into the
+    mapped child exactly once instead of copying an armature-space rotation onto every child.
+    """
+    source_pose = source.pose.bones[mapping[role]]
+    source_rest = source.data.bones[mapping[role]]
+    parent_role = ROLE_PARENT[role]
+    if parent_role is None:
+        rest_relative = source_rest.matrix_local.copy()
+        pose_relative = source_pose.matrix.copy()
+    else:
+        parent_pose = source.pose.bones[mapping[parent_role]]
+        parent_rest = source.data.bones[mapping[parent_role]]
+        rest_relative = parent_rest.matrix_local.inverted_safe() @ source_rest.matrix_local
+        pose_relative = parent_pose.matrix.inverted_safe() @ source_pose.matrix
+    delta = rest_relative.inverted_safe() @ pose_relative
+    return delta.to_quaternion().normalized()
+
+
+def _twist_about_bone_y(rotation):
+    """Extract local-Y twist while leaving direction change to the swing mapping."""
+    twist = Quaternion((rotation.w, 0.0, rotation.y, 0.0))
+    if twist.magnitude < 1e-8:
+        return Quaternion()
+    return twist.normalized()
+
+
+def _target_pose_rotation(source, target, source_mapping, target_mapping, role):
+    """Match the evaluated source bone direction and retain target rest roll plus source twist."""
+    source_pose = source.pose.bones[source_mapping[role]]
+    target_rest = target.data.bones[target_mapping[role]]
+    target_world_rest = (target.matrix_world @ target_rest.matrix_local).to_quaternion().normalized()
+    source_world_pose = (source.matrix_world @ source_pose.matrix).to_quaternion().normalized()
+    source_direction = (source_world_pose @ Vector((0.0, 1.0, 0.0))).normalized()
+    target_rest_direction = (target_world_rest @ Vector((0.0, 1.0, 0.0))).normalized()
+    swing = target_rest_direction.rotation_difference(source_direction)
+    twist = _twist_about_bone_y(_source_local_delta(source, source_mapping, role))
+    target_world_pose = (swing @ target_world_rest @ twist).normalized()
+    target_object_rotation = target.matrix_world.to_quaternion().normalized()
+    return (target_object_rotation.conjugated() @ target_world_pose).normalized()
+
+
+def _apply_target_pose_rotation(target, target_mapping, role, rotation, pose_matrices):
+    """Solve a desired armature-space orientation through Blender's parent/rest conversion."""
+    pose_bone = target.pose.bones[target_mapping[role]]
+    bone = pose_bone.bone
+    identity_basis = Matrix.Identity(4)
+    if pose_bone.parent is None:
+        zero_pose = bone.convert_local_to_pose(identity_basis, bone.matrix_local)
+        desired_pose = rotation.to_matrix().to_4x4()
+        desired_pose.translation = zero_pose.translation
+        basis = bone.convert_local_to_pose(desired_pose, bone.matrix_local, invert=True)
+        pose_matrix = bone.convert_local_to_pose(
+            basis.to_quaternion().to_matrix().to_4x4(), bone.matrix_local)
+    else:
+        parent_matrix = pose_matrices.get(pose_bone.parent.name, pose_bone.parent.matrix)
+        zero_pose = bone.convert_local_to_pose(
+            identity_basis, bone.matrix_local,
+            parent_matrix=parent_matrix,
+            parent_matrix_local=pose_bone.parent.bone.matrix_local,
+        )
+        desired_pose = rotation.to_matrix().to_4x4()
+        desired_pose.translation = zero_pose.translation
+        basis = bone.convert_local_to_pose(
+            desired_pose, bone.matrix_local,
+            parent_matrix=parent_matrix,
+            parent_matrix_local=pose_bone.parent.bone.matrix_local,
+            invert=True,
+        )
+        pose_matrix = bone.convert_local_to_pose(
+            basis.to_quaternion().to_matrix().to_4x4(), bone.matrix_local,
+            parent_matrix=parent_matrix,
+            parent_matrix_local=pose_bone.parent.bone.matrix_local,
+        )
+    pose_bone.rotation_mode = "QUATERNION"
+    pose_bone.rotation_quaternion = basis.to_quaternion().normalized()
+    pose_matrices[pose_bone.name] = pose_matrix
+    return pose_bone
+
+
 def import_and_retarget(request, *, authorized=False):
     if authorized is not True:
         raise ValueError("authorized=true is required for FBX import and Action creation")
@@ -225,6 +348,8 @@ def import_and_retarget(request, *, authorized=False):
             raise ValueError("source Action has non-unit mapped scale channels")
         if not animated_roles:
             raise ValueError("source Action has no mapped Humanoid animation")
+        collapsed_intermediate_bones = _validate_retarget_hierarchies(
+            source_armature, target, data["source_mapping"], data["target_mapping"])
         import_collection = bpy.data.collections.new(data["target"]["import_collection_name"])
         import_collection[OWNER_KEY] = token
         scene.collection.children.link(import_collection)
@@ -258,17 +383,14 @@ def import_and_retarget(request, *, authorized=False):
                 pose_bone.rotation_quaternion = (1, 0, 0, 0)
                 pose_bone.scale = (1, 1, 1)
             bpy.context.view_layer.update()
+            target_pose_matrices = {}
             for role in ROLE_ORDER:
-                source_pose = source_armature.pose.bones[data["source_mapping"][role]]
-                target_pose = target.pose.bones[data["target_mapping"][role]]
-                source_rest = source_armature.data.bones[data["source_mapping"][role]].matrix_local
-                target_rest = target.data.bones[data["target_mapping"][role]].matrix_local
-                delta = source_pose.matrix.to_quaternion() @ source_rest.to_quaternion().conjugated()
-                desired_rotation = (delta @ target_rest.to_quaternion()).normalized()
-                desired = desired_rotation.to_matrix().to_4x4()
-                desired.translation = target_pose.head
-                target_pose.matrix = desired
-                target_pose.rotation_mode = "QUATERNION"
+                target_pose = _apply_target_pose_rotation(
+                    target, data["target_mapping"], role,
+                    _target_pose_rotation(source_armature, target, data["source_mapping"],
+                                          data["target_mapping"], role),
+                    target_pose_matrices,
+                )
                 target_pose.keyframe_insert("rotation_quaternion", frame=frame, group=target_pose.name)
             hips = target.pose.bones[data["target_mapping"]["hips"]]
             source_location = source_armature.pose.bones[
@@ -297,6 +419,8 @@ def import_and_retarget(request, *, authorized=False):
                   "result_bound": target.animation_data.action == result_action,
                   "frame_start": data["frame"]["start"], "frame_end": data["frame"]["end"],
                   "fps": data["frame"]["fps"], "root_motion": data["root_motion"],
+                  "rotation_retarget": "PARENT_LOCAL_SWING_TWIST_V3",
+                  "collapsed_source_intermediate_bones": collapsed_intermediate_bones,
                   "import_collection": import_collection.name, "source_preserved": True,
                   "target_geometry_uv_preserved": True, "target_rest_preserved": True}
         result["receipt_sha256"] = hashlib.sha256(_canonical(result).encode()).hexdigest()
