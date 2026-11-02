@@ -4,6 +4,29 @@ This document preserves product direction across long sessions. It is not an app
 log. Update it when a capability changes status or when priorities move; do not remove deferred
 work merely because another workstream becomes temporarily more important.
 
+## Repository-wide audit decision -- 2026-11-02
+
+The code-based audit in `docs/audits/2026-11-02-repository-review.md` supersedes older broad
+completion interpretations. Preserve the proven installation, safety, animation, Generic FBX,
+Unity and optional 2D foundations, but redesign the core production layer rather than adding more
+narrow validators or render passes.
+
+Current product facts:
+
+- static creation is a four-primitive explicit assembly plus bounded owned-part revision;
+- character creation is blockout or a hash-pinned CC0 human-template proportion workflow, not a
+  general character/style generator;
+- M2/M3/M3.4/M4 evidence is valid only for its documented A-pose, 17-role `IN_PLACE`, single-Action
+  and Unity Generic scopes;
+- the Add-on is persistently installable, but its implemented UI is primarily 2D
+  preview/setup/export rather than the complete creation workflow;
+- profile/style fields do not yet amount to geometry, material and texture art-direction support.
+
+Before another feature milestone, select one bounded production domain and representative art
+direction, then improve actual creation/revision quality through visible Blender acceptance. Do
+not treat the 46 Skill folders as 46 user-facing product commands. Use the per-Skill disposition
+table in `docs/audits/2026-11-02-skill-assessment.tsv` when planning consolidation.
+
 ## Product order
 
 ```text

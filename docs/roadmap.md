@@ -1,6 +1,29 @@
 # Roadmap
 
+## Current product gate -- authoritative from 2026-11-02
+
+The Repository-wide code audit is `docs/audits/2026-11-02-repository-review.md`. It supersedes the
+recovery-era work order below without deleting its history.
+
+Decision: retain the Repository and its proven safety, installation, animation, Generic Unity
+export and optional 2D foundations, but redesign the core creation/revision/style layer. Do not
+start another narrow validator, render pass or export variant before this gate is resolved.
+
+Required next product decisions:
+
+- choose the first bounded production domain: static prop/weapon revision or character
+  style/garment production;
+- choose one representative art direction as capability evidence, not as a global default;
+- approve the small user-facing workflow surface and keep narrow inspectors/bakes internal;
+- decide whether creation capability or Unity Humanoid Avatar proof has the next priority.
+
+After those decisions, the next work package must define a representative Blender asset, visible
+and semantic acceptance criteria, existing helpers to reuse, and explicit non-goals. Test counts
+or synthetic fixtures alone cannot close it.
+
 ## Recovery priority — authoritative from 2026-10-25
+
+> Historical implementation sequence. Retained for traceability; it no longer sets priority.
 
 The detailed checklist below is retained as implementation history, but it no longer determines
 work order. See `docs/PROJECT_AUDIT.md` for the evidence and scope correction.

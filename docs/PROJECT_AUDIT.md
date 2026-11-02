@@ -1,5 +1,10 @@
 # Project recovery audit — 2026-10-25
 
+> **Historical recovery decision.** This document records the 2026-10-25 correction and is no
+> longer the current Repository-wide assessment. Use
+> `docs/audits/2026-11-02-repository-review.md` for current capability, Skill-portfolio and
+> architecture decisions. Retain this file as evidence of why the earlier priority changed.
+
 ## Why this audit exists
 
 The repository drifted away from the user's stated product order. The original proposal
@@ -8,8 +13,8 @@ conversion layer. Development instead concentrated on narrow validators, synthet
 render passes and Unity-facing checks. Those pieces are not worthless, but they do not replace
 asset creation or the requested Blender Add-on.
 
-This file is the corrective source of truth. It does not delete or invalidate historical
-evidence. It changes what is built next.
+At the time, this file was the corrective source of truth. It does not delete or invalidate
+historical evidence, but its then-current counts and continuation point are now historical.
 
 ## Authoritative inputs
 

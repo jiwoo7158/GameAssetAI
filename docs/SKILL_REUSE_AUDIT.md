@@ -1,5 +1,10 @@
 # Existing Skill reuse audit -- 2026-10-25
 
+> **Historical 43-Skill snapshot.** The Repository now has 46 Skill folders and later M1-M4
+> evidence. Current per-Skill recommendations are maintained in
+> `docs/audits/2026-11-02-skill-assessment.tsv`; use this document only for the recovery-era
+> reasoning it preserves.
+
 ## Decision
 
 No existing Skill is deleted. There are 43 Skill folders; 42 contain executable helpers and the

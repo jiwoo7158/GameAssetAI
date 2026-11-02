@@ -2,13 +2,19 @@
 
 GameAssetAI is a development repository for building reusable AI skills that let Codex work with Blender as a game-asset technical artist / modeling assistant.
 
-Current capability status, active gaps and deferred-but-retained Blender Add-on work are tracked in
-`docs/IMPLEMENTATION_MEMORY.md`.
+## Audited status — 2026-11-02
 
-Current character warning: the whole-body `VOXEL_CONNECTED` experiment is suspended after live
-review found unintended leg/foot fusion despite passing structural tests. The generated rig and
-weight-copy results on that topology are diagnostic evidence only. The Blender Add-on source is
-retained but is not persistently installed, so panel availability after restart is not yet proven.
+The repository has strong safety, animation-processing, deterministic 2D, installation and
+bounded Unity-export foundations. It does **not** yet provide broad natural-language 3D modeling,
+general existing-mesh revision, texture authoring or practical multi-style asset generation.
+Static creation is currently an explicit primitive assembly; character creation is blockout or a
+licensed-template proportion workflow. The Blender Add-on is persistently installable, but its
+actual product surface remains primarily 2D preview/setup/export rather than the full creation
+workflow.
+
+See `docs/audits/2026-11-02-repository-review.md` for the code-based assessment and
+`docs/IMPLEMENTATION_MEMORY.md` for the current durable direction. Older recovery and validation
+documents remain evidence, not current product-completeness claims.
 
 The repository itself is **not** a game project and does not require existing Unity or Unreal projects to be moved or reorganized.
 
