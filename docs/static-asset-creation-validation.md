@@ -160,6 +160,34 @@ This is accepted for bounded matched-profile bevel/chamfer and panel forms. It d
 the general Blender Bevel operator, arbitrary inset/extrude, sweep, Boolean, UV/textures or B3
 external-Mesh revision.
 
+## B2 correspondence hardening and B3 external GLB revision -- 2026-11-02
+
+The shifted-square outer/core example was previously accepted even though index-paired connectors
+crossed. V4 now requires every core point to be strictly inside, the current indices to be the
+nearest cyclic correspondence, core edges to remain inside the outer polygon, connectors not to
+cross/touch either other connectors or nonincident profile edges, and a numerically stable bevel
+width. Normal convex/concave requests and the B2 axe/crate regression remain valid.
+
+External revision schema `gameassetai.external-static-revision-request.v1` adds a separate bounded
+path. It verifies an absolute `.glb` and SHA-256, requires a complete unique Object/semantic-role
+map and provenance, imports to an owned source Collection, creates an independent Mesh copy for
+every result part, then performs only `LOCAL_AXIS_END_OFFSET` on declared mapped roles. Topology,
+UV layers, material slots, Object transforms and Empty-only hierarchy are preserved. Unsupported
+static dependencies are refused; failure removes the complete new import/result delta.
+
+Accepted Blender 5.0.1 evidence:
+
+`D:/Blender/MCP_Test/GameAssetAI/runs/B3-external-static-revision/20261102T135955Z-final-field-cannon-trail-extension-a14f30a3`
+
+The external input is the 13-part Kiln 1.5.0 evaluation field cannon, SHA-256
+`fe47778245de640718da4471f45e94a4cdc46971abf08f8feaf6bd1aa7e71749`.
+Explicit roles were assigned to all 13 Mesh Objects. Only the left/right trail local-X minimum end
+regions were extended; the imported source, barrel/body/wheels and remaining parts stayed exact.
+Bad hash and occupied result-root names were refused, an induced post-edit failure rolled back,
+six shared-camera images were explicitly accepted, and the saved Blend reopened in a fresh
+process. This evidence does not claim `.blend`, automatic semantic discovery, arbitrary region or
+topology editing, modifier/Shape Key/vertex-group/linked-data support, or material/UV authoring.
+
 ## Kiln review — 2026-10-27
 
 Kiln 1.5.0 was reviewed from its official repository and release record. It is MIT-licensed and
@@ -175,7 +203,9 @@ The `gameassetai.kiln-glb-import-request.v1` path verifies the source file and S
 complete unique Mesh Object/semantic-role map, imports through Blender's native glTF operator and
 places all new objects in one separately owned Collection. Provenance and created-data inventories
 are returned in a hashed receipt. Imported ownership differs from native v2.1 assembly ownership,
-so semantic revision compatibility remains `NOT_VALIDATED`.
+so native-owned v2.1 revision remains inapplicable. The later B3 contract above validates only its
+separate explicit-map `LOCAL_AXIS_END_OFFSET` path; it does not promote the import to native
+assembly ownership.
 
 Blender 5.0.1 validation used the 13-part field cannon. The successful result retained 10 Mesh
 datablocks (three mirrored instances share meshes) and four materials. Invalid hash was refused

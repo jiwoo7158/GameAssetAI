@@ -17,6 +17,7 @@ REVISION_SCHEMAS = {
     "gameassetai.static-asset-revision-request.v3",
 }
 KILN_IMPORT_SCHEMA = "gameassetai.kiln-glb-import-request.v1"
+EXTERNAL_REVISION_SCHEMA = "gameassetai.external-static-revision-request.v1"
 PRIMITIVES = {"BOX", "CYLINDER", "ICOSPHERE", "WEDGE"}
 GEOMETRY_KINDS = {"PRIMITIVE", "PROFILE_EXTRUSION", "PROFILE_BEVELED_EXTRUSION"}
 STYLE_FAMILIES = {"STYLIZED_LOW_POLY", "CUSTOM"}
@@ -132,22 +133,96 @@ def _profile_points(value, label):
     return points
 
 
-def _point_in_or_on_profile(point, profile):
-    tolerance = 1e-9
+def _orientation_2d(a, b, c):
+    return (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0])
+
+
+def _point_on_segment_2d(point, a, b, tolerance):
+    return (
+        abs(_orientation_2d(a, b, point)) <= tolerance
+        and min(a[0], b[0]) - tolerance <= point[0] <= max(a[0], b[0]) + tolerance
+        and min(a[1], b[1]) - tolerance <= point[1] <= max(a[1], b[1]) + tolerance
+    )
+
+
+def _segments_intersect_or_touch_2d(a, b, c, d, tolerance):
+    values = (
+        _orientation_2d(a, b, c), _orientation_2d(a, b, d),
+        _orientation_2d(c, d, a), _orientation_2d(c, d, b),
+    )
+    signs = tuple(1 if value > tolerance else -1 if value < -tolerance else 0 for value in values)
+    if signs[0] * signs[1] < 0 and signs[2] * signs[3] < 0:
+        return True
+    return (
+        (signs[0] == 0 and _point_on_segment_2d(c, a, b, tolerance))
+        or (signs[1] == 0 and _point_on_segment_2d(d, a, b, tolerance))
+        or (signs[2] == 0 and _point_on_segment_2d(a, c, d, tolerance))
+        or (signs[3] == 0 and _point_on_segment_2d(b, c, d, tolerance))
+    )
+
+
+def _point_profile_location(point, profile, tolerance):
     inside = False
     for index, first in enumerate(profile):
         second = profile[(index + 1) % len(profile)]
-        cross = ((second[0] - first[0]) * (point[1] - first[1])
-                 - (second[1] - first[1]) * (point[0] - first[0]))
-        if (abs(cross) <= tolerance
-                and min(first[0], second[0]) - tolerance <= point[0] <= max(first[0], second[0]) + tolerance
-                and min(first[1], second[1]) - tolerance <= point[1] <= max(first[1], second[1]) + tolerance):
-            return True
+        if _point_on_segment_2d(point, first, second, tolerance):
+            return "boundary"
         if ((first[1] > point[1]) != (second[1] > point[1])):
             crossing_x = first[0] + (point[1] - first[1]) * (second[0] - first[0]) / (second[1] - first[1])
             if crossing_x > point[0]:
                 inside = not inside
-    return inside
+    return "inside" if inside else "outside"
+
+
+def _validate_profile_correspondence(outer, core, label):
+    count = len(outer)
+    span = max(
+        max(point[0] for point in outer) - min(point[0] for point in outer),
+        max(point[1] for point in outer) - min(point[1] for point in outer),
+    )
+    tolerance = max(1e-9, span * PROFILE_RELATIVE_EPSILON)
+    if any(_point_profile_location(point, outer, tolerance) != "inside" for point in core):
+        raise ValueError(f"{label} core profile points must lie strictly inside the outer profile")
+
+    def cost(offset):
+        return sum(
+            (outer[index][0] - core[(index + offset) % count][0]) ** 2
+            + (outer[index][1] - core[(index + offset) % count][1]) ** 2
+            for index in range(count)
+        )
+
+    current_cost = cost(0)
+    best_cost = min(cost(offset) for offset in range(count))
+    if current_cost > best_cost + max(tolerance * tolerance * count, best_cost * 1e-9):
+        raise ValueError(f"{label} outer/core indices do not use the nearest cyclic correspondence")
+
+    connectors = list(zip(outer, core))
+    if any(math.dist(first, second) <= tolerance for first, second in connectors):
+        raise ValueError(f"{label} bevel width is numerically unstable")
+    for first in range(count):
+        for second in range(first + 1, count):
+            if _segments_intersect_or_touch_2d(*connectors[first], *connectors[second], tolerance):
+                raise ValueError(f"{label} outer/core connector segments must not cross or touch")
+
+    for index in range(count):
+        core_edge = (core[index], core[(index + 1) % count])
+        for outer_index in range(count):
+            outer_edge = (outer[outer_index], outer[(outer_index + 1) % count])
+            if _segments_intersect_or_touch_2d(*core_edge, *outer_edge, tolerance):
+                raise ValueError(f"{label} core edges must remain inside the outer profile")
+        connector = connectors[index]
+        for outer_index in range(count):
+            if outer_index in {index, (index - 1) % count}:
+                continue
+            outer_edge = (outer[outer_index], outer[(outer_index + 1) % count])
+            if _segments_intersect_or_touch_2d(*connector, *outer_edge, tolerance):
+                raise ValueError(f"{label} connector crosses the outer profile")
+        for core_index in range(count):
+            if core_index in {index, (index - 1) % count}:
+                continue
+            core_edge = (core[core_index], core[(core_index + 1) % count])
+            if _segments_intersect_or_touch_2d(*connector, *core_edge, tolerance):
+                raise ValueError(f"{label} connector crosses the core profile")
 
 
 def _geometry(value, label, *, allow_beveled=False):
@@ -184,8 +259,7 @@ def _geometry(value, label, *, allow_beveled=False):
             raise ValueError(f"{label} outer and core profiles must have the same point count")
         if all(math.dist(first, second) <= 1e-9 for first, second in zip(outer, core)):
             raise ValueError(f"{label} core profile must differ from the outer profile")
-        if any(not _point_in_or_on_profile(point, outer) for point in core):
-            raise ValueError(f"{label} core profile points must lie inside or on the outer profile")
+        _validate_profile_correspondence(outer, core, label)
         depth = value["depth"]
         if isinstance(depth, bool) or not isinstance(depth, (int, float)) or not math.isfinite(depth) or depth <= 0:
             raise ValueError(f"{label}.depth must be a finite number greater than zero")
@@ -479,6 +553,86 @@ def validate_kiln_import_request(request):
     }
 
 
+def validate_external_revision_request(request):
+    if not isinstance(request, dict):
+        raise ValueError("request must be an object")
+    expected = {
+        "schema", "scene_name", "asset_name", "source_collection_name", "collection_name",
+        "source_file", "source_sha256", "part_roles", "revisions", "provenance", "policy",
+    }
+    if set(request) != expected:
+        raise ValueError(f"request fields must be exactly {sorted(expected)}")
+    if request["schema"] != EXTERNAL_REVISION_SCHEMA:
+        raise ValueError(f"schema must be {EXTERNAL_REVISION_SCHEMA}")
+    for key in ("scene_name", "asset_name", "source_collection_name", "collection_name"):
+        _name(request[key], key)
+    if request["source_collection_name"] == request["collection_name"]:
+        raise ValueError("source_collection_name and collection_name must differ")
+    source = request["source_file"]
+    if not isinstance(source, str) or not Path(source).is_absolute() or Path(source).suffix.casefold() != ".glb":
+        raise ValueError("source_file must be an absolute .glb path")
+    if not isinstance(request["source_sha256"], str) or not SHA256_PATTERN.fullmatch(request["source_sha256"]):
+        raise ValueError("source_sha256 must be a lowercase SHA-256")
+
+    mappings = request["part_roles"]
+    if not isinstance(mappings, list) or not 1 <= len(mappings) <= 128:
+        raise ValueError("part_roles must contain 1 to 128 entries")
+    object_names, semantic_roles = set(), set()
+    for index, mapping in enumerate(mappings):
+        if not isinstance(mapping, dict) or set(mapping) != {"object_name", "semantic_role"}:
+            raise ValueError(f"part_roles[{index}] has invalid fields")
+        object_name = _name(mapping["object_name"], f"part_roles[{index}].object_name")
+        role = _name(mapping["semantic_role"], f"part_roles[{index}].semantic_role")
+        if object_name.casefold() in object_names or role.casefold() in semantic_roles:
+            raise ValueError("part object names and semantic roles must each be case-insensitively unique")
+        object_names.add(object_name.casefold())
+        semantic_roles.add(role.casefold())
+
+    revisions = request["revisions"]
+    if not isinstance(revisions, list) or not 1 <= len(revisions) <= len(mappings):
+        raise ValueError("revisions must contain 1 entry up to the mapped part count")
+    revised_roles = set()
+    for index, revision in enumerate(revisions):
+        fields = {"semantic_role", "operation", "axis", "side", "threshold", "delta"}
+        if not isinstance(revision, dict) or set(revision) != fields:
+            raise ValueError(f"revisions[{index}] has invalid fields")
+        role = _name(revision["semantic_role"], f"revisions[{index}].semantic_role")
+        if role.casefold() not in semantic_roles:
+            raise ValueError(f"revisions[{index}].semantic_role is not mapped")
+        if role.casefold() in revised_roles:
+            raise ValueError("revision semantic roles must be case-insensitively unique")
+        revised_roles.add(role.casefold())
+        if revision["operation"] != "LOCAL_AXIS_END_OFFSET":
+            raise ValueError("external revision operation must be LOCAL_AXIS_END_OFFSET")
+        if revision["axis"] not in {"X", "Y", "Z"} or revision["side"] not in {"MIN", "MAX"}:
+            raise ValueError("external revision axis/side must be X/Y/Z and MIN/MAX")
+        for key in ("threshold", "delta"):
+            value = revision[key]
+            if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
+                raise ValueError(f"revisions[{index}].{key} must be a finite number")
+            revision[key] = float(value)
+        if revision["delta"] == 0:
+            raise ValueError(f"revisions[{index}].delta must be non-zero")
+
+    provenance = request["provenance"]
+    if not isinstance(provenance, dict) or set(provenance) != {"producer", "version", "source_ref", "license"}:
+        raise ValueError("provenance fields must be producer, version, source_ref and license")
+    for key in ("producer", "version", "source_ref", "license"):
+        _name(provenance[key], f"provenance.{key}")
+
+    required_policy = {
+        "existing_names": "REFUSE", "source_file": "READ_ONLY",
+        "import": "NEW_COLLECTION_OWNED_SOURCE",
+        "revision": "NEW_COLLECTION_INDEPENDENT_MESHES_SHARED_MATERIALS",
+        "failure": "ROLL_BACK_OPERATION_DELTA",
+    }
+    if request["policy"] != required_policy:
+        raise ValueError(f"policy must be exactly {required_policy}")
+    normalized = json.loads(_canonical(request))
+    return {"status": "ready", "request": normalized,
+            "request_sha256": hashlib.sha256(_canonical(normalized).encode("utf-8")).hexdigest()}
+
+
 if __name__ == "__main__":
     import argparse
     from pathlib import Path
@@ -491,6 +645,8 @@ if __name__ == "__main__":
         validator = validate_revision_request
     elif payload.get("schema") == KILN_IMPORT_SCHEMA:
         validator = validate_kiln_import_request
+    elif payload.get("schema") == EXTERNAL_REVISION_SCHEMA:
+        validator = validate_external_revision_request
     else:
         validator = validate_request
     print(json.dumps(validator(payload), indent=2, ensure_ascii=False))

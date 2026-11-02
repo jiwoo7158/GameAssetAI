@@ -146,6 +146,49 @@ an independent copy, modify selected real geometry and retain unrelated parts/ma
 claim automatic semantic inference. Completion requires one representative non-GameAssetAI
 multi-object asset.
 
+#### Completed work package: B2 correspondence hardening and B3 external-region revision -- 2026-11-02
+
+- Requirements: `REQ-STATIC`, `REQ-SAFE`, bounded `REQ-WORKFLOW`; preserve B2 `REQ-STYLE` and
+  `REQ-COST` evidence.
+- Reuse: Static Asset v1-v4, Kiln GLB hash/import delta inventory, explicit role maps, copy-only
+  ownership/rollback, Blender Mesh copying, Artifact Lifecycle, hash-bound visual review and
+  Workspace update.
+- Confirmed starting B2 gap: individually valid nested profiles could use a shifted/twisted
+  correspondence; the pre-B3 validator accepted the supplied square counterexample although its
+  connectors crossed.
+- B2 boundary: reject crossing connectors, core edges leaving a concave outer polygon and a
+  non-minimal cyclic correspondence. Do not add a general polygon library or new Validator Skill.
+- B3 boundary: one explicit external `.glb` path/hash; exact Mesh Object-to-role mapping; import to
+  an isolated source Collection; independently copy mapped Mesh Objects; apply one declared local
+  axis-aligned region transform to selected vertices of mapped roles; retain topology, unchanged
+  vertices, UV layers, material references, Object transforms and imported Empty-only hierarchy.
+  Refuse modifiers, Shape Keys, vertex groups, linked data and shared mutable result Meshes.
+- Representative evidence: the existing licensed/evaluated Kiln field-cannon GLB as an
+  `EXTERNAL_INPUT`; lengthen the explicitly mapped left/right trail end regions while preserving
+  the body, barrel, wheels and other parts. The Skill must not depend on this private path or Kiln
+  runtime.
+- Acceptance: original file/hash and imported source data remain exact; output Mesh data is
+  independent; only the declared role/vertex region changes; unrelated objects/materials/UVs and
+  transforms remain exact; unsupported input/name conflicts and induced failure leave no owned
+  residue; shared-camera images receive explicit review; save/reopen and installed execution pass.
+- Non-goals: automatic semantics, arbitrary free-form editing, `.blend` ingestion in this first
+  path, topology replacement, UV generation, modifier/Shape Key support, B4 style/texture work,
+  new Skill, Add-on UI or external packages.
+- User approval: supplied by the current B3 request, including use of an existing local external
+  asset and focused Workspace installation after validation.
+
+Result: the shifted-square counterexample was reproduced and is now refused. V4 additionally
+requires strictly nested profiles, nearest cyclic index alignment, internal core edges,
+non-crossing connectors and stable bevel width; the accepted B2 axe/crate requests still pass.
+External-revision v1 imports an explicit hash-pinned static `.glb`, requires a complete unique
+Mesh Object/role map, copies every result Mesh independently and applies only
+`LOCAL_AXIS_END_OFFSET` to an explicitly bounded vertex region. The 13-part Kiln evaluation field
+cannon passed source/hash preservation, two-trail end extension, unrelated-part/material/UV/
+transform preservation, name/hash refusal, induced rollback, shared-camera visual acceptance and
+fresh-process reopen. This completes B3 only for that bounded GLB/static/no-modifier contract;
+`.blend`, automatic semantics, arbitrary selection/topology edits, modifiers, Shape Keys, vertex
+groups and linked data remain unsupported. B4 is next.
+
 ### B4 -- Game-specific art direction, materials and textures
 
 Connect Workspace Profile and explicit request decisions to silhouette, proportion, shape

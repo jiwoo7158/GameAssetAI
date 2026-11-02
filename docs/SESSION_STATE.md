@@ -16,13 +16,14 @@ core production layer**. Do not restart from scratch, and do not continue the pr
 adding narrow validators, render passes or export variants while broad creation and style support
 remain missing.
 
-The user selected the first B-plan production domain and the bounded implementation is complete:
-`blender-create-static-asset` v3 adds explicit profile extrusion and copy-only semantic geometry
-replacement. The accepted axe/shield run is recorded below. This is a real increase in static
-production expression, not a claim of general modeling.
+The user selected the static B-plan production domain. B1/B1.1/B2 and the bounded B3 path are now
+complete: the Static Asset Skill supports owned profile/profile-beveled production and revision,
+plus an explicit-map static-GLB end-region edit on independent copies. These are real increases in
+production/reuse capability, not a claim of general modeling or arbitrary external-Mesh editing.
 
 The official active sequence is now B1 (complete), B1.1 (complete), B2 bounded shape-production
-(complete), then B3 explicit external static asset revision. B4-B8 are recorded in
+(complete), B3 bounded external static GLB revision (complete), then B4 art direction/material/
+UV/texture production. B5-B8 are recorded in
 `docs/roadmap.md`.
 
 Proven foundations to retain:
@@ -38,8 +39,9 @@ Proven foundations to retain:
 
 Do not overstate:
 
-- static creation remains bounded: v3 supports explicit profile extrusion and owned semantic
-  profile replacement, but not arbitrary prompt-to-mesh or arbitrary imported-Mesh editing;
+- static creation remains bounded: v3/v4 support explicit profile/profile-beveled solids and owned
+  semantic replacement; B3 supports only explicit-map static-GLB local-axis end edits, not
+  arbitrary prompt-to-mesh or arbitrary imported-Mesh editing;
 - character v4 is a CC0 human-template proportion workflow, not general character generation;
 - hair, clothing, creatures, broad existing-mesh editing, texture authoring and practical
   multi-style generation are not implemented;
@@ -117,16 +119,33 @@ depth is recorded rather than implying uniform line-by-line review.
 - The scope remains matched-profile bevel/chamfer/panel forms. General Bevel, free inset/extrude,
   sweep, Boolean, UV/texture and arbitrary imported-Mesh editing are not implemented.
 
+## Completed B3 bounded external static revision -- 2026-11-02
+
+- The B2 shifted-square correspondence defect was reproduced and fixed with strict nesting,
+  nearest cyclic alignment, internal core-edge, non-crossing connector and stable-width gates.
+- `gameassetai.external-static-revision-request.v1` imports an explicit SHA-pinned static GLB,
+  requires all Mesh Objects to have unique explicit roles, creates independent result Meshes and
+  applies only a declared local-axis end-region offset.
+- Representative input: the 13-part Kiln 1.5.0 evaluation field cannon, SHA-256
+  `fe47778245de640718da4471f45e94a4cdc46971abf08f8feaf6bd1aa7e71749`.
+- The left/right trail end regions were extended while the source file/import, other parts,
+  topology, UVs, materials, transforms and Empty hierarchy remained intact. Bad hash/name inputs
+  and an induced post-edit failure rolled back without residue.
+- Accepted evidence: `D:/Blender/MCP_Test/GameAssetAI/runs/B3-external-static-revision/`
+  `20261102T135955Z-final-field-cannon-trail-extension-a14f30a3`.
+- Scope is `.glb`, static Mesh/Empty hierarchy, no modifiers/groups/Shape Keys/linked data and one
+  explicit `LOCAL_AXIS_END_OFFSET`; it is not arbitrary imported-Mesh editing.
+
 ## Next B-plan target
 
-B3 adds explicit revision of a real non-GameAssetAI multi-object static asset while preserving its
-source, unrelated parts and materials. Do not infer arbitrary semantics or turn B3 into a general
-modeling framework.
+B4 connects explicit request/Workspace art direction to actual silhouette, proportion, material,
+UV and texture production. Do not treat the B3 field cannon or Stylized Low-Poly evidence as a
+global style default.
 
 ## Repository state and safety
 
-- B1 changes the static creation implementation, focused tests, router/contract documents and the
-  two installed Workspace Skills named above.
+- B1-B3 changed the static creation/revision implementation, focused tests, router/contract
+  documents and the two installed Workspace Skills named above.
 - The user's open Blender Scene, external projects and source assets were not modified.
 - One deprecated Skill was removed from active source and Workspace exposure with a verified
   recovery backup; no current internal/consolidate/freeze Skill was physically merged or removed.

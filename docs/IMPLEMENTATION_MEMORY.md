@@ -76,7 +76,16 @@ back to modeling, rigging or Mixamo work must not cause the Add-on UI work to be
   V4 adds `PROFILE_BEVELED_EXTRUSION`: explicit matching outer/core rings form a closed solid with
   real sloped cross-section bands. Revision v3 replaces that geometry on a copy. An axe and a
   reinforced crate passed explicit visual acceptance, manifold/normal/volume checks, preservation,
-  rollback and reopen. This is not a general Bevel/inset/extrude/sweep/Boolean system.
+  rollback and reopen. The B3 hardening rejects shifted/twisted correspondence, core edges that
+  escape a concave outer profile, crossing connectors and unstable near-zero bevel widths. This is
+  not a general Bevel/inset/extrude/sweep/Boolean system.
+- Static external-revision v1 accepts one explicit hash-pinned static `.glb`, a complete unique
+  Mesh Object/semantic-role map and bounded `LOCAL_AXIS_END_OFFSET` edits. It preserves the source
+  file and imported source, creates independent result Mesh datablocks, shares materials read-only,
+  retains topology/UV/Object transforms and Empty-only hierarchy, and rolls back its full import/
+  result delta on failure. A 13-part Kiln evaluation field cannon passed accepted two-trail
+  extension evidence. This does not support `.blend`, semantic inference, arbitrary regions,
+  modifiers, vertex groups, Shape Keys, linked data, topology, material or UV editing.
 - `blender-create-character-base`: V1 separate-volume and guarded v3 Boolean blockout paths remain
   intact. Experimental v4 `DEFORMATION_TEMPLATE` duplicates an explicit hash-pinned Blender
   Studio Human Base Meshes v1.4.1 CC0 Mesh, applies two tested non-affine proportion ranges,
@@ -154,8 +163,9 @@ integrated into the Add-on; advanced passes remain explicit opt-in tools.
 
 ## Active product gaps, in order
 
-1. Execute B3 explicit external/static Blender asset revision without automatic semantic inference.
-2. Continue B4-B8 in the official roadmap order unless a concrete user request justifies a
+1. Execute B4 game-specific art direction, material, UV and texture production without making one
+   representative style a global default.
+2. Continue B5-B8 in the official roadmap order unless a concrete user request justifies a
    documented bounded dependency.
 
 Unity Humanoid Avatar/root-motion work remains a separate optional gate only when a concrete game
@@ -174,7 +184,7 @@ user-approved work package and representative isolated validation.
 | 1 | Blender native QuadriFlow and ReQuad | topology baseline for the character deformation-topology gap | isolated Blender 5.0.1 experiment completed 2026-10-26; neither is integration-ready: direct inputs failed topology gates and voxel-prepared inputs failed semantic preservation |
 | 2 | RetopoFlow | optional human-guided topology correction | manual review aid only unless deterministic automation is demonstrated |
 | 3 | Blender Agent Skills | modeling/UV/QA procedure comparison | inspect individual procedures and tests; do not install wholesale or duplicate GameAssetAI Skills |
-| 4 | Kiln 1.5.0 | broader procedural static props/environment provider | tested only in the approved isolated evaluation folder; an existing field-cannon GLB passed the optional hash-verified Blender 5.0.1 Adapter. Kiln remains non-required, and imported semantic revision compatibility is not validated |
+| 4 | Kiln 1.5.0 | broader procedural static props/environment provider | tested only in the approved isolated evaluation folder; an existing field-cannon GLB passed optional hash-verified import and the bounded B3 explicit-map/end-region revision. Kiln remains non-required; this is not native-owned or arbitrary imported-Mesh compatibility |
 | 5 | Rigify then GameRig | control rig and game-oriented deform/export rig | evaluate only after a deformation-ready Mesh exists; preserve suitable existing rigs |
 | 6 | Rokoko Blender Plugin | imported-animation mapping/retarget reference | defer to the real imported-animation work package; Blender 5 compatibility must be proven locally |
 | 7 | MakeHuman | optional humanoid base-mesh provider | defer; separate CC0 asset evaluation from AGPL application-code integration and do not replace style-neutral creation by default |

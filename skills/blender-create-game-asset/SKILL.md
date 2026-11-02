@@ -16,7 +16,7 @@ Use these creation entries:
 
 - recognizable low-poly prop, weapon, furniture-like or simple environment assembly, including
   an explicit profile-authored silhouette, a bounded matched-profile beveled solid, and owned
-  semantic geometry revision:
+  semantic geometry revision, plus bounded revision of an explicitly mapped static external GLB:
   `blender-create-static-asset`;
 - new low-poly humanoid blockout: `blender-create-character-base`;
 - reviewed owned character base that needs its first rig: `blender-rig-character-base`;
@@ -73,4 +73,13 @@ supply crate and deepen its panel", route one complete v4 request through
 Use v3 when constant-depth profile extrusion is sufficient. Translate a complete explicit request
 or active-profile style decision into the style object; do not infer missing art direction.
 Geometry revision is supported only for an owned matching-version semantic part and must create an
-independent collection. Arbitrary imported Mesh editing remains unsupported.
+independent collection.
+
+For requests such as "extend the handle in this existing GLB" or "modify only this mapped metal
+part", inspect the actual file first and require its absolute path/SHA-256, provenance, a complete
+unique Mesh Object-to-role map, unused source/result Collection names, and an explicit local-axis
+end region (`axis`, `side`, `threshold`, `delta`). Route the request through
+`blender-create-static-asset` external-revision v1. It creates independent result Meshes and shares
+materials read-only. Do not infer roles, treat the imported source as a native-owned assembly, or
+claim `.blend`, modifier, Shape Key, vertex-group, topology, arbitrary-selection, material or UV
+editing support. Unsupported external structures must be refused rather than rebuilt from primitives.

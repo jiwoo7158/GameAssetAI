@@ -9,6 +9,7 @@ import bpy
 from mathutils import Euler, Matrix, Vector
 
 from validate_static_asset_assembly_request import (
+    validate_external_revision_request,
     validate_kiln_import_request,
     validate_request,
     validate_revision_request,
@@ -25,6 +26,9 @@ PROVENANCE_KIND_KEY = "gameassetai_source_kind"
 PROVENANCE_SHA_KEY = "gameassetai_source_sha256"
 PROVENANCE_VERSION_KEY = "gameassetai_kiln_version"
 PROVENANCE_PROGRAM_KEY = "gameassetai_kiln_program_ref"
+EXTERNAL_SOURCE_OWNER_KEY = "gameassetai_external_source_owner"
+EXTERNAL_RESULT_OWNER_KEY = "gameassetai_external_revision_owner"
+EXTERNAL_SOURCE_SHA_KEY = "gameassetai_external_source_sha256"
 
 
 def _canonical(value):
@@ -702,3 +706,217 @@ def remove_imported_asset(receipt):
                 dataset.remove(block)
     if collection.get(IMPORT_OWNER_KEY) == token:
         bpy.data.collections.remove(collection)
+
+
+def _external_mesh_snapshot(obj):
+    mesh = obj.data
+    return {
+        "object_transform": tuple(round(float(value), 10) for row in obj.matrix_local for value in row),
+        "vertices": tuple(tuple(round(float(value), 10) for value in vertex.co) for vertex in mesh.vertices),
+        "edges": tuple(tuple(edge.vertices) for edge in mesh.edges),
+        "polygons": tuple(tuple(polygon.vertices) for polygon in mesh.polygons),
+        "materials": tuple(material.name if material else None for material in mesh.materials),
+        "uv_layers": tuple(
+            (layer.name, tuple((round(float(loop.uv.x), 10), round(float(loop.uv.y), 10)) for loop in layer.data))
+            for layer in mesh.uv_layers
+        ),
+    }
+
+
+def _apply_external_region_revision(obj, revision):
+    axis_index = {"X": 0, "Y": 1, "Z": 2}[revision["axis"]]
+    threshold = revision["threshold"]
+    selected = [
+        vertex for vertex in obj.data.vertices
+        if (vertex.co[axis_index] <= threshold if revision["side"] == "MIN" else vertex.co[axis_index] >= threshold)
+    ]
+    if not selected or len(selected) == len(obj.data.vertices):
+        raise ValueError(f"revision region must select some but not all vertices: {obj[ROLE_KEY]}")
+    for vertex in selected:
+        vertex.co[axis_index] += revision["delta"]
+    obj.data.update(calc_edges=True)
+    if any(polygon.area <= 1e-12 for polygon in obj.data.polygons):
+        raise ValueError(f"external revision created a zero-area face: {obj[ROLE_KEY]}")
+    return [vertex.index for vertex in selected]
+
+
+def revise_external_glb(request, *, authorized=False):
+    if not authorized:
+        raise ValueError("authorized=true is required for persistent external GLB revision")
+    validated = validate_external_revision_request(request)
+    normalized = validated["request"]
+    scene = bpy.data.scenes.get(normalized["scene_name"])
+    if scene is None or scene != bpy.context.scene:
+        raise ValueError("scene_name must identify the active Blender Scene")
+    source = Path(normalized["source_file"])
+    if not source.is_file() or source.is_symlink():
+        raise ValueError("source_file must be an existing regular, non-symbolic GLB file")
+    source_bytes = source.read_bytes()
+    actual_sha = hashlib.sha256(source_bytes).hexdigest()
+    if actual_sha != normalized["source_sha256"]:
+        raise ValueError(f"source SHA-256 mismatch: expected {normalized['source_sha256']}, got {actual_sha}")
+    if bpy.data.collections.get(normalized["source_collection_name"]) or bpy.data.collections.get(normalized["collection_name"]):
+        raise ValueError("source_collection_name and collection_name must both be unused")
+    occupied_source = [item["object_name"] for item in normalized["part_roles"] if bpy.data.objects.get(item["object_name"])]
+    result_names = [f"{normalized['asset_name']} {item['semantic_role']}" for item in normalized["part_roles"]]
+    occupied_result = [name for name in result_names if bpy.data.objects.get(name) or bpy.data.meshes.get(name + " Mesh")]
+    if occupied_source or occupied_result:
+        raise ValueError(f"requested source/result names are occupied: {occupied_source + occupied_result}")
+
+    before = _snapshot_import_data()
+    before_names = {name: {block.name for block in getattr(bpy.data, name)} for name in _IMPORT_DATASETS}
+    selected = list(bpy.context.selected_objects)
+    active = bpy.context.view_layer.objects.active
+    active_layer_collection = bpy.context.view_layer.active_layer_collection
+    source_token, result_token = uuid.uuid4().hex, uuid.uuid4().hex
+    try:
+        source_collection = bpy.data.collections.new(normalized["source_collection_name"])
+        source_collection[EXTERNAL_SOURCE_OWNER_KEY] = source_token
+        source_collection[EXTERNAL_SOURCE_SHA_KEY] = actual_sha
+        scene.collection.children.link(source_collection)
+        layer_collection = bpy.context.view_layer.layer_collection.children.get(source_collection.name)
+        if layer_collection is None:
+            raise RuntimeError("external source collection is unavailable in the active View Layer")
+        bpy.context.view_layer.active_layer_collection = layer_collection
+        result = bpy.ops.import_scene.gltf(filepath=str(source))
+        if "FINISHED" not in result:
+            raise RuntimeError(f"Blender glTF importer did not finish: {sorted(result)}")
+
+        delta = _import_delta(before)
+        imported_objects = delta["objects"]
+        meshes = [obj for obj in imported_objects if obj.type == "MESH"]
+        empties = [obj for obj in imported_objects if obj.type == "EMPTY"]
+        unsupported = sorted(obj.name for obj in imported_objects if obj.type not in {"MESH", "EMPTY"})
+        if unsupported or delta["cameras"] or delta["lights"] or delta["armatures"] or delta["actions"]:
+            raise ValueError(f"GLB contains unsupported non-static data: {unsupported}")
+        for data_kind in ("objects", "meshes", "materials"):
+            for block in delta[data_kind]:
+                head, separator, suffix = block.name.rpartition(".")
+                if separator and len(suffix) == 3 and suffix.isdigit() and head in before_names[data_kind]:
+                    raise ValueError(f"import name collision: {data_kind[:-1]} {head}")
+        role_map = {item["object_name"]: item["semantic_role"] for item in normalized["part_roles"]}
+        imported_names = {obj.name for obj in meshes}
+        missing, unmapped = sorted(set(role_map) - imported_names), sorted(imported_names - set(role_map))
+        if missing or unmapped:
+            raise ValueError(f"part role mapping must cover every imported Mesh; missing={missing}, unmapped={unmapped}")
+        imported_set = set(imported_objects)
+        for obj in meshes:
+            if obj.library or obj.data.library or obj.modifiers or obj.vertex_groups or obj.data.shape_keys:
+                raise ValueError(f"unsupported external Mesh dependencies: {obj.name}")
+            if obj.parent is not None and (obj.parent not in imported_set or obj.parent.type != "EMPTY"):
+                raise ValueError(f"external Mesh parent must be an imported Empty: {obj.name}")
+        for empty in empties:
+            if empty.parent is not None and (empty.parent not in imported_set or empty.parent.type != "EMPTY"):
+                raise ValueError(f"external Empty hierarchy is unsupported: {empty.name}")
+
+        result_root_names = [
+            f"{normalized['asset_name']} Root {index + 1}"
+            for index in range(len(empties))
+        ]
+        occupied_roots = [name for name in result_root_names if bpy.data.objects.get(name)]
+        if occupied_roots:
+            raise ValueError(f"requested result root names are occupied: {occupied_roots}")
+
+        for obj in imported_objects:
+            for owner in list(obj.users_collection):
+                if owner != source_collection:
+                    owner.objects.unlink(obj)
+            if source_collection.objects.get(obj.name) is None:
+                source_collection.objects.link(obj)
+            obj[EXTERNAL_SOURCE_OWNER_KEY] = source_token
+            obj[EXTERNAL_SOURCE_SHA_KEY] = actual_sha
+        for extra in list(delta["collections"]):
+            if extra != source_collection and extra.users == 0:
+                bpy.data.collections.remove(extra)
+        for obj in meshes:
+            obj.data[EXTERNAL_SOURCE_OWNER_KEY] = source_token
+            obj.data[EXTERNAL_SOURCE_SHA_KEY] = actual_sha
+            obj[ROLE_KEY] = role_map[obj.name]
+        source_snapshots = {obj[ROLE_KEY]: _external_mesh_snapshot(obj) for obj in meshes}
+
+        result_collection = bpy.data.collections.new(normalized["collection_name"])
+        result_collection[EXTERNAL_RESULT_OWNER_KEY] = result_token
+        result_collection[EXTERNAL_SOURCE_SHA_KEY] = actual_sha
+        scene.collection.children.link(result_collection)
+        copies = {}
+        for index, source_empty in enumerate(sorted(empties, key=lambda value: value.name.casefold())):
+            copied = source_empty.copy()
+            copied.name = result_root_names[index]
+            if copied.name != result_root_names[index]:
+                raise ValueError(f"result root name collision: {result_root_names[index]}")
+            copied[EXTERNAL_RESULT_OWNER_KEY] = result_token
+            result_collection.objects.link(copied)
+            copies[source_empty] = copied
+        result_by_role = {}
+        for source_obj in sorted(meshes, key=lambda value: value.name.casefold()):
+            role = source_obj[ROLE_KEY]
+            copied_mesh = source_obj.data.copy()
+            copied_mesh.name = f"{normalized['asset_name']} {role} Mesh"
+            copied_mesh[EXTERNAL_RESULT_OWNER_KEY] = result_token
+            copied_mesh[EXTERNAL_SOURCE_SHA_KEY] = actual_sha
+            copied = source_obj.copy()
+            copied.name = f"{normalized['asset_name']} {role}"
+            copied.data = copied_mesh
+            copied[EXTERNAL_RESULT_OWNER_KEY] = result_token
+            copied[EXTERNAL_SOURCE_SHA_KEY] = actual_sha
+            copied[ROLE_KEY] = role
+            result_collection.objects.link(copied)
+            copies[source_obj] = copied
+            result_by_role[role.casefold()] = copied
+        for source_obj, copied in copies.items():
+            copied.parent = copies.get(source_obj.parent)
+            copied.matrix_parent_inverse = source_obj.matrix_parent_inverse.copy()
+
+        revision_facts = []
+        for revision in normalized["revisions"]:
+            obj = result_by_role[revision["semantic_role"].casefold()]
+            before_snapshot = _external_mesh_snapshot(obj)
+            selected_indices = _apply_external_region_revision(obj, revision)
+            after_snapshot = _external_mesh_snapshot(obj)
+            if before_snapshot["vertices"] == after_snapshot["vertices"]:
+                raise RuntimeError("external revision did not change Mesh vertices")
+            if before_snapshot["edges"] != after_snapshot["edges"] or before_snapshot["polygons"] != after_snapshot["polygons"]:
+                raise RuntimeError("external revision changed topology")
+            if before_snapshot["materials"] != after_snapshot["materials"] or before_snapshot["uv_layers"] != after_snapshot["uv_layers"]:
+                raise RuntimeError("external revision changed materials or UV data")
+            revision_facts.append({
+                "semantic_role": revision["semantic_role"], "object": obj.name,
+                "operation": revision["operation"], "axis": revision["axis"], "side": revision["side"],
+                "threshold": revision["threshold"], "delta": revision["delta"],
+                "selected_vertex_count": len(selected_indices), "selected_vertex_indices": selected_indices,
+            })
+
+        if hashlib.sha256(source.read_bytes()).hexdigest() != actual_sha:
+            raise RuntimeError("external source file changed during revision")
+        for source_obj in meshes:
+            if _external_mesh_snapshot(source_obj) != source_snapshots[source_obj[ROLE_KEY]]:
+                raise RuntimeError(f"imported external source changed: {source_obj.name}")
+        parts = []
+        revised_roles = {item["semantic_role"].casefold() for item in normalized["revisions"]}
+        for role, obj in sorted(result_by_role.items()):
+            obj.data.calc_loop_triangles()
+            parts.append({
+                "semantic_role": obj[ROLE_KEY], "object": obj.name, "mesh": obj.data.name,
+                "vertices": len(obj.data.vertices), "triangles": len(obj.data.loop_triangles),
+                "materials": [material.name for material in obj.data.materials],
+                "uv_layers": [layer.name for layer in obj.data.uv_layers],
+                "modified": role in revised_roles, "independent_mesh": obj.data.users == 1,
+            })
+        receipt = {
+            "status": "created", "operation": "external_glb_region_revision",
+            "asset_name": normalized["asset_name"], "source_collection_name": source_collection.name,
+            "collection_name": result_collection.name, "source_file": str(source),
+            "source_sha256": actual_sha, "provenance": normalized["provenance"],
+            "request_sha256": validated["request_sha256"], "parts": parts,
+            "revisions": revision_facts, "source_file_preserved": True,
+            "imported_source_preserved": True, "topology_preserved": True,
+            "materials_preserved": True, "uv_layers_preserved": True,
+            "object_transforms_preserved": True, "native_owned_revision_compatibility": "NOT_APPLICABLE",
+        }
+        receipt["receipt_sha256"] = hashlib.sha256(_canonical(receipt).encode()).hexdigest()
+        return receipt
+    except Exception:
+        _rollback_import_delta(before)
+        raise
+    finally:
+        _restore_context(selected, active, active_layer_collection)

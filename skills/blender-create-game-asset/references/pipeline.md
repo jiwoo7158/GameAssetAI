@@ -4,9 +4,10 @@
 
 | User intent | First Skill | Continue only when applicable |
 | --- | --- | --- |
-| New prop, weapon, furniture-like or simple environment piece | `blender-create-static-asset` v3 when an explicit profile silhouette is suitable | semantic geometry revision, inspection, static export or 2D rendering |
+| New prop, weapon, furniture-like or simple environment piece | `blender-create-static-asset` v3/v4 when explicit profile geometry is suitable | semantic geometry revision, inspection, static export or 2D rendering |
 | New low-poly humanoid | `blender-create-character-base` v3 `BOOLEAN_CONNECTED` blockout | topology/revision and deformation-readiness gate, then rigging and reviewed Action authoring |
-| Existing static Mesh | `blender-inspect-asset` and `blender-validate-static-mesh` | guarded cleanup/transform/pivot/LOD or static export |
+| Existing static GLB with explicit part mapping and a supported local-axis end edit | inspect the file, hash, Object names and structure, then `blender-create-static-asset` external-revision v1 | visual/structural review, then static export or 2D rendering |
+| Other existing static Mesh | `blender-inspect-asset` and `blender-validate-static-mesh` | guarded cleanup/transform/pivot/LOD or static export; do not imply arbitrary geometry editing |
 | Existing character or Armature | `blender-inspect-asset` and `blender-inspect-humanoid` | animation inventory, Mixamo preflight or explicit retarget path |
 | Existing/imported animation needing a game clip | `blender-prepare-game-action` after inventory | strict range extraction when eligible; otherwise evaluated-pose range/FPS bake with loop/root inspection |
 | Explicit Mixamo-style FBX to apply to a compatible empty Humanoid rig | `blender-import-humanoid-animation` | inspect the new Action, then optional cleanup/rendering |
@@ -25,9 +26,11 @@
 
 ## Known gaps that must not be hidden
 
-- Static creation v3 adds explicit profile extrusion and owned semantic geometry replacement. It is
-  no longer limited to four primitives, but remains a bounded part-spec workflow rather than
-  arbitrary prompt-to-mesh, sculpting, UV/texture authoring or arbitrary imported-Mesh editing.
+- Static creation v3/v4 adds explicit profile and matched-profile-beveled solids plus owned
+  semantic geometry replacement. External-revision v1 additionally supports one complete,
+  explicit static-GLB Object/role map and local-axis end-region offset on independent copies. It
+  remains a bounded workflow rather than arbitrary prompt-to-mesh, sculpting, `.blend` ingestion,
+  automatic semantics, arbitrary imported-region/topology editing or UV/texture authoring.
 - Character creation has a guarded v3 exact-Boolean connected candidate. The global
   `VOXEL_CONNECTED` experiment remains suspended after visible limb/foot fusion. V3 must pass
   component/manifold/clearance gates and recorded multi-view acceptance. Its current Boolean

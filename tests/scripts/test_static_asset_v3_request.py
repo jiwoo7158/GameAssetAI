@@ -180,7 +180,7 @@ class StaticAssetV3RequestTests(unittest.TestCase):
         invalid["schema"] = "gameassetai.static-asset-assembly-request.v4"
         invalid["parts"][1]["geometry"] = copy.deepcopy(geometry)
         invalid["parts"][1]["geometry"]["core_profile_points"][2] = [2.5, 2.5]
-        with self.assertRaisesRegex(ValueError, "inside or on"):
+        with self.assertRaisesRegex(ValueError, "strictly inside"):
             validate_request(invalid)
 
         mismatch = copy.deepcopy(invalid)
@@ -188,6 +188,40 @@ class StaticAssetV3RequestTests(unittest.TestCase):
         mismatch["parts"][1]["geometry"]["core_profile_points"].pop()
         with self.assertRaisesRegex(ValueError, "same point count"):
             validate_request(mismatch)
+
+    def test_v4_rejects_shifted_or_crossing_correspondence(self):
+        request = copy.deepcopy(self.request)
+        request["schema"] = "gameassetai.static-asset-assembly-request.v4"
+        request["parts"][1]["geometry"] = beveled(
+            [[-2, -2], [2, -2], [2, 2], [-2, 2]],
+            [[0.8, 0.8], [-0.8, 0.8], [-0.8, -0.8], [0.8, -0.8]],
+            1.0,
+        )
+        with self.assertRaisesRegex(ValueError, "cyclic correspondence|connector"):
+            validate_request(request)
+
+    def test_v4_rejects_core_edge_that_leaves_concave_outer(self):
+        request = copy.deepcopy(self.request)
+        request["schema"] = "gameassetai.static-asset-assembly-request.v4"
+        request["parts"][1]["geometry"] = beveled(
+            [[0, 0], [4, 0], [4, 4], [3, 4], [3, 1], [1, 1], [1, 4], [0, 4]],
+            [[0.2, 0.2], [3.8, 0.2], [3.8, 3.8], [3.4, 3.8], [2.8, 0.8], [1.2, 0.8], [0.6, 3.8], [0.2, 3.8]],
+            0.5,
+        )
+        with self.assertRaisesRegex(ValueError, "strictly inside|core edges|connector"):
+            validate_request(request)
+
+    def test_v4_rejects_numerically_unstable_bevel_width(self):
+        request = copy.deepcopy(self.request)
+        request["schema"] = "gameassetai.static-asset-assembly-request.v4"
+        request["parts"][1]["geometry"] = beveled(
+            [[-1, -1], [1, -1], [1, 1], [-1, 1]],
+            [[-1 + 1e-10, -1 + 1e-10], [1 - 1e-10, -1 + 1e-10],
+             [1 - 1e-10, 1 - 1e-10], [-1 + 1e-10, 1 - 1e-10]],
+            0.5,
+        )
+        with self.assertRaisesRegex(ValueError, "differ|strictly inside|unstable"):
+            validate_request(request)
 
 
 if __name__ == "__main__":

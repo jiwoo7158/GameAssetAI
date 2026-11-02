@@ -1,6 +1,6 @@
 ---
 name: blender-create-static-asset
-description: Create or copy-revise a recognizable static Blender prop, weapon, furniture-like or simple environment asset as an explicit semantic multi-part native Mesh assembly. Supports legacy primitives, profile silhouettes, v4 profile-beveled solids with real variable cross-sections, owned-part geometry revision, and safe import of an explicitly verified Kiln GLB.
+description: Create or copy-revise a recognizable static Blender prop, weapon, furniture-like or simple environment asset as an explicit semantic multi-part native Mesh assembly. Supports legacy primitives, profile silhouettes, v4 profile-beveled solids, owned-part geometry revision, safe Kiln GLB import, and bounded revision of an explicitly mapped external static GLB.
 metadata:
   contract: gameassetai.skill-contract.v1
   requirements: REQ-STATIC, REQ-STYLE, REQ-COST, REQ-SAFE
@@ -15,6 +15,9 @@ making an independent copy. V3 can create a user-authored two-dimensional silhou
 extruded Mesh. V4 adds a bounded profile-beveled solid whose center silhouette differs from its
 front/back core, creating actual sloped faces rather than a shading-only bevel. Both can replace
 one semantic part on an independent copy without scaling the whole Object.
+External-revision v1 imports a hash-pinned static GLB, assigns explicit roles to every Mesh Object
+and offsets a declared local-axis end region on independent Mesh copies. It does not infer
+semantics or claim general imported-Mesh editing.
 It remains a bounded low-poly hard-surface workflow rather than arbitrary prompt-to-mesh.
 
 ## Requirements and responsibility
@@ -37,15 +40,17 @@ installs nor invokes Kiln.
    creation v3 for explicit style plus `PRIMITIVE`/`PROFILE_EXTRUSION` geometry, creation v4 for
    those kinds plus `PROFILE_BEVELED_EXTRUSION`,
    `gameassetai.static-asset-revision-request.v1` for legacy transform revision, revision v2 for
-   copy-only replacement of owned v3 part geometry, revision v3 for owned v4 part geometry, or
-   the Kiln request for a verified GLB.
+   copy-only replacement of owned v3 part geometry, revision v3 for owned v4 part geometry,
+   the Kiln request for a verified GLB, or external-revision v1 for a verified static GLB with an
+   explicit Object/role map and bounded end-region edit.
 3. Use meaningful, unique part names and stable `semantic_role` values in v2-v4. A recognizable result
    should normally have multiple parts and at least two purpose-specific materials.
 4. Show the planned parts, dimensions, placement and colors. Persistent creation requires a
    separate explicit confirmation.
 5. Validate with `scripts/validate_static_asset_assembly_request.py`.
 6. After confirmation, run `scripts/create_static_asset_assembly.py` inside Blender with
-   `authorized=true`, calling `create_asset`, `revise_asset_copy` or `import_kiln_glb` as appropriate.
+   `authorized=true`, calling `create_asset`, `revise_asset_copy`, `import_kiln_glb` or
+   `revise_external_glb` as appropriate.
 7. Inspect the resulting collection and report the receipt. Do not claim visual quality without
    looking at the result.
 
@@ -65,6 +70,9 @@ installs nor invokes Kiln.
 - Kiln import requires an absolute regular `.glb`, its exact lowercase SHA-256, a complete unique
   mapping for every imported Mesh Object and unused target names. It owns and rolls back the
   synchronous import delta without applying native-assembly ownership.
+- External revision separates the imported read-only source Collection from the owned result
+  Collection. Every result Mesh datablock is independent; materials remain shared read-only. A
+  failure removes the complete operation delta without changing the external file or existing data.
 
 ## Request boundary
 
@@ -94,8 +102,10 @@ Creation v4 keeps those kinds and adds:
 
 - `PROFILE_BEVELED_EXTRUSION`: matching 3-32 point counter-clockwise outer and core XZ profiles,
   plus positive Y depth. The outer ring lies at the center plane and the core profile is used on
-  both depth caps. Core points must remain inside/on the outer profile, correspondence counts must
-  match and the profiles must differ. This creates two real sloped bands and a closed positive-
+  both depth caps. Core points must be strictly inside the outer profile, correspondence counts
+  and nearest cyclic index alignment must match, core edges must remain inside the outer polygon,
+  and connectors may not cross or touch. Numerically unstable near-zero bevel widths are refused.
+  This creates two real sloped bands and a closed positive-
   volume solid. It is useful for bounded cutting bevels, chamfered perimeters and raised/recessed
   panel transitions; it is not Blender's general Bevel operator.
 
@@ -109,12 +119,22 @@ global default.
 Revision v1 may replace selected role transforms. Revision v2 may replace a selected v3 role's
 complete geometry and/or transform, producing a new Mesh while leaving Object scale unchanged.
 Revision v3 does the same for a selected v4 role and may replace beveled-profile parameters.
-Neither revision edits arbitrary imported meshes or materials.
+Neither owned revision edits arbitrary imported meshes or materials.
 
 Kiln import records producer/version/program provenance, source hash, all newly created data and
 per-part Mesh/material facts. It accepts static Mesh Objects plus hierarchy Empties and keeps them
 in one new Collection. Imported roles are descriptive provenance only: compatibility with native
 v2.1 semantic revision is `NOT_VALIDATED` and must not be routed automatically.
+
+External revision v1 uses `gameassetai.external-static-revision-request.v1` and supports one
+explicit operation, `LOCAL_AXIS_END_OFFSET`. The request names an absolute `.glb`, exact SHA-256,
+unused source/result Collections, provenance, every imported Mesh Object and its unique semantic
+role, then selects mapped roles with local axis (`X`/`Y`/`Z`), end side (`MIN`/`MAX`), threshold and
+non-zero delta. The selected region must contain some but not all vertices. It preserves topology,
+UV layers, material slots, Object transforms and an imported Empty-only parent hierarchy. It
+refuses unmapped Meshes, modifiers, vertex groups, Shape Keys, linked data, non-static data and
+unsupported parenting. `.blend`, arbitrary region selection, topology edits, automatic role
+discovery and material/UV editing are not supported by this first B3 contract.
 
 ## Validation and completion
 
@@ -130,7 +150,8 @@ may be called `accepted`.
 ## Boundary
 
 This Skill does not solve arbitrary prompt-to-3D generation, arbitrary imported-Mesh semantic
-editing, sculpting, UV/texture authoring, rigging or animation. V4 provides explicit matched-profile
+editing, sculpting, UV/texture authoring, rigging or animation. Its external path is a bounded,
+explicitly mapped GLB end-region edit only. V4 provides explicit matched-profile
 beveled solids, not a general extrude/inset/Bevel/Boolean/sweep framework. It does not run Kiln, generate GLBs or
 translate prompts into Kiln programs. Unsupported requests must be reported rather than
 approximated silently with primitives.
