@@ -13,6 +13,10 @@ licensed-template proportion workflow. The Blender Add-on is persistently instal
 actual product surface remains primarily 2D preview/setup/export rather than the full creation
 workflow.
 
+Profile extrusion now validates outward winding, closed manifold geometry, positive signed volume,
+triangle/spec consistency and self-contacting input rejection. Original/revision review uses shared
+camera framing. These checks improve B1 correctness; broader shape operations remain B2 work.
+
 See `docs/audits/2026-11-02-repository-review.md` for the code-based assessment and
 `docs/IMPLEMENTATION_MEMORY.md` for the current durable direction. Older recovery and validation
 documents remain evidence, not current product-completeness claims.
@@ -43,9 +47,10 @@ Codex Desktop
       Blender
 ```
 
-## What this initial repository contains
+## Implemented capability overview
 
-This package deliberately starts small.
+The Repository contains both user-facing production Skills and narrow internal/specialist modules;
+the number of Skill folders is not the product feature count.
 
 It contains:
 
@@ -59,7 +64,8 @@ It contains:
 - executable offline repository/workspace regression tests
 - test planning scaffolding
 - one direct Blender-native static asset creation Skill for explicit low-poly multi-part props,
-  with a viewport-reviewed five-part sword fixture
+  with legacy primitives, validated profile extrusion, owned semantic geometry replacement and
+  accepted axe/shield evidence
 - a Blender 5 Add-on foundation with owned Scene and Compositor preset builders and a sidebar
   panel
 - two narrow Blender-tested read-only source skills for asset inventory and static mesh diagnostics
@@ -128,8 +134,9 @@ See `docs/2d-pixel-pipeline-plan.md`, `docs/2d-static-pixel-skill-validation.md`
 `docs/2d-impostor-bundle-decision.md`.
 
 It does **not** pretend that general modeling, character generation, production rigging,
-animation authoring or Mixamo have already been solved. The first static creation slice is
-deliberately limited to explicit primitive assemblies.
+animation authoring or Mixamo have been solved broadly. Static creation is bounded to explicit
+primitive/profile assemblies and owned semantic replacement; B2 shape-production expansion is
+the next official production stage.
 Inspection/diagnostics have source-workflow test evidence under `docs/`. The user confirmed
 session exposure, explicit calls, three natural-language read-only outcomes and synthetic
 copy-apply/restore for all three installed Skills. Raw selected-Skill/call traces were not
@@ -172,7 +179,8 @@ Explicit current-session Profile switching to Blender diagnostics passed; see
 `docs/profile-workflow-validation.md`. See `skills/README.md`
 and `docs/skill-packaging.md` for current capabilities and reproducible regression/bundles.
 
-Those skills should be added after they are researched and tested against real Blender + MCP workflows.
+Further Skills or modeling operations are added only through bounded roadmap work packages and
+representative Blender evidence.
 
 ## Recommended first steps
 

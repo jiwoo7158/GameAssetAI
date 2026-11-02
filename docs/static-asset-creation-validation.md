@@ -111,6 +111,31 @@ This evidence is `accepted` for bounded low-poly profile extrusion and owned sem
 replacement. It does not claim arbitrary prompt-to-mesh, arbitrary imported-Mesh revision,
 bevel/inset/sweep/Boolean authoring, UV creation or texture painting.
 
+## B1.1 profile correctness -- 2026-11-02
+
+B1.1 corrected the side quad order so a counter-clockwise XZ profile produces outward side
+normals while the `-Y` and `+Y` caps remain outward. Creation now refuses output unless the
+profile Mesh has the expected vertex/polygon/triangle counts, closed-manifold BMesh edges,
+non-zero faces, unique 3D coordinates, outward cap/side normals and positive signed volume equal
+to profile area times depth within tolerance. These quality facts are stored on the Mesh and
+returned in the receipt.
+
+The offline validator now rejects non-adjacent repeated/near-duplicate points, zero-length or
+backtracking edges, proper crossings, endpoint-on-edge self-contact and collinear overlap while
+retaining valid concave profiles. Focused tests cover each case.
+
+Accepted Blender 5.0.1 evidence:
+
+`D:/Blender/MCP_Test/GameAssetAI/runs/B1.1-static-profile-correctness/20261102T085327Z-final-axe-shield-profile-quality-d6053ce7`
+
+The original axe and wider/sharper revision use one immutable camera center, orientation and
+orthographic scale per view. Workbench Backface Culling was enabled. Front, side and
+three-quarter images were explicitly reviewed; the dimensional change is visible without
+per-asset reframing, and the axe/shield surfaces remain present. Convex production profiles and a
+temporary valid concave profile passed the same normal/manifold/volume checks. Source, unrelated
+parts and materials remained exact; induced failure rolled back; the saved Blend reopened in a
+fresh Blender process. This closes B1.1 correctness only, not B2 modeling breadth.
+
 ## Kiln review — 2026-10-27
 
 Kiln 1.5.0 was reviewed from its official repository and release record. It is MIT-licensed and

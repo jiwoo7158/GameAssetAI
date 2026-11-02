@@ -75,17 +75,29 @@ def bounds(objects):
     return minimum, maximum
 
 
-def render_views(scene, collections, target, artifact_dir, label):
+def review_frame(objects):
+    minimum, maximum = bounds(objects)
+    center = (minimum + maximum) * 0.5
+    size = maximum - minimum
+    return {
+        "minimum": tuple(float(value) for value in minimum),
+        "maximum": tuple(float(value) for value in maximum),
+        "center": tuple(float(value) for value in center),
+        "ortho_scale": float(max(size.x, size.y, size.z) * 1.35),
+        "distance": float(max(size) * 4.0 + 2.0),
+    }
+
+
+def render_views(scene, collections, target, artifact_dir, label, framing=None):
     camera_data = bpy.data.cameras.new(f"GAA {label} Review Camera Data")
     camera = bpy.data.objects.new(f"GAA {label} Review Camera", camera_data)
     scene.collection.objects.link(camera)
     scene.camera = camera
     camera_data.type = "ORTHO"
-    minimum, maximum = bounds(list(target.objects))
-    center = (minimum + maximum) * 0.5
-    size = maximum - minimum
-    camera_data.ortho_scale = max(size.x, size.y, size.z) * 1.35
-    distance = max(size) * 4.0 + 2.0
+    framing = framing or review_frame(list(target.objects))
+    center = Vector(framing["center"])
+    camera_data.ortho_scale = framing["ortho_scale"]
+    distance = framing["distance"]
 
     scene.render.engine = "BLENDER_WORKBENCH"
     scene.render.resolution_x = 512
@@ -98,6 +110,7 @@ def render_views(scene, collections, target, artifact_dir, label):
     scene.display.shading.show_shadows = True
     scene.display.shading.show_cavity = True
     scene.display.shading.cavity_type = "WORLD"
+    scene.display.shading.show_backface_culling = True
 
     target_objects = set(target.objects)
     prior_visibility = {obj: obj.hide_render for obj in scene.objects if obj.type == "MESH"}
@@ -122,6 +135,13 @@ def render_views(scene, collections, target, artifact_dir, label):
     for obj, hidden in prior_visibility.items():
         obj.hide_render = hidden
     return outputs
+
+
+def profile_quality(receipt):
+    return [
+        part["mesh_quality"] for part in receipt["parts"]
+        if part["geometry_kind"] == "PROFILE_EXTRUSION"
+    ]
 
 
 def sha256(path):
@@ -234,10 +254,41 @@ def main():
     shield_collection = bpy.data.collections[shield["collection_name"]]
     assert any(part["geometry_kind"] == "PROFILE_EXTRUSION" for part in shield_receipt["parts"])
 
+    concave = {
+        "schema": "gameassetai.static-asset-assembly-request.v3",
+        "scene_name": scene.name,
+        "asset_name": "Concave Profile Quality Probe",
+        "collection_name": "GAA Concave Profile Quality Probe",
+        "style": style(40),
+        "materials": [{"name": "GAA Concave Probe Material", "base_color": [0.4, 0.2, 0.1, 1], "metallic": 0.0, "roughness": 0.8}],
+        "parts": [{
+            "name": "GAA Concave Probe", "semantic_role": "concave_probe",
+            "geometry": profile([[0, 0], [2, 0], [2, 2], [1, 1], [0, 2]], 0.35),
+            "location": [0, 0, 0], "rotation_degrees": [0, 0, 0],
+            "material": "GAA Concave Probe Material",
+        }],
+        "policy": policy(),
+    }
+    concave_receipt = create_asset(concave, authorized=True)
+    assert all(item["closed_manifold"] and item["normals_outward"] for item in profile_quality(concave_receipt))
+    assembly.remove_created_asset(concave_receipt)
+    assert bpy.data.collections.get(concave["collection_name"]) is None
+
+    all_profile_quality = (
+        profile_quality(original_receipt) + profile_quality(revised_receipt)
+        + profile_quality(shield_receipt) + profile_quality(concave_receipt)
+    )
+    assert all(item["closed_manifold"] for item in all_profile_quality)
+    assert all(item["normals_outward"] for item in all_profile_quality)
+    assert all(item["signed_volume"] > 0 for item in all_profile_quality)
+    assert all(item["zero_area_faces"] == 0 for item in all_profile_quality)
+    assert all(item["duplicate_vertices"] == 0 for item in all_profile_quality)
+
     collections = [original_collection, revised_collection, shield_collection]
     preview_paths = []
-    preview_paths.extend(render_views(scene, collections, original_collection, artifact_dir, "axe-original"))
-    preview_paths.extend(render_views(scene, collections, revised_collection, artifact_dir, "axe-revised"))
+    shared_axe_frame = review_frame(list(original_collection.objects) + list(revised_collection.objects))
+    preview_paths.extend(render_views(scene, collections, original_collection, artifact_dir, "axe-original", shared_axe_frame))
+    preview_paths.extend(render_views(scene, collections, revised_collection, artifact_dir, "axe-revised", shared_axe_frame))
     preview_paths.extend(render_views(scene, collections, shield_collection, artifact_dir, "profile-shield"))
 
     blend_path = artifact_dir / "result.blend"
@@ -260,7 +311,17 @@ def main():
             "secondary_non_weapon_profile_created": True,
             "style_budget_enforced": True,
             "flat_shading_enforced": all(not polygon.use_smooth for collection in collections for obj in collection.objects for polygon in obj.data.polygons),
+            "profile_normals_outward": all(item["normals_outward"] for item in all_profile_quality),
+            "profile_closed_manifold": all(item["closed_manifold"] for item in all_profile_quality),
+            "profile_positive_signed_volume": all(item["signed_volume"] > 0 for item in all_profile_quality),
+            "profile_no_zero_area_faces": all(item["zero_area_faces"] == 0 for item in all_profile_quality),
+            "profile_no_duplicate_vertices": all(item["duplicate_vertices"] == 0 for item in all_profile_quality),
+            "convex_and_concave_profiles_checked": True,
+            "original_revision_shared_camera_framing": True,
+            "backface_culling_review_rendered": True,
         },
+        "profile_quality": all_profile_quality,
+        "shared_axe_camera": shared_axe_frame,
         "visual_review": {
             "status": "pending",
             "required_views": [path.relative_to(artifact_dir).as_posix() for path in preview_paths],

@@ -27,8 +27,24 @@ Current product facts:
 
 Before another feature milestone, select one bounded production domain and representative art
 direction, then improve actual creation/revision quality through visible Blender acceptance. Do
-not treat the 46 Skill folders as 46 user-facing product commands. Use the per-Skill disposition
-table in `docs/audits/2026-11-02-skill-assessment.tsv` when planning consolidation.
+not treat the former 46 (now 45 after one deprecated removal) Skill folders as separate
+user-facing product commands. Use the per-Skill disposition table in
+`docs/audits/2026-11-02-skill-assessment.tsv` when planning consolidation.
+
+The user selected the official B-plan sequence maintained in `docs/roadmap.md`: B1 foundation,
+B1.1 profile correctness, B2 shape-production breadth, B3 explicit external-asset revision, B4
+art direction/material/texture, B5 static-domain breadth, B6 character/clothing/creature redesign,
+B7 integrated natural-language/Add-on production, and B8 real-project proof plus product-surface
+consolidation. This sequence supersedes the earlier suggestion to jump directly from B1 to
+external-asset revision.
+
+Focused Skill cleanup on 2026-11-02 removed the deprecated
+`blender-adjust-character-joint-weights-copy` source/test/installed exposure after confirming no
+Router, M2, M3 or packaging caller and only rejected-source evidence. The eight `CONSOLIDATE`
+animation/2D modules remain installable implementation modules because current preparation,
+validation and package regressions call them directly; they are not promoted as the default
+user workflow. The ten `FREEZE` modules remain optional explicit downstream tools and are not
+selected ahead of core production work.
 
 ## Product order
 
@@ -70,9 +86,11 @@ back to modeling, rigging or Mixamo work must not cause the Add-on UI work to be
   Compact and lanky canonical-template characters passed representative multi-view deformation,
   save/reopen and installed-Skill execution. This does not imply automatic landmark detection or
   support for arbitrary clothing, Shape Keys or existing rigs.
-- `blender-adjust-character-joint-weights-copy`: the copy/preservation algorithm is retained as
-  experimental backend evidence only. Its live metrics came from the rejected topology and must
-  not be presented as character-quality progress.
+- The deprecated `blender-adjust-character-joint-weights-copy` Skill was removed from the active
+  source and Workspace surface on 2026-11-02. It had no Router/M2/M3 caller, supported only the
+  rejected generated-character topology and duplicated a future weight-adaptation responsibility.
+  Its implementation and failed evidence remain recoverable from Git history and the Repository
+  audit; do not restore it as a user-facing Skill without a new representative accepted target.
 - `blender-author-pose-action`: explicit key-pose Action authoring with front-axis and optional
   root/pelvis location channels.
 - `blender-import-humanoid-animation`: explicit hash-pinned Mixamo-style FBX import, exact
@@ -132,9 +150,13 @@ integrated into the Add-on; advanced passes remain explicit opt-in tools.
 
 ## Active product gaps, in order
 
-1. Broaden native static modeling and controlled semantic revision beyond primitive assembly.
-2. Decide a separate bounded gate for Unity Humanoid Avatar and root-motion support only when a
-   concrete game requirement needs it; Generic animated FBX is already engine-proven.
+1. Execute B2 with the minimum shape operations required by two representative non-profile-only
+   static assets; do not pre-build a general modeling framework.
+2. Continue B3-B8 in the official roadmap order unless a concrete user request justifies a
+   documented bounded dependency.
+
+Unity Humanoid Avatar/root-motion work remains a separate optional gate only when a concrete game
+requires it; Generic animated FBX is already engine-proven and must not displace B2.
 
 Do not insert new collider, LODGroup, auxiliary pass or Unity-only work ahead of these gaps unless
 a concrete user request requires it.

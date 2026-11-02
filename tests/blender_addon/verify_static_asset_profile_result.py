@@ -32,6 +32,15 @@ def main():
     ]
     assert tuple(original_by_role["blade"].scale) == tuple(revised_by_role["blade"].scale) == (1.0, 1.0, 1.0)
     assert all(obj.data.get("gameassetai_geometry_spec") for collection in expected for obj in bpy.data.collections[collection].objects)
+    profile_objects = [
+        obj for collection in expected for obj in bpy.data.collections[collection].objects
+        if obj.data.get("gameassetai_profile_mesh_quality") is not None
+    ]
+    assert profile_objects
+    for obj in profile_objects:
+        quality = json.loads(obj.data["gameassetai_profile_mesh_quality"])
+        assert quality["closed_manifold"] and quality["normals_outward"]
+        assert quality["signed_volume"] > 0
     result = {
         "status": "pass",
         "blend": str(blend),

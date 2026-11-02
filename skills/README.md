@@ -4,12 +4,6 @@ This directory contains the source of GameAssetAI's installable skills.
 
 Current narrowly tested source skills:
 
-- `blender-adjust-character-joint-weights-copy`: previews and creates an independent owned
-  character Mesh copy with explicit bilateral or unilateral shoulder/hip weight-transition
-  refinement. Its copy/preservation mechanics are tested, but product routing is suspended until
-  a source passes semantic topology acceptance; the first live voxel source was rejected. See
-  `docs/character-joint-weight-copy-validation.md`.
-
 - `blender-create-game-asset`: routing-only entry for natural-language character, weapon, prop,
   enemy and environment requests. It selects existing creation/inspection/revision/output Skills
   and keeps unsupported gaps explicit; it does not duplicate their Blender code. See

@@ -72,6 +72,26 @@ class StaticAssetV3RequestTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "estimated triangles"):
             validate_request(over)
 
+    def test_repeated_touching_and_overlapping_profile_edges_are_rejected(self):
+        invalid_profiles = [
+            [[0, 0], [2, 0], [2, 2], [0, 2], [2, 0]],
+            [[0, 0], [3, 0], [3, 2], [1.5, 0], [0, 2]],
+            [[0, 0], [3, 0], [2, 0], [2, 2], [0, 2]],
+        ]
+        for points in invalid_profiles:
+            with self.subTest(points=points):
+                request = copy.deepcopy(self.request)
+                request["parts"][1]["geometry"]["profile_points"] = points
+                with self.assertRaisesRegex(ValueError, "reuse|self-intersect|self-touch|overlap"):
+                    validate_request(request)
+
+    def test_valid_concave_profile_is_accepted(self):
+        request = copy.deepcopy(self.request)
+        request["parts"][1]["geometry"]["profile_points"] = [
+            [0, 0], [2, 0], [2, 2], [1, 1], [0, 2],
+        ]
+        self.assertEqual("ready", validate_request(request)["status"])
+
     def test_style_material_limit_is_enforced(self):
         request = copy.deepcopy(self.request)
         request["style"]["max_materials"] = 1

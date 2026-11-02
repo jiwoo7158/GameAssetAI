@@ -73,13 +73,15 @@ Before choosing a new capability or continuation point, read the current decisio
 1. `AGENTS.md`
 2. the user's current requirements and the relevant implementation code
 3. `docs/audits/2026-11-02-repository-review.md`
-4. `docs/IMPLEMENTATION_MEMORY.md`
-5. `docs/SESSION_STATE.md`
-6. the active section of `docs/roadmap.md`
+4. the active B-plan section of `docs/roadmap.md`
+5. `docs/IMPLEMENTATION_MEMORY.md`
+6. `docs/SESSION_STATE.md`
 
 `docs/PROJECT_AUDIT.md`, older Skill audits, validation reports and session history remain useful
 evidence, but they are historical inputs rather than current work-order authority. When a status
 claim conflicts with implementation, inspect the code and representative evidence before deciding.
+The official production sequence is B1/B1.1 through B8 in `docs/roadmap.md`; historical M-stage
+or audit recommendations do not silently replace that sequence.
 
 Do not let optional render passes, collider/LOD diagnostics, Unity-only checks, or additional
 micro-Skills displace a missing core creation, rig/adaptation, Mixamo, export, or Add-on gate.

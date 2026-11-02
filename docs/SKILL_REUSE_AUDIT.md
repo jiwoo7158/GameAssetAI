@@ -27,7 +27,7 @@ defined and passed.
 | `blender-create-static-asset` | Low-poly props, weapons and simple environment assemblies | more native part types and revision operations; not arbitrary text-to-mesh |
 | `blender-create-character-base` | V1 separated blockout plus guarded v3 Boolean-connected blockout | add a deformation-topology/revision stage; visual acceptance alone does not permit product rigging |
 | `blender-rig-character-base` | Generated-fixture rig mechanics | keep for algorithm evidence; require a deformation-ready source contract before product routing |
-| `blender-adjust-character-joint-weights-copy` | Experimental copy/preservation backend | suspend product routing until topology is accepted; later add real deformation gates |
+| `blender-adjust-character-joint-weights-copy` | Removed deprecated experiment | removed from active source/Workspace on 2026-11-02; Git history retains the rejected-input evidence |
 | `blender-author-pose-action` | Explicit reviewed key-pose Actions | reusable motion templates and safer editing of an existing Action copy |
 
 ## Reusable supporting groups
@@ -108,8 +108,9 @@ rigged Unity exporter.
 
 ### Suspend from product claims
 
-- `blender-adjust-character-joint-weights-copy` is backend algorithm evidence only until it is
-  rerun on accepted deformation topology.
+- `blender-adjust-character-joint-weights-copy` was removed from the active Skill surface after
+  confirming that it had no current caller and only rejected-source evidence. Restore from Git
+  history only if a future accepted character requires that exact bounded operation.
 - `VOXEL_CONNECTED` is rejected historical code inside the character Skill.
 - Generated-rig and Action results produced from rejected topology are not character-quality
   evidence even when their individual mechanics passed.

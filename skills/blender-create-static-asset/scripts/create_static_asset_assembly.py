@@ -56,9 +56,58 @@ def _make_profile_extrusion(mesh, geometry):
     faces = [tuple(range(count)), tuple(reversed(range(count, count * 2)))]
     for index in range(count):
         following = (index + 1) % count
-        faces.append((index, following, count + following, count + index))
+        faces.append((index, count + index, count + following, following))
     mesh.from_pydata(vertices, [], faces)
     mesh.update()
+    return _profile_mesh_quality(mesh, geometry)
+
+
+def _profile_mesh_quality(mesh, geometry):
+    points = geometry["profile_points"]
+    count = len(points)
+    mesh.calc_loop_triangles()
+    if len(mesh.vertices) != count * 2 or len(mesh.polygons) != count + 2:
+        raise ValueError("PROFILE_EXTRUSION topology does not match its geometry specification")
+    if len(mesh.loop_triangles) != 4 * count - 4:
+        raise ValueError("PROFILE_EXTRUSION triangle count does not match its geometry specification")
+    if any(polygon.area <= 1e-12 for polygon in mesh.polygons):
+        raise ValueError("PROFILE_EXTRUSION contains a zero-area face")
+    coordinates = [tuple(round(component, 12) for component in vertex.co) for vertex in mesh.vertices]
+    if len(set(coordinates)) != len(coordinates):
+        raise ValueError("PROFILE_EXTRUSION contains duplicate 3D vertices")
+    if mesh.polygons[0].normal.y >= -0.999999 or mesh.polygons[1].normal.y <= 0.999999:
+        raise ValueError("PROFILE_EXTRUSION cap normals are inconsistent")
+    for index, polygon in enumerate(mesh.polygons[2:]):
+        following = (index + 1) % count
+        dx = points[following][0] - points[index][0]
+        dz = points[following][1] - points[index][1]
+        expected = Vector((dz, 0.0, -dx)).normalized()
+        if polygon.normal.dot(expected) <= 0.999999:
+            raise ValueError("PROFILE_EXTRUSION side normals are inconsistent")
+    bm = bmesh.new()
+    bm.from_mesh(mesh)
+    if any(not edge.is_manifold for edge in bm.edges):
+        bm.free()
+        raise ValueError("PROFILE_EXTRUSION must be a closed manifold Mesh")
+    signed_volume = bm.calc_volume(signed=True)
+    bm.free()
+    area2 = sum(
+        points[index][0] * points[(index + 1) % count][1]
+        - points[(index + 1) % count][0] * points[index][1]
+        for index in range(count)
+    )
+    expected_volume = area2 * 0.5 * geometry["depth"]
+    tolerance = max(1e-9, expected_volume * 1e-6)
+    if signed_volume <= 0 or abs(signed_volume - expected_volume) > tolerance:
+        raise ValueError("PROFILE_EXTRUSION signed volume is inconsistent")
+    return {
+        "closed_manifold": True,
+        "normals_outward": True,
+        "zero_area_faces": 0,
+        "duplicate_vertices": 0,
+        "signed_volume": float(signed_volume),
+        "triangles": len(mesh.loop_triangles),
+    }
 
 
 def _make_mesh(part, token):
@@ -66,7 +115,8 @@ def _make_mesh(part, token):
     geometry = _geometry_for_part(part)
     mesh[GEOMETRY_SPEC_KEY] = _canonical(geometry)
     if geometry["kind"] == "PROFILE_EXTRUSION":
-        _make_profile_extrusion(mesh, geometry)
+        quality = _make_profile_extrusion(mesh, geometry)
+        mesh["gameassetai_profile_mesh_quality"] = _canonical(quality)
         return mesh
     dimensions = Vector(geometry["dimensions"])
     if geometry["primitive"] == "WEDGE":
@@ -192,6 +242,10 @@ def create_asset(request, *, authorized=False):
                 "location": [float(v) for v in obj.location],
                 "semantic_role": obj.get(ROLE_KEY),
                 "geometry_kind": json.loads(obj.data[GEOMETRY_SPEC_KEY])["kind"],
+                "mesh_quality": (
+                    json.loads(obj.data["gameassetai_profile_mesh_quality"])
+                    if obj.data.get("gameassetai_profile_mesh_quality") is not None else None
+                ),
             })
         triangle_count = sum(item["triangles"] for item in facts)
         if "style" in normalized and triangle_count > normalized["style"]["triangle_budget"]:
@@ -338,6 +392,10 @@ def revise_asset_copy(request, *, authorized=False):
                 "source_object": source_obj.name,
                 "geometry_kind": json.loads(obj.data[GEOMETRY_SPEC_KEY])["kind"],
                 "geometry_replaced": replacement_geometry is not None,
+                "mesh_quality": (
+                    json.loads(obj.data["gameassetai_profile_mesh_quality"])
+                    if obj.data.get("gameassetai_profile_mesh_quality") is not None else None
+                ),
             })
         style = json.loads(source[STYLE_SPEC_KEY]) if source.get(STYLE_SPEC_KEY) is not None else None
         triangle_count = sum(item["triangles"] for item in facts)

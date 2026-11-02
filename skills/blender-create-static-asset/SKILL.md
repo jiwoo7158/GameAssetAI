@@ -80,8 +80,10 @@ Creation v2 adds one unique `semantic_role` to every part. Creation v3 replaces 
 part fields with a `geometry` object:
 
 - `PRIMITIVE`: the legacy primitive, dimensions and segment count;
-- `PROFILE_EXTRUSION`: 3-32 counter-clockwise, non-self-intersecting `[x,z]` points plus positive
-  Y depth. This authors the visible silhouette rather than selecting another stock primitive.
+- `PROFILE_EXTRUSION`: 3-32 counter-clockwise `[x,z]` points plus positive Y depth. Repeated or
+  near-duplicate vertices, zero-length/backtracking edges, crossings, non-adjacent endpoint
+  contact and collinear overlap are refused; valid concave profiles remain supported. This
+  authors the visible silhouette rather than selecting another stock primitive.
 
 V3 also requires explicit style facts. `STYLIZED_LOW_POLY` or `CUSTOM` records the requested shape
 language, while `EXPLICIT_PART_GEOMETRY`, `FLAT`, `DECLARED_LIMITED`, `max_materials` and a triangle
@@ -101,8 +103,11 @@ v2.1 semantic revision is `NOT_VALIDATED` and must not be routed automatically.
 
 ## Validation and completion
 
-Before accepting a result, verify requested part roles, dimensions/profile bounds and materials, exact source
-preservation, absence of unowned changes, and representative front/side/three-quarter appearance.
+Before accepting a result, verify requested part roles, dimensions/profile bounds and materials,
+exact source preservation, absence of unowned changes, outward cap/side normals, closed manifold
+edges, positive signed volume, no zero-area faces or duplicate 3D vertices, actual triangle/spec
+consistency, and representative front/side/three-quarter appearance. Compare original and revised
+assets with the same camera transform and orthographic scale when judging dimensional changes.
 An induced helper failure must leave no target Collection/Object/Mesh residue. Structural tests are
 `tested`; a recognizable reviewed asset is `representative`; only recorded visible/semantic review
 may be called `accepted`.

@@ -9,17 +9,10 @@ Decision: retain the Repository and its proven safety, installation, animation, 
 export and optional 2D foundations, but redesign the core creation/revision/style layer. Do not
 start another narrow validator, render pass or export variant before this gate is resolved.
 
-Required next product decisions:
-
-- choose the first bounded production domain: static prop/weapon revision or character
-  style/garment production;
-- choose one representative art direction as capability evidence, not as a global default;
-- approve the small user-facing workflow surface and keep narrow inspectors/bakes internal;
-- decide whether creation capability or Unity Humanoid Avatar proof has the next priority.
-
-After those decisions, the next work package must define a representative Blender asset, visible
-and semantic acceptance criteria, existing helpers to reuse, and explicit non-goals. Test counts
-or synthetic fixtures alone cannot close it.
+The user selected **B: retain proven infrastructure and redesign the core production layer**.
+The official active sequence is B1 through B8 below. A stage is not a blanket approval of the
+next stage; each implementation still needs a bounded work package, representative Blender asset,
+visible/semantic acceptance and explicit non-goals.
 
 ### Completed work package: static production v3 -- 2026-11-02
 
@@ -52,9 +45,104 @@ Both changed Skills are hash-aligned with their backed-up Workspace installation
 `D:/Blender/MCP_Test/GameAssetAI/runs/B1-static-production-v3/`
 `20261102T041656Z-stylized-axe-profile-61d8ca68`.
 
-The next proposed B-plan package is bounded revision of an explicitly mapped external/legacy
-multi-object static asset. It requires user approval before implementation and must not infer
-semantic parts or expand into a general edit framework.
+### Completed work package: B1.1 static profile correctness -- 2026-11-02
+
+- Requirements: `REQ-STATIC`, `REQ-COST`, `REQ-SAFE`, bounded `REQ-WORKFLOW`.
+- Reuse: static assembly v1/v2/v3 contracts, `PROFILE_EXTRUSION`, owned semantic revision,
+  Artifact Lifecycle, the accepted axe/shield requests and existing Workspace deployment tools.
+- Concrete gap: the v3 side-face winding has not been proven outward, the offline polygon guard
+  misses non-adjacent repeated vertices, endpoint-on-edge contact and collinear overlap, and the
+  B1 original/revision renders use independent framing that weakens size comparison.
+- Affected files: the shared and packaged static creation/validation scripts, focused request and
+  Blender workflow tests, the existing static Skill contract, router only if status text changes,
+  and the active roadmap/memory/session documents.
+- Validation assets: regenerate the B1 stylized axe, wider/sharper revision and profile shield;
+  add convex and concave profile mesh-quality probes and same-camera comparison views.
+- Acceptance: outward cap/side normals, positive signed volume, closed manifold geometry, no
+  zero-area faces or duplicate coordinates, actual triangle count/spec consistency, strict
+  rejection of repeated/contacting/overlapping invalid profiles, preservation/rollback/reopen,
+  and recorded visual review using identical cameras for original/revision pairs.
+- Non-goals: B2 modeling operators, arbitrary polygon libraries, external-mesh editing, character,
+  animation, Unity, Add-on expansion, external dependencies or broad Skill consolidation.
+- Skill cleanup boundary: reassess the one deprecated and eight consolidate candidates against
+  current callers/installations. Remove only evidence-proven dead exposure; retain unique or
+  package-required implementations and record the deferred consolidation reason.
+- User approval: supplied by the current B1.1 request, including focused Repository/Workspace
+  cleanup and hash-checked installation of changed Skills.
+
+Result: accepted within the bounded correctness contract. Side winding is outward; cap and side
+normals, closed-manifold edges, positive expected signed volume, non-zero faces, unique vertices
+and actual triangle/spec consistency are enforced at creation. The validator rejects repeated,
+touching, overlapping and backtracking profiles while accepting a valid concave profile. The
+original/revised axe comparison uses one immutable camera frame per view with Backface Culling;
+preservation, rollback, legacy v1/v2, save/reopen and installed-Skill execution passed. Evidence:
+`D:/Blender/MCP_Test/GameAssetAI/runs/B1.1-static-profile-correctness/`
+`20261102T085327Z-final-axe-shield-profile-quality-d6053ce7`.
+
+## Official B-plan production sequence
+
+### B1 -- Foundation static production (complete)
+
+Legacy primitive assembly, explicit semantic parts, `PROFILE_EXTRUSION`, independent geometry
+replacement, bounded low-poly style constraints, ownership and rollback are implemented. Accepted
+axe/shield evidence proves only this bounded profile-based workflow, not general modeling.
+
+### B1.1 -- Profile mesh correctness (complete)
+
+Correct and prove cap/side winding, strict rejection of degenerate/self-contacting profiles,
+closed-manifold and positive-volume output, actual triangle/spec consistency, and identical-camera
+original/revision comparison. Completion requires regenerated axe, wide/sharp axe and shield
+evidence plus legacy v1/v2/v3 regression, preservation, rollback and fresh-process reopen.
+
+### B2 -- Expand static shape production (next)
+
+Add only the shape operations demanded by representative assets: section variation/taper,
+bounded bevel/chamfer, inset/extrude, improved profile solids and, only when justified, sweep or
+Boolean and real part joins. Completion requires creation and semantic revision of at least two
+asset types that profile extrusion alone cannot express. B1.1 correctness is the entry gate.
+
+### B3 -- Revise existing Blender/external static assets
+
+Accept explicit `.blend`/`.glb` and Object-to-semantic-part mappings, preserve the source, create
+an independent copy, modify selected real geometry and retain unrelated parts/materials. Do not
+claim automatic semantic inference. Completion requires one representative non-GameAssetAI
+multi-object asset.
+
+### B4 -- Game-specific art direction, materials and textures
+
+Connect Workspace Profile and explicit request decisions to silhouette, proportion, shape
+language, material/shading, UV/texture policy and polygon/texture budgets. Completion requires the
+same class of asset in two visibly different styles through geometry and surface treatment, not a
+color-only variant. Stylized Low-Poly is evidence, not a global default.
+
+### B5 -- Broaden static asset domains
+
+Reuse common operations across weapons/armor, props/furniture, machinery/devices,
+architecture/structures and natural environment assets instead of adding one Skill per noun.
+Completion requires creation and follow-up revision in at least three different domains.
+
+### B6 -- Redesign character, clothing and creature production
+
+Develop style-aware character shapes, hair/clothing/equipment, varied proportions,
+deformation-conscious topology, non-humanoid routes and partial revision. Reuse the proven bounded
+M2-M4 rig/animation/export path where eligible; do not equate the CC0 human template with general
+character generation. Completion requires an accepted styled character and components with a
+real downstream handoff where supported.
+
+### B7 -- Natural-language integrated production and Blender Add-on
+
+Turn requests into explicit creation specifications, route internal production modules, present
+actual Blender previews, apply user revisions and invoke output Skills. Earlier stages retain
+minimal natural-language routing; B7 is the full create-review-revise-output user experience.
+Completion requires a fresh Codex session to execute a representative end-to-end workflow.
+
+### B8 -- Real-project proof and product-surface consolidation
+
+Validate actual Unity-project use, game-specific budgets, 2D/animation integration, a smaller
+user-facing Skill surface, internal-helper consolidation, packaging-copy management and practical
+Add-on use. Safe removal of a proven dead Skill may happen earlier; B8 is not an excuse to keep
+known misleading exposure. Completion requires representative real-project workflows and aligned
+Repository/Workspace documentation and installation.
 
 ## Recovery priority — authoritative from 2026-10-25
 

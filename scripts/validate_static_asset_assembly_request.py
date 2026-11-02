@@ -19,6 +19,7 @@ PRIMITIVES = {"BOX", "CYLINDER", "ICOSPHERE", "WEDGE"}
 GEOMETRY_KINDS = {"PRIMITIVE", "PROFILE_EXTRUSION"}
 STYLE_FAMILIES = {"STYLIZED_LOW_POLY", "CUSTOM"}
 SHA256_PATTERN = re.compile(r"^[0-9a-f]{64}$")
+PROFILE_RELATIVE_EPSILON = 1e-7
 
 
 def _canonical(value):
@@ -48,21 +49,74 @@ def _profile_points(value, label):
     if not isinstance(value, list) or not 3 <= len(value) <= 32:
         raise ValueError(f"{label} must contain 3 to 32 [x, z] points")
     points = [_finite_vector(point, 2, f"{label}[{index}]") for index, point in enumerate(value)]
-    if any(points[index] == points[(index + 1) % len(points)] for index in range(len(points))):
-        raise ValueError(f"{label} must not contain consecutive duplicate points")
+    span = max(
+        max(point[0] for point in points) - min(point[0] for point in points),
+        max(point[1] for point in points) - min(point[1] for point in points),
+    )
+    tolerance = max(1e-9, span * PROFILE_RELATIVE_EPSILON)
+
+    def distance_squared(a, b):
+        return (a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2
+
+    for first in range(len(points)):
+        for second in range(first + 1, len(points)):
+            if distance_squared(points[first], points[second]) <= tolerance ** 2:
+                raise ValueError(f"{label} must not reuse or nearly duplicate a vertex")
+    if any(
+        distance_squared(points[index], points[(index + 1) % len(points)]) <= tolerance ** 2
+        for index in range(len(points))
+    ):
+        raise ValueError(f"{label} must not contain zero-length or unstable edges")
     area2 = sum(
         points[index][0] * points[(index + 1) % len(points)][1]
         - points[(index + 1) % len(points)][0] * points[index][1]
         for index in range(len(points))
     )
-    if area2 <= 1e-8:
+    if area2 <= max(1e-12, tolerance * tolerance):
         raise ValueError(f"{label} must be counter-clockwise with non-zero area")
 
     def orientation(a, b, c):
         return (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0])
 
-    def intersects(a, b, c, d):
-        return orientation(a, b, c) * orientation(a, b, d) < -1e-12 and orientation(c, d, a) * orientation(c, d, b) < -1e-12
+    for index in range(len(points)):
+        previous = points[index - 1]
+        current = points[index]
+        following = points[(index + 1) % len(points)]
+        incoming = (current[0] - previous[0], current[1] - previous[1])
+        outgoing = (following[0] - current[0], following[1] - current[1])
+        if (
+            abs(orientation(previous, current, following)) <= tolerance
+            and incoming[0] * outgoing[0] + incoming[1] * outgoing[1] <= 0
+        ):
+            raise ValueError(f"{label} must not backtrack or overlap at a vertex")
+
+    def sign(value):
+        if value > tolerance:
+            return 1
+        if value < -tolerance:
+            return -1
+        return 0
+
+    def on_segment(a, b, point):
+        return (
+            abs(orientation(a, b, point)) <= tolerance
+            and min(a[0], b[0]) - tolerance <= point[0] <= max(a[0], b[0]) + tolerance
+            and min(a[1], b[1]) - tolerance <= point[1] <= max(a[1], b[1]) + tolerance
+        )
+
+    def intersects_or_touches(a, b, c, d):
+        first_c = sign(orientation(a, b, c))
+        first_d = sign(orientation(a, b, d))
+        second_a = sign(orientation(c, d, a))
+        second_b = sign(orientation(c, d, b))
+        if first_c * first_d < 0 and second_a * second_b < 0:
+            return True
+        return (
+            (first_c == 0 and on_segment(a, b, c))
+            or (first_d == 0 and on_segment(a, b, d))
+            or (second_a == 0 and on_segment(c, d, a))
+            or (second_b == 0 and on_segment(c, d, b))
+        )
 
     count = len(points)
     for first in range(count):
@@ -71,8 +125,8 @@ def _profile_points(value, label):
             if second in {first, (first + 1) % count} or (second + 1) % count == first:
                 continue
             c, d = points[second], points[(second + 1) % count]
-            if intersects(a, b, c, d):
-                raise ValueError(f"{label} must not self-intersect")
+            if intersects_or_touches(a, b, c, d):
+                raise ValueError(f"{label} must not self-intersect, self-touch, or overlap")
     return points
 
 
