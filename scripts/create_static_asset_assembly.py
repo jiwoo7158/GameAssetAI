@@ -17,6 +17,9 @@ from validate_static_asset_assembly_request import (
 
 OWNER_KEY = "gameassetai_creation_owner"
 ROLE_KEY = "gameassetai_semantic_role"
+ASSEMBLY_SCHEMA_KEY = "gameassetai_static_assembly_schema"
+GEOMETRY_SPEC_KEY = "gameassetai_geometry_spec"
+STYLE_SPEC_KEY = "gameassetai_style_spec"
 IMPORT_OWNER_KEY = "gameassetai_kiln_import_owner"
 PROVENANCE_KIND_KEY = "gameassetai_source_kind"
 PROVENANCE_SHA_KEY = "gameassetai_source_sha256"
@@ -33,10 +36,40 @@ def _tag(data_block, token):
     return data_block
 
 
+def _geometry_for_part(part):
+    if "geometry" in part:
+        return part["geometry"]
+    return {
+        "kind": "PRIMITIVE",
+        "primitive": part["primitive"],
+        "dimensions": part["dimensions"],
+        "segments": part["segments"],
+    }
+
+
+def _make_profile_extrusion(mesh, geometry):
+    points = geometry["profile_points"]
+    half_depth = geometry["depth"] * 0.5
+    count = len(points)
+    vertices = [(x, -half_depth, z) for x, z in points]
+    vertices.extend((x, half_depth, z) for x, z in points)
+    faces = [tuple(range(count)), tuple(reversed(range(count, count * 2)))]
+    for index in range(count):
+        following = (index + 1) % count
+        faces.append((index, following, count + following, count + index))
+    mesh.from_pydata(vertices, [], faces)
+    mesh.update()
+
+
 def _make_mesh(part, token):
     mesh = _tag(bpy.data.meshes.new(part["name"] + " Mesh"), token)
-    dimensions = Vector(part["dimensions"])
-    if part["primitive"] == "WEDGE":
+    geometry = _geometry_for_part(part)
+    mesh[GEOMETRY_SPEC_KEY] = _canonical(geometry)
+    if geometry["kind"] == "PROFILE_EXTRUSION":
+        _make_profile_extrusion(mesh, geometry)
+        return mesh
+    dimensions = Vector(geometry["dimensions"])
+    if geometry["primitive"] == "WEDGE":
         vertices = [
             (-0.5, -0.5, -0.5), (0.5, -0.5, -0.5),
             (-0.5, 0.5, -0.5), (0.5, 0.5, -0.5),
@@ -48,15 +81,15 @@ def _make_mesh(part, token):
         mesh.update()
         return mesh
     bm = bmesh.new()
-    if part["primitive"] == "BOX":
+    if geometry["primitive"] == "BOX":
         result = bmesh.ops.create_cube(bm, size=1.0)
         verts = result["verts"]
-    elif part["primitive"] == "CYLINDER":
+    elif geometry["primitive"] == "CYLINDER":
         result = bmesh.ops.create_cone(
             bm,
             cap_ends=True,
             cap_tris=False,
-            segments=part["segments"],
+            segments=geometry["segments"],
             radius1=1.0,
             radius2=1.0,
             depth=1.0,
@@ -64,7 +97,7 @@ def _make_mesh(part, token):
         verts = result["verts"]
         dimensions = Vector((dimensions.x * 0.5, dimensions.y * 0.5, dimensions.z))
     else:
-        subdivisions = 1 if part["segments"] <= 12 else 2
+        subdivisions = 1 if geometry["segments"] <= 12 else 2
         result = bmesh.ops.create_icosphere(bm, subdivisions=subdivisions, radius=1.0)
         verts = result["verts"]
         dimensions *= 0.5
@@ -121,6 +154,9 @@ def create_asset(request, *, authorized=False):
     created = {"objects": [], "meshes": [], "materials": [], "collection": normalized["collection_name"]}
     try:
         collection = _tag(bpy.data.collections.new(normalized["collection_name"]), token)
+        collection[ASSEMBLY_SCHEMA_KEY] = normalized["schema"]
+        if "style" in normalized:
+            collection[STYLE_SPEC_KEY] = _canonical(normalized["style"])
         scene.collection.children.link(collection)
         materials = {}
         for spec in normalized["materials"]:
@@ -136,6 +172,9 @@ def create_asset(request, *, authorized=False):
             obj.location = part["location"]
             obj.rotation_euler = Euler(tuple(math.radians(value) for value in part["rotation_degrees"]), "XYZ")
             obj.data.materials.append(materials[part["material"].casefold()])
+            if "style" in normalized:
+                for polygon in obj.data.polygons:
+                    polygon.use_smooth = normalized["style"]["shading"] != "FLAT"
             collection.objects.link(obj)
             created["objects"].append(obj.name)
             created["meshes"].append(mesh.name)
@@ -143,20 +182,31 @@ def create_asset(request, *, authorized=False):
         facts = []
         for object_name in created["objects"]:
             obj = bpy.data.objects[object_name]
+            obj.data.calc_loop_triangles()
             facts.append({
                 "name": obj.name,
                 "vertices": len(obj.data.vertices),
                 "polygons": len(obj.data.polygons),
+                "triangles": len(obj.data.loop_triangles),
                 "material": obj.data.materials[0].name,
                 "location": [float(v) for v in obj.location],
                 "semantic_role": obj.get(ROLE_KEY),
+                "geometry_kind": json.loads(obj.data[GEOMETRY_SPEC_KEY])["kind"],
             })
+        triangle_count = sum(item["triangles"] for item in facts)
+        if "style" in normalized and triangle_count > normalized["style"]["triangle_budget"]:
+            raise ValueError(
+                f"actual triangles {triangle_count} exceed style.triangle_budget "
+                f"{normalized['style']['triangle_budget']}"
+            )
         receipt = {
             "status": "created",
             "asset_name": normalized["asset_name"],
             "collection_name": collection.name,
             "request_sha256": validated["request_sha256"],
             "parts": facts,
+            "style": normalized.get("style"),
+            "triangle_count": triangle_count,
             "source_scene_preserved": True,
         }
         receipt["receipt_sha256"] = hashlib.sha256(_canonical(receipt).encode("utf-8")).hexdigest()
@@ -184,6 +234,19 @@ def _duplicate_part(source, object_name, mesh_name, token):
     return obj
 
 
+def _replacement_part(source, object_name, mesh_name, geometry, token):
+    part = {"name": object_name, "geometry": geometry}
+    mesh = _make_mesh(part, token)
+    mesh.name = mesh_name
+    for material in source.data.materials:
+        mesh.materials.append(material)
+    obj = source.copy()
+    obj.name = object_name
+    obj.data = mesh
+    _tag(obj, token)
+    return obj
+
+
 def revise_asset_copy(request, *, authorized=False):
     if not authorized:
         raise ValueError("authorized=true is required for persistent asset revision")
@@ -198,11 +261,16 @@ def revise_asset_copy(request, *, authorized=False):
     if not source.objects:
         raise ValueError("source collection is empty")
     source_token = source.get(OWNER_KEY)
+    geometry_revision = normalized["schema"].endswith(".v2")
+    if geometry_revision and source.get(ASSEMBLY_SCHEMA_KEY) != "gameassetai.static-asset-assembly-request.v3":
+        raise ValueError("geometry revision v2 requires an owned static assembly v3 source")
     role_objects = {}
     for obj in source.objects:
         role = obj.get(ROLE_KEY)
         if obj.type != "MESH" or obj.get(OWNER_KEY) != source_token or not role:
             raise ValueError("source must contain only owned semantic Mesh parts created by schema v2")
+        if geometry_revision and obj.data.get(GEOMETRY_SPEC_KEY) is None:
+            raise ValueError("geometry revision v2 requires complete v3 geometry metadata")
         folded = role.casefold()
         if folded in role_objects:
             raise ValueError("source semantic roles are ambiguous")
@@ -230,13 +298,22 @@ def revise_asset_copy(request, *, authorized=False):
     token = uuid.uuid4().hex
     try:
         collection = _tag(bpy.data.collections.new(normalized["collection_name"]), token)
+        collection[ASSEMBLY_SCHEMA_KEY] = source.get(ASSEMBLY_SCHEMA_KEY, "gameassetai.static-asset-assembly-request.v2")
+        if source.get(STYLE_SPEC_KEY) is not None:
+            collection[STYLE_SPEC_KEY] = source[STYLE_SPEC_KEY]
         scene.collection.children.link(collection)
         facts = []
         for source_obj, (object_name, mesh_name) in zip(source.objects, names):
-            obj = _duplicate_part(source_obj, object_name, mesh_name, token)
+            revision = revisions.get(source_obj[ROLE_KEY].casefold())
+            replacement_geometry = revision.get("geometry") if revision is not None else None
+            obj = (
+                _replacement_part(source_obj, object_name, mesh_name, replacement_geometry, token)
+                if replacement_geometry is not None
+                else _duplicate_part(source_obj, object_name, mesh_name, token)
+            )
             revision = revisions.get(obj[ROLE_KEY].casefold())
             if revision is not None:
-                if revision["dimensions"] is not None:
+                if "dimensions" in revision and revision["dimensions"] is not None:
                     current = _mesh_dimensions(obj.data)
                     if min(current) <= 0:
                         raise ValueError(f"source role has a zero local dimension: {obj[ROLE_KEY]}")
@@ -249,24 +326,37 @@ def revise_asset_copy(request, *, authorized=False):
                 if revision["rotation_degrees"] is not None:
                     obj.rotation_euler = Euler(tuple(math.radians(value) for value in revision["rotation_degrees"]), "XYZ")
             collection.objects.link(obj)
+            obj.data.calc_loop_triangles()
             facts.append({
                 "name": obj.name,
                 "semantic_role": obj[ROLE_KEY],
                 "vertices": len(obj.data.vertices),
                 "polygons": len(obj.data.polygons),
+                "triangles": len(obj.data.loop_triangles),
                 "dimensions": [float(value) for value in _mesh_dimensions(obj.data)],
                 "location": [float(value) for value in obj.location],
                 "source_object": source_obj.name,
+                "geometry_kind": json.loads(obj.data[GEOMETRY_SPEC_KEY])["kind"],
+                "geometry_replaced": replacement_geometry is not None,
             })
+        style = json.loads(source[STYLE_SPEC_KEY]) if source.get(STYLE_SPEC_KEY) is not None else None
+        triangle_count = sum(item["triangles"] for item in facts)
+        if style is not None and triangle_count > style["triangle_budget"]:
+            raise ValueError(
+                f"revised triangles {triangle_count} exceed source style.triangle_budget "
+                f"{style['triangle_budget']}"
+            )
         receipt = {
             "status": "created",
-            "operation": "copy_revision",
+            "operation": "copy_geometry_revision" if geometry_revision else "copy_revision",
             "asset_name": normalized["asset_name"],
             "source_collection_name": source.name,
             "collection_name": collection.name,
             "request_sha256": validated["request_sha256"],
             "revised_roles": [item["semantic_role"] for item in normalized["revisions"]],
             "parts": facts,
+            "style": style,
+            "triangle_count": triangle_count,
             "source_preserved": True,
             "shared_materials": True,
         }

@@ -13,14 +13,17 @@ narrow validators or render passes.
 
 Current product facts:
 
-- static creation is a four-primitive explicit assembly plus bounded owned-part revision;
+- static creation retains four legacy primitives and now adds bounded v3 profile extrusion plus
+  copy-only owned semantic geometry replacement;
 - character creation is blockout or a hash-pinned CC0 human-template proportion workflow, not a
   general character/style generator;
 - M2/M3/M3.4/M4 evidence is valid only for its documented A-pose, 17-role `IN_PLACE`, single-Action
   and Unity Generic scopes;
 - the Add-on is persistently installable, but its implemented UI is primarily 2D
   preview/setup/export rather than the complete creation workflow;
-- profile/style fields do not yet amount to geometry, material and texture art-direction support.
+- v3 style facts now enforce explicit silhouette geometry, flat shading, material count and
+  triangle budget for one bounded low-poly workflow; broad multi-style and texture art direction
+  remain unimplemented.
 
 Before another feature milestone, select one bounded production domain and representative art
 direction, then improve actual creation/revision quality through visible Blender acceptance. Do
@@ -48,7 +51,12 @@ back to modeling, rigging or Mixamo work must not cause the Add-on UI work to be
 
 - `blender-create-game-asset`: routing-only natural-language entry. Do not host-promote it until
   the selected creation specialist passes a representative visible acceptance gate.
-- `blender-create-static-asset`: explicit primitive-based low-poly props/weapons/environment parts.
+- `blender-create-static-asset`: legacy primitive assemblies plus accepted v3 profile extrusion
+  for authored low-poly silhouettes. V3 records complete geometry metadata and mechanically
+  enforces flat shading, limited declared materials and triangle budget. Revision v2 replaces one
+  owned semantic part's actual Mesh geometry in an independent copy while preserving Object scale,
+  source data and unrelated parts. The representative axe/shield evidence does not imply arbitrary
+  prompt-to-mesh, imported-Mesh editing, UV/textures or broad art-style generation.
 - `blender-create-character-base`: V1 separate-volume and guarded v3 Boolean blockout paths remain
   intact. Experimental v4 `DEFORMATION_TEMPLATE` duplicates an explicit hash-pinned Blender
   Studio Human Base Meshes v1.4.1 CC0 Mesh, applies two tested non-affine proportion ranges,

@@ -21,6 +21,41 @@ After those decisions, the next work package must define a representative Blende
 and semantic acceptance criteria, existing helpers to reuse, and explicit non-goals. Test counts
 or synthetic fixtures alone cannot close it.
 
+### Completed work package: static production v3 -- 2026-11-02
+
+- Requirements: `REQ-STATIC`, `REQ-STYLE`, `REQ-COST`, `REQ-SAFE`, bounded `REQ-WORKFLOW`.
+- Reuse: `blender-create-static-asset`, its v1/v2 validator and ownership/rollback mechanics,
+  material creation, semantic roles, copy-only revision, router and Artifact Lifecycle.
+- Gap: native creation stops at four primitives and revision changes whole-part transforms rather
+  than an authored silhouette.
+- Implementation boundary: one explicit Blender-native profile-extrusion geometry operation,
+  copy-only profile replacement for an owned semantic part, enforceable low-poly style facts and
+  a minimal router/contract update. No character, texture painting, arbitrary imported-Mesh edit,
+  general text-to-3D, new external dependency or new Skill.
+- Validation asset: a Stylized Low-Poly Fantasy Axe whose blade uses an authored profile, plus a
+  copy revision that widens and sharpens that profile. A second non-weapon profile part checks that
+  the operation is not axe-hardcoded.
+- Acceptance: actual Mesh vertices change rather than Object scale; source coordinates/materials
+  remain exact; unchanged parts remain exact; budget/material/flat-shading rules are enforced;
+  induced failure rolls back only owned data; Blender 5.0.1 saves/reopens the result; front, side
+  and three-quarter evidence is recorded for explicit visual review.
+- Non-goals: automatic prompt parsing, arbitrary Mesh semantic discovery, UV/texture authoring,
+  Boolean/sweep framework, character work, Add-on expansion and Unity revalidation.
+- Approval already supplied by the user: implement this bounded first B-plan production path and
+  safely update the installed Skill after focused validation.
+
+Result: accepted within the bounded contract. `PROFILE_EXTRUSION` creates real authored silhouette
+geometry; revision v2 replaces one owned semantic part's Mesh on an independent copy. A six-part
+stylized axe, its wider/sharper blade revision and a non-weapon shield passed preservation,
+rollback, budget/material/flat-shading, multi-view visual review and fresh-process Blend reopen.
+Both changed Skills are hash-aligned with their backed-up Workspace installations. Evidence:
+`D:/Blender/MCP_Test/GameAssetAI/runs/B1-static-production-v3/`
+`20261102T041656Z-stylized-axe-profile-61d8ca68`.
+
+The next proposed B-plan package is bounded revision of an explicitly mapped external/legacy
+multi-object static asset. It requires user approval before implementation and must not infer
+semantic parts or expand into a general edit framework.
+
 ## Recovery priority — authoritative from 2026-10-25
 
 > Historical implementation sequence. Retained for traceability; it no longer sets priority.

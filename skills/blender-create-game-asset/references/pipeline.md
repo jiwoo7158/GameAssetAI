@@ -4,7 +4,7 @@
 
 | User intent | First Skill | Continue only when applicable |
 | --- | --- | --- |
-| New prop, weapon or simple environment piece | `blender-create-static-asset` | inspection, copy-only cleanup, transform/pivot, static export or 2D rendering |
+| New prop, weapon, furniture-like or simple environment piece | `blender-create-static-asset` v3 when an explicit profile silhouette is suitable | semantic geometry revision, inspection, static export or 2D rendering |
 | New low-poly humanoid | `blender-create-character-base` v3 `BOOLEAN_CONNECTED` blockout | topology/revision and deformation-readiness gate, then rigging and reviewed Action authoring |
 | Existing static Mesh | `blender-inspect-asset` and `blender-validate-static-mesh` | guarded cleanup/transform/pivot/LOD or static export |
 | Existing character or Armature | `blender-inspect-asset` and `blender-inspect-humanoid` | animation inventory, Mixamo preflight or explicit retarget path |
@@ -25,7 +25,9 @@
 
 ## Known gaps that must not be hidden
 
-- Static creation is explicit primitive assembly, not arbitrary prompt-to-mesh modeling.
+- Static creation v3 adds explicit profile extrusion and owned semantic geometry replacement. It is
+  no longer limited to four primitives, but remains a bounded part-spec workflow rather than
+  arbitrary prompt-to-mesh, sculpting, UV/texture authoring or arbitrary imported-Mesh editing.
 - Character creation has a guarded v3 exact-Boolean connected candidate. The global
   `VOXEL_CONNECTED` experiment remains suspended after visible limb/foot fusion. V3 must pass
   component/manifold/clearance gates and recorded multi-view acceptance. Its current Boolean

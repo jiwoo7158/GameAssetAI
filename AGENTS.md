@@ -71,10 +71,15 @@ package, not the product objective.
 Before choosing a new capability or continuation point, read the current decisions in this order:
 
 1. `AGENTS.md`
-2. `docs/PROJECT_AUDIT.md`
-3. `docs/IMPLEMENTATION_MEMORY.md`
-4. `docs/SESSION_STATE.md`
-5. the active section of `docs/roadmap.md`
+2. the user's current requirements and the relevant implementation code
+3. `docs/audits/2026-11-02-repository-review.md`
+4. `docs/IMPLEMENTATION_MEMORY.md`
+5. `docs/SESSION_STATE.md`
+6. the active section of `docs/roadmap.md`
+
+`docs/PROJECT_AUDIT.md`, older Skill audits, validation reports and session history remain useful
+evidence, but they are historical inputs rather than current work-order authority. When a status
+claim conflicts with implementation, inspect the code and representative evidence before deciding.
 
 Do not let optional render passes, collider/LOD diagnostics, Unity-only checks, or additional
 micro-Skills displace a missing core creation, rig/adaptation, Mixamo, export, or Add-on gate.

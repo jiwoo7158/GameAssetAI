@@ -6,8 +6,9 @@ GameAssetAI is a development repository for building reusable AI skills that let
 
 The repository has strong safety, animation-processing, deterministic 2D, installation and
 bounded Unity-export foundations. It does **not** yet provide broad natural-language 3D modeling,
-general existing-mesh revision, texture authoring or practical multi-style asset generation.
-Static creation is currently an explicit primitive assembly; character creation is blockout or a
+general imported-mesh revision, texture authoring or practical multi-style asset generation.
+Static creation now supports explicit primitive assembly plus bounded profile-extruded silhouettes
+and owned semantic geometry replacement; character creation remains blockout or a
 licensed-template proportion workflow. The Blender Add-on is persistently installable, but its
 actual product surface remains primarily 2D preview/setup/export rather than the full creation
 workflow.

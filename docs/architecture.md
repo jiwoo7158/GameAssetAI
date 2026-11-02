@@ -69,6 +69,30 @@ in isolation before integration, keep its provenance and license explicit, and p
 adapter behind an existing Skill boundary when that Skill already owns the task. Installation and
 integration require separate user approval.
 
+## Core production boundary
+
+The user-facing production surface is intentionally smaller than the set of installable helper
+Skills:
+
+```text
+natural-language request
+  -> creation/revision specification
+  -> one owning production Skill
+  -> internal inspection/copy/bake helpers
+  -> visible and semantic acceptance
+  -> optional rig/animation, 2D and engine output
+```
+
+The specification must carry semantic parts, explicit geometry requirements, art direction and
+technical limits. Labels alone are not implementation: geometry, material and budget fields must
+affect the Blender result or be reported as unsupported. Narrow validators and render passes are
+internal stages unless the user explicitly requests them.
+
+`blender-create-static-asset` v3 is the first bounded implementation of this boundary. It adds an
+explicit profile-extrusion geometry operation and copy-only semantic geometry replacement while
+retaining v1/v2 primitives and safety contracts. It does not create a general modeling framework;
+new operations should be added only from representative production gaps.
+
 ## Development artifact boundary
 
 Repository source and local run output are separate layers:

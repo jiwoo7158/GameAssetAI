@@ -3,12 +3,13 @@
 ## Scope
 
 `blender-create-static-asset` is the first direct asset-creation Skill in this repository. It
-creates a new named Collection containing explicit primitive-based Mesh parts and owned
-materials. It targets recognizable low-poly props, weapons and simple environment pieces.
+creates a new named Collection containing explicit primitive or profile-extruded Mesh parts and
+owned materials. It targets recognizable low-poly props, weapons, furniture-like and simple
+environment pieces.
 
 It is not a general text-to-3D, character, sculpting, UV texturing, rigging or animation system.
 
-## Contract
+## Legacy contract
 
 - Schema: `gameassetai.static-asset-assembly-request.v1`.
 - Primitives: `BOX`, `CYLINDER`, `ICOSPHERE`, `WEDGE`.
@@ -72,6 +73,43 @@ handles; run 02 fixed compact/wide handles but left the tall top bar disconnecte
 The evidence level is `representative`, not arbitrary-prompt or production-quality acceptance.
 UV creation, arbitrary imported-mesh editing, sculpting, free-form topology and material revision
 remain unsupported.
+
+## Profile production v3 and semantic geometry revision -- 2026-11-02
+
+The first B-plan production implementation extends the existing Skill rather than creating a new
+one:
+
+- creation schema `gameassetai.static-asset-assembly-request.v3` supports legacy primitives
+  through a geometry object and adds `PROFILE_EXTRUSION`;
+- the profile is 3-32 explicit counter-clockwise, non-self-intersecting `[x,z]` points extruded
+  along Y, so the authored silhouette is real Mesh geometry rather than another stock primitive;
+- style facts enforce explicit part geometry, flat shading, a declared material limit and actual
+  triangle budget. `STYLIZED_LOW_POLY` is the representative request, not a global default;
+- revision schema `gameassetai.static-asset-revision-request.v2` replaces the complete geometry
+  of an owned v3 semantic part on a new copy. It preserves Object scale, source coordinates,
+  unrelated parts and shared source materials;
+- invalid profiles, over-budget requests, missing semantic roles, non-v3 sources, occupied names
+  and unauthorized writes are refused. Mid-replacement failure rolls back only the new owner token.
+
+Blender 5.0.1 Background accepted-evidence run:
+
+`D:/Blender/MCP_Test/GameAssetAI/runs/B1-static-production-v3/20261102T041656Z-stylized-axe-profile-61d8ca68`
+
+The run contains a six-part Stylized Low-Poly Fantasy Axe, a copy whose blade profile is wider and
+has a sharper outer point, and a shield proving the operation is not weapon-hardcoded. The axe has
+132 triangles under a 220-triangle budget; the shield has 40 under 100. Front, side and
+three-quarter images were explicitly reviewed. The revised blade changed Mesh vertices while both
+Object scales remained `[1,1,1]`; all unrelated part coordinates/materials and the complete source
+snapshot remained exact. A deliberate post-allocation failure left no target residue.
+
+The saved `.blend` reopened in a fresh Blender process with three expected Collections, complete
+geometry metadata and the independent revision intact. The installed Workspace Skill was then
+executed directly in another factory-startup process and restored the exact baseline after receipt
+cleanup.
+
+This evidence is `accepted` for bounded low-poly profile extrusion and owned semantic profile
+replacement. It does not claim arbitrary prompt-to-mesh, arbitrary imported-Mesh revision,
+bevel/inset/sweep/Boolean authoring, UV creation or texture painting.
 
 ## Kiln review — 2026-10-27
 

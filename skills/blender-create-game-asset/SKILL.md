@@ -14,7 +14,8 @@ on an existing asset. Preserve existing objects, rigs and Actions unless replace
 
 Use these creation entries:
 
-- recognizable low-poly prop, weapon or simple environment assembly:
+- recognizable low-poly prop, weapon, furniture-like or simple environment assembly, including
+  an explicit profile-authored silhouette and owned semantic geometry revision:
   `blender-create-static-asset`;
 - new low-poly humanoid blockout: `blender-create-character-base`;
 - reviewed owned character base that needs its first rig: `blender-rig-character-base`;
@@ -64,3 +65,10 @@ Only offer 2D Pixel/Cel/Toon rendering after the 3D source is reviewable. Never 
 character through the static-only FBX exporter. Animated FBX v1 is limited to the explicit
 single-Mesh/single-Armature/single-Action Unity Generic contract; Humanoid Avatar certification,
 loop repair, root-motion conversion and Animator Controller authoring remain separate gaps.
+
+For requests such as "make a stylized low-poly axe" or "widen only its blade", route one complete
+v3 request through `blender-create-static-asset` when the requested silhouette can be represented
+as explicit profile extrusion. Translate a complete explicit request or complete active-profile
+style decision into the v3 style object; do not infer missing art direction. Revision is supported
+only for an owned v3 semantic part and must create an independent collection. Arbitrary imported
+Mesh editing remains unsupported.
