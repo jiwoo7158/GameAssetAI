@@ -62,6 +62,24 @@ def _make_profile_extrusion(mesh, geometry):
     return _profile_mesh_quality(mesh, geometry)
 
 
+def _make_profile_beveled_extrusion(mesh, geometry):
+    outer = geometry["outer_profile_points"]
+    core = geometry["core_profile_points"]
+    half_depth = geometry["depth"] * 0.5
+    count = len(outer)
+    vertices = [(x, -half_depth, z) for x, z in core]
+    vertices.extend((x, 0.0, z) for x, z in outer)
+    vertices.extend((x, half_depth, z) for x, z in core)
+    faces = [tuple(range(count)), tuple(reversed(range(count * 2, count * 3)))]
+    for index in range(count):
+        following = (index + 1) % count
+        faces.append((index, count + index, count + following, following))
+        faces.append((count + index, count * 2 + index, count * 2 + following, count + following))
+    mesh.from_pydata(vertices, [], faces)
+    mesh.update()
+    return _beveled_profile_mesh_quality(mesh, geometry)
+
+
 def _profile_mesh_quality(mesh, geometry):
     points = geometry["profile_points"]
     count = len(points)
@@ -110,12 +128,58 @@ def _profile_mesh_quality(mesh, geometry):
     }
 
 
+def _beveled_profile_mesh_quality(mesh, geometry):
+    outer = geometry["outer_profile_points"]
+    count = len(outer)
+    mesh.calc_loop_triangles()
+    if len(mesh.vertices) != count * 3 or len(mesh.polygons) != count * 2 + 2:
+        raise ValueError("PROFILE_BEVELED_EXTRUSION topology does not match its geometry specification")
+    if len(mesh.loop_triangles) != 6 * count - 4:
+        raise ValueError("PROFILE_BEVELED_EXTRUSION triangle count does not match its geometry specification")
+    if any(polygon.area <= 1e-12 for polygon in mesh.polygons):
+        raise ValueError("PROFILE_BEVELED_EXTRUSION contains a zero-area face")
+    coordinates = [tuple(round(component, 12) for component in vertex.co) for vertex in mesh.vertices]
+    if len(set(coordinates)) != len(coordinates):
+        raise ValueError("PROFILE_BEVELED_EXTRUSION contains duplicate 3D vertices")
+    if mesh.polygons[0].normal.y >= -0.999999 or mesh.polygons[1].normal.y <= 0.999999:
+        raise ValueError("PROFILE_BEVELED_EXTRUSION cap normals are inconsistent")
+    for index in range(count):
+        following = (index + 1) % count
+        dx = outer[following][0] - outer[index][0]
+        dz = outer[following][1] - outer[index][1]
+        expected = Vector((dz, 0.0, -dx)).normalized()
+        for polygon in (mesh.polygons[2 + index * 2], mesh.polygons[3 + index * 2]):
+            if polygon.normal.dot(expected) <= 0:
+                raise ValueError("PROFILE_BEVELED_EXTRUSION band normals are inconsistent")
+    bm = bmesh.new()
+    bm.from_mesh(mesh)
+    if any(not edge.is_manifold for edge in bm.edges):
+        bm.free()
+        raise ValueError("PROFILE_BEVELED_EXTRUSION must be a closed manifold Mesh")
+    signed_volume = bm.calc_volume(signed=True)
+    bm.free()
+    if signed_volume <= 1e-12:
+        raise ValueError("PROFILE_BEVELED_EXTRUSION signed volume must be positive")
+    return {
+        "closed_manifold": True,
+        "normals_outward": True,
+        "zero_area_faces": 0,
+        "duplicate_vertices": 0,
+        "signed_volume": float(signed_volume),
+        "triangles": len(mesh.loop_triangles),
+    }
+
+
 def _make_mesh(part, token):
     mesh = _tag(bpy.data.meshes.new(part["name"] + " Mesh"), token)
     geometry = _geometry_for_part(part)
     mesh[GEOMETRY_SPEC_KEY] = _canonical(geometry)
     if geometry["kind"] == "PROFILE_EXTRUSION":
         quality = _make_profile_extrusion(mesh, geometry)
+        mesh["gameassetai_profile_mesh_quality"] = _canonical(quality)
+        return mesh
+    if geometry["kind"] == "PROFILE_BEVELED_EXTRUSION":
+        quality = _make_profile_beveled_extrusion(mesh, geometry)
         mesh["gameassetai_profile_mesh_quality"] = _canonical(quality)
         return mesh
     dimensions = Vector(geometry["dimensions"])
@@ -315,16 +379,22 @@ def revise_asset_copy(request, *, authorized=False):
     if not source.objects:
         raise ValueError("source collection is empty")
     source_token = source.get(OWNER_KEY)
-    geometry_revision = normalized["schema"].endswith(".v2")
-    if geometry_revision and source.get(ASSEMBLY_SCHEMA_KEY) != "gameassetai.static-asset-assembly-request.v3":
-        raise ValueError("geometry revision v2 requires an owned static assembly v3 source")
+    geometry_revision = normalized["schema"].endswith((".v2", ".v3"))
+    required_source_schema = {
+        "gameassetai.static-asset-revision-request.v2": "gameassetai.static-asset-assembly-request.v3",
+        "gameassetai.static-asset-revision-request.v3": "gameassetai.static-asset-assembly-request.v4",
+    }.get(normalized["schema"])
+    if required_source_schema and source.get(ASSEMBLY_SCHEMA_KEY) != required_source_schema:
+        raise ValueError(
+            f"{normalized['schema']} requires an owned {required_source_schema} source"
+        )
     role_objects = {}
     for obj in source.objects:
         role = obj.get(ROLE_KEY)
         if obj.type != "MESH" or obj.get(OWNER_KEY) != source_token or not role:
             raise ValueError("source must contain only owned semantic Mesh parts created by schema v2")
         if geometry_revision and obj.data.get(GEOMETRY_SPEC_KEY) is None:
-            raise ValueError("geometry revision v2 requires complete v3 geometry metadata")
+            raise ValueError("geometry revision requires complete source geometry metadata")
         folded = role.casefold()
         if folded in role_objects:
             raise ValueError("source semantic roles are ambiguous")

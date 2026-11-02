@@ -1,6 +1,6 @@
 ---
 name: blender-create-static-asset
-description: Create or copy-revise a recognizable static Blender prop, weapon, furniture-like or simple environment asset as an explicit semantic multi-part native Mesh assembly. Supports legacy primitives, v3 profile-extruded silhouettes with enforceable low-poly style facts, owned-part geometry revision, and safe import of an explicitly verified Kiln GLB.
+description: Create or copy-revise a recognizable static Blender prop, weapon, furniture-like or simple environment asset as an explicit semantic multi-part native Mesh assembly. Supports legacy primitives, profile silhouettes, v4 profile-beveled solids with real variable cross-sections, owned-part geometry revision, and safe import of an explicitly verified Kiln GLB.
 metadata:
   contract: gameassetai.skill-contract.v1
   requirements: REQ-STATIC, REQ-STYLE, REQ-COST, REQ-SAFE
@@ -12,7 +12,9 @@ metadata:
 
 Turn a design brief into a deliberate Blender-native static asset, or revise an owned assembly by
 making an independent copy. V3 can create a user-authored two-dimensional silhouette as a real
-extruded Mesh and replace that geometry on one semantic part without scaling the whole Object.
+extruded Mesh. V4 adds a bounded profile-beveled solid whose center silhouette differs from its
+front/back core, creating actual sloped faces rather than a shading-only bevel. Both can replace
+one semantic part on an independent copy without scaling the whole Object.
 It remains a bounded low-poly hard-surface workflow rather than arbitrary prompt-to-mesh.
 
 ## Requirements and responsibility
@@ -32,10 +34,12 @@ installs nor invokes Kiln.
 
 1. Inspect the target Scene and existing names before proposing creation.
 2. Choose creation v1 for legacy compatibility, creation v2 for primitive semantic parts,
-   creation v3 for explicit style plus `PRIMITIVE`/`PROFILE_EXTRUSION` geometry,
+   creation v3 for explicit style plus `PRIMITIVE`/`PROFILE_EXTRUSION` geometry, creation v4 for
+   those kinds plus `PROFILE_BEVELED_EXTRUSION`,
    `gameassetai.static-asset-revision-request.v1` for legacy transform revision, revision v2 for
-   copy-only replacement of owned v3 part geometry, or the Kiln request for a verified GLB.
-3. Use meaningful, unique part names and stable `semantic_role` values in v2/v3. A recognizable result
+   copy-only replacement of owned v3 part geometry, revision v3 for owned v4 part geometry, or
+   the Kiln request for a verified GLB.
+3. Use meaningful, unique part names and stable `semantic_role` values in v2-v4. A recognizable result
    should normally have multiple parts and at least two purpose-specific materials.
 4. Show the planned parts, dimensions, placement and colors. Persistent creation requires a
    separate explicit confirmation.
@@ -52,6 +56,7 @@ installs nor invokes Kiln.
 - Revision accepts only an owned semantic source whose roles are complete and unique.
 - Geometry revision v2 accepts only an owned v3 source with complete geometry metadata. It creates
   a new Mesh for the selected role and shares source materials read-only; other parts are copied.
+- Geometry revision v3 applies the same copy-only policy to an owned v4 source.
 - Refuse occupied requested names; never accept Blender auto-suffixed replacements.
 - Do not modify, hide, rename or delete existing Scene data.
 - Tag all created data with one run owner token.
@@ -85,6 +90,15 @@ part fields with a `geometry` object:
   contact and collinear overlap are refused; valid concave profiles remain supported. This
   authors the visible silhouette rather than selecting another stock primitive.
 
+Creation v4 keeps those kinds and adds:
+
+- `PROFILE_BEVELED_EXTRUSION`: matching 3-32 point counter-clockwise outer and core XZ profiles,
+  plus positive Y depth. The outer ring lies at the center plane and the core profile is used on
+  both depth caps. Core points must remain inside/on the outer profile, correspondence counts must
+  match and the profiles must differ. This creates two real sloped bands and a closed positive-
+  volume solid. It is useful for bounded cutting bevels, chamfered perimeters and raised/recessed
+  panel transitions; it is not Blender's general Bevel operator.
+
 V3 also requires explicit style facts. `STYLIZED_LOW_POLY` or `CUSTOM` records the requested shape
 language, while `EXPLICIT_PART_GEOMETRY`, `FLAT`, `DECLARED_LIMITED`, `max_materials` and a triangle
 budget are mechanically enforced. The profile points and declared materials—not the family label
@@ -94,6 +108,7 @@ global default.
 
 Revision v1 may replace selected role transforms. Revision v2 may replace a selected v3 role's
 complete geometry and/or transform, producing a new Mesh while leaving Object scale unchanged.
+Revision v3 does the same for a selected v4 role and may replace beveled-profile parameters.
 Neither revision edits arbitrary imported meshes or materials.
 
 Kiln import records producer/version/program provenance, source hash, all newly created data and
@@ -115,7 +130,7 @@ may be called `accepted`.
 ## Boundary
 
 This Skill does not solve arbitrary prompt-to-3D generation, arbitrary imported-Mesh semantic
-editing, sculpting, UV/texture authoring, rigging or animation. V3 provides profile extrusion, not
-a general extrude/inset/bevel/Boolean/sweep framework. It does not run Kiln, generate GLBs or
+editing, sculpting, UV/texture authoring, rigging or animation. V4 provides explicit matched-profile
+beveled solids, not a general extrude/inset/Bevel/Boolean/sweep framework. It does not run Kiln, generate GLBs or
 translate prompts into Kiln programs. Unsupported requests must be reported rather than
 approximated silently with primitives.

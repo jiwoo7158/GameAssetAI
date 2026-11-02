@@ -13,8 +13,8 @@ narrow validators or render passes.
 
 Current product facts:
 
-- static creation retains four legacy primitives and now adds bounded v3 profile extrusion plus
-  copy-only owned semantic geometry replacement;
+- static creation retains four legacy primitives, bounded v3 profile extrusion and accepted v4
+  matched-profile beveled solids plus copy-only owned semantic geometry replacement;
 - character creation is blockout or a hash-pinned CC0 human-template proportion workflow, not a
   general character/style generator;
 - M2/M3/M3.4/M4 evidence is valid only for its documented A-pose, 17-role `IN_PLACE`, single-Action
@@ -73,6 +73,10 @@ back to modeling, rigging or Mixamo work must not cause the Add-on UI work to be
   owned semantic part's actual Mesh geometry in an independent copy while preserving Object scale,
   source data and unrelated parts. The representative axe/shield evidence does not imply arbitrary
   prompt-to-mesh, imported-Mesh editing, UV/textures or broad art-style generation.
+  V4 adds `PROFILE_BEVELED_EXTRUSION`: explicit matching outer/core rings form a closed solid with
+  real sloped cross-section bands. Revision v3 replaces that geometry on a copy. An axe and a
+  reinforced crate passed explicit visual acceptance, manifold/normal/volume checks, preservation,
+  rollback and reopen. This is not a general Bevel/inset/extrude/sweep/Boolean system.
 - `blender-create-character-base`: V1 separate-volume and guarded v3 Boolean blockout paths remain
   intact. Experimental v4 `DEFORMATION_TEMPLATE` duplicates an explicit hash-pinned Blender
   Studio Human Base Meshes v1.4.1 CC0 Mesh, applies two tested non-affine proportion ranges,
@@ -150,9 +154,8 @@ integrated into the Add-on; advanced passes remain explicit opt-in tools.
 
 ## Active product gaps, in order
 
-1. Execute B2 with the minimum shape operations required by two representative non-profile-only
-   static assets; do not pre-build a general modeling framework.
-2. Continue B3-B8 in the official roadmap order unless a concrete user request justifies a
+1. Execute B3 explicit external/static Blender asset revision without automatic semantic inference.
+2. Continue B4-B8 in the official roadmap order unless a concrete user request justifies a
    documented bounded dependency.
 
 Unity Humanoid Avatar/root-motion work remains a separate optional gate only when a concrete game

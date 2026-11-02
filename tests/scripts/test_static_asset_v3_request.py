@@ -17,6 +17,15 @@ def profile(points, depth=0.24):
     return {"kind": "PROFILE_EXTRUSION", "profile_points": points, "depth": depth}
 
 
+def beveled(outer, core, depth=0.24):
+    return {
+        "kind": "PROFILE_BEVELED_EXTRUSION",
+        "outer_profile_points": outer,
+        "core_profile_points": core,
+        "depth": depth,
+    }
+
+
 class StaticAssetV3RequestTests(unittest.TestCase):
     def setUp(self):
         self.request = {
@@ -122,6 +131,63 @@ class StaticAssetV3RequestTests(unittest.TestCase):
         request["revisions"][0]["geometry"] = None
         with self.assertRaisesRegex(ValueError, "must change"):
             validate_revision_request(request)
+
+    def test_v4_beveled_profile_and_revision_v3_validate(self):
+        request = copy.deepcopy(self.request)
+        request["schema"] = "gameassetai.static-asset-assembly-request.v4"
+        request["parts"][1]["geometry"] = beveled(
+            [[0, 0], [2, 0], [2.4, 1], [2, 2], [0, 2]],
+            [[0.2, 0.2], [1.7, 0.2], [2.0, 1], [1.7, 1.8], [0.2, 1.8]],
+            0.4,
+        )
+        self.assertEqual("ready", validate_request(copy.deepcopy(request))["status"])
+
+        revision = {
+            "schema": "gameassetai.static-asset-revision-request.v3",
+            "scene_name": "Scene",
+            "source_collection_name": request["collection_name"],
+            "asset_name": "Sharper Axe",
+            "collection_name": "GAA Sharper Axe",
+            "revisions": [{
+                "semantic_role": "blade",
+                "geometry": beveled(
+                    [[0, 0], [2.2, 0], [2.7, 1], [2.2, 2], [0, 2]],
+                    [[0.25, 0.3], [1.5, 0.3], [1.8, 1], [1.5, 1.7], [0.25, 1.7]],
+                    0.32,
+                ),
+                "location": None,
+                "rotation_degrees": None,
+            }],
+            "policy": {
+                "existing_names": "REFUSE", "source": "PRESERVE",
+                "revision": "NEW_COLLECTION_OBJECTS_MESHES_SHARED_MATERIALS",
+                "failure": "ROLL_BACK_OWNED_DATA",
+            },
+        }
+        self.assertEqual("ready", validate_revision_request(revision)["status"])
+
+    def test_v3_rejects_beveled_and_v4_rejects_invalid_core(self):
+        geometry = beveled(
+            [[0, 0], [2, 0], [2, 2], [0, 2]],
+            [[0.2, 0.2], [1.8, 0.2], [1.8, 1.8], [0.2, 1.8]],
+        )
+        legacy = copy.deepcopy(self.request)
+        legacy["parts"][1]["geometry"] = geometry
+        with self.assertRaisesRegex(ValueError, "kind must be"):
+            validate_request(legacy)
+
+        invalid = copy.deepcopy(self.request)
+        invalid["schema"] = "gameassetai.static-asset-assembly-request.v4"
+        invalid["parts"][1]["geometry"] = copy.deepcopy(geometry)
+        invalid["parts"][1]["geometry"]["core_profile_points"][2] = [2.5, 2.5]
+        with self.assertRaisesRegex(ValueError, "inside or on"):
+            validate_request(invalid)
+
+        mismatch = copy.deepcopy(invalid)
+        mismatch["parts"][1]["geometry"] = copy.deepcopy(geometry)
+        mismatch["parts"][1]["geometry"]["core_profile_points"].pop()
+        with self.assertRaisesRegex(ValueError, "same point count"):
+            validate_request(mismatch)
 
 
 if __name__ == "__main__":

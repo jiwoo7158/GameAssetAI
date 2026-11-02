@@ -94,12 +94,50 @@ closed-manifold and positive-volume output, actual triangle/spec consistency, an
 original/revision comparison. Completion requires regenerated axe, wide/sharp axe and shield
 evidence plus legacy v1/v2/v3 regression, preservation, rollback and fresh-process reopen.
 
-### B2 -- Expand static shape production (next)
+### B2 -- Expand static shape production (complete in bounded profile-beveled scope)
 
 Add only the shape operations demanded by representative assets: section variation/taper,
 bounded bevel/chamfer, inset/extrude, improved profile solids and, only when justified, sweep or
 Boolean and real part joins. Completion requires creation and semantic revision of at least two
 asset types that profile extrusion alone cannot express. B1.1 correctness is the entry gate.
+
+#### Completed work package: B2 profile-beveled solids -- 2026-11-02
+
+- Requirements: `REQ-STATIC`, `REQ-STYLE`, `REQ-COST`, `REQ-SAFE`, bounded `REQ-WORKFLOW`.
+- Reuse: Static Asset v1-v3, B1.1 profile validation and mesh-quality checks, semantic metadata,
+  copy-only geometry replacement, ownership/rollback, shared-camera review, Artifact Lifecycle and
+  hash-checked Workspace update.
+- Concrete gap: constant-depth profile prisms cannot represent a real cutting bevel, a machined
+  crate perimeter or a raised/recessed panel transition.
+- Implementation boundary: add creation v4/revision v3 and one reusable
+  `PROFILE_BEVELED_EXTRUSION` geometry kind. It lofts an explicit outer silhouette ring at the
+  center plane to matching explicit core-profile rings at the front/back depth, producing real
+  sloped faces. No general bevel modifier, inset/extrude operator family, Boolean, sweep, UV or
+  external dependency.
+- Validation assets: a stylized fantasy axe with a real beveled cutting solid and copy revision
+  that widens the bevel/thins the tip; a reinforced supply crate whose chamfered body and front
+  panel use the same operation, plus a copy revision changing body corner treatment and panel
+  depth.
+- Acceptance: both assets are recognizable and not mere overlapping boxes; actual Mesh vertices
+  and cross-sections change without Object scale; core/outer correspondence is valid; output is
+  closed, outward, positive-volume and within triangle/material budgets; source/unrelated parts
+  and materials remain exact; invalid correspondence and induced failure roll back; shared-camera
+  front/side/three-quarter images receive explicit hash-bound visual review; save/reopen and
+  installed-Skill execution pass while v1-v3 remain compatible.
+- Visual-review closeout: reuse the existing hash-bound review receipt pattern; render success
+  remains separate from reviewer decision and cannot mark the run accepted by itself.
+- Non-goals: B3 arbitrary external-Mesh revision, B4 UV/textures or broad styles, new asset-noun
+  Skills, characters, animation, Unity, Add-on UI, external packages or a general modeling DSL.
+- User approval: supplied by the current B2 request, including focused Workspace installation
+  after successful representative validation.
+
+Result: creation v4/revision v3 add `PROFILE_BEVELED_EXTRUSION`, a matched outer/core profile
+solid with real sloped bands. The same operation produced and copy-revised an accepted fantasy
+axe cutting solid and reinforced crate body/panel. Closed-manifold, outward-normal,
+positive-volume, budget, preservation, rollback, shared-camera visual review and fresh-process
+reopen passed. This completes B2 only for bounded matched-profile bevel/chamfer and panel forms;
+general Blender Bevel, arbitrary inset/extrude, sweep, Boolean and connected-part authoring remain
+unsupported. B3 is next.
 
 ### B3 -- Revise existing Blender/external static assets
 

@@ -9,14 +9,16 @@ CREATE_SCHEMAS = {
     "gameassetai.static-asset-assembly-request.v1",
     "gameassetai.static-asset-assembly-request.v2",
     "gameassetai.static-asset-assembly-request.v3",
+    "gameassetai.static-asset-assembly-request.v4",
 }
 REVISION_SCHEMAS = {
     "gameassetai.static-asset-revision-request.v1",
     "gameassetai.static-asset-revision-request.v2",
+    "gameassetai.static-asset-revision-request.v3",
 }
 KILN_IMPORT_SCHEMA = "gameassetai.kiln-glb-import-request.v1"
 PRIMITIVES = {"BOX", "CYLINDER", "ICOSPHERE", "WEDGE"}
-GEOMETRY_KINDS = {"PRIMITIVE", "PROFILE_EXTRUSION"}
+GEOMETRY_KINDS = {"PRIMITIVE", "PROFILE_EXTRUSION", "PROFILE_BEVELED_EXTRUSION"}
 STYLE_FAMILIES = {"STYLIZED_LOW_POLY", "CUSTOM"}
 SHA256_PATTERN = re.compile(r"^[0-9a-f]{64}$")
 PROFILE_RELATIVE_EPSILON = 1e-7
@@ -130,9 +132,28 @@ def _profile_points(value, label):
     return points
 
 
-def _geometry(value, label):
-    if not isinstance(value, dict) or value.get("kind") not in GEOMETRY_KINDS:
-        raise ValueError(f"{label}.kind must be one of {sorted(GEOMETRY_KINDS)}")
+def _point_in_or_on_profile(point, profile):
+    tolerance = 1e-9
+    inside = False
+    for index, first in enumerate(profile):
+        second = profile[(index + 1) % len(profile)]
+        cross = ((second[0] - first[0]) * (point[1] - first[1])
+                 - (second[1] - first[1]) * (point[0] - first[0]))
+        if (abs(cross) <= tolerance
+                and min(first[0], second[0]) - tolerance <= point[0] <= max(first[0], second[0]) + tolerance
+                and min(first[1], second[1]) - tolerance <= point[1] <= max(first[1], second[1]) + tolerance):
+            return True
+        if ((first[1] > point[1]) != (second[1] > point[1])):
+            crossing_x = first[0] + (point[1] - first[1]) * (second[0] - first[0]) / (second[1] - first[1])
+            if crossing_x > point[0]:
+                inside = not inside
+    return inside
+
+
+def _geometry(value, label, *, allow_beveled=False):
+    allowed = GEOMETRY_KINDS if allow_beveled else GEOMETRY_KINDS - {"PROFILE_BEVELED_EXTRUSION"}
+    if not isinstance(value, dict) or value.get("kind") not in allowed:
+        raise ValueError(f"{label}.kind must be one of {sorted(allowed)}")
     if value["kind"] == "PRIMITIVE":
         if set(value) != {"kind", "primitive", "dimensions", "segments"}:
             raise ValueError(f"{label} PRIMITIVE fields are invalid")
@@ -145,13 +166,31 @@ def _geometry(value, label):
                 raise ValueError(f"{label} BOX/WEDGE segments must be null")
         elif isinstance(segments, bool) or not isinstance(segments, int) or not 3 <= segments <= 64:
             raise ValueError(f"{label} CYLINDER/ICOSPHERE segments must be an integer from 3 to 64")
-    else:
+    elif value["kind"] == "PROFILE_EXTRUSION":
         if set(value) != {"kind", "profile_points", "depth"}:
             raise ValueError(f"{label} PROFILE_EXTRUSION fields are invalid")
         value["profile_points"] = _profile_points(value["profile_points"], f"{label}.profile_points")
         depth = value["depth"]
         if isinstance(depth, bool) or not isinstance(depth, (int, float)) or not math.isfinite(depth) or depth <= 0:
             raise ValueError(f"{label}.depth must be a finite number greater than zero")
+        value["depth"] = float(depth)
+    else:
+        fields = {"kind", "outer_profile_points", "core_profile_points", "depth"}
+        if set(value) != fields:
+            raise ValueError(f"{label} PROFILE_BEVELED_EXTRUSION fields are invalid")
+        outer = _profile_points(value["outer_profile_points"], f"{label}.outer_profile_points")
+        core = _profile_points(value["core_profile_points"], f"{label}.core_profile_points")
+        if len(outer) != len(core):
+            raise ValueError(f"{label} outer and core profiles must have the same point count")
+        if all(math.dist(first, second) <= 1e-9 for first, second in zip(outer, core)):
+            raise ValueError(f"{label} core profile must differ from the outer profile")
+        if any(not _point_in_or_on_profile(point, outer) for point in core):
+            raise ValueError(f"{label} core profile points must lie inside or on the outer profile")
+        depth = value["depth"]
+        if isinstance(depth, bool) or not isinstance(depth, (int, float)) or not math.isfinite(depth) or depth <= 0:
+            raise ValueError(f"{label}.depth must be a finite number greater than zero")
+        value["outer_profile_points"] = outer
+        value["core_profile_points"] = core
         value["depth"] = float(depth)
     return value
 
@@ -186,6 +225,8 @@ def _style(value, material_count):
 def _estimated_triangles(geometry):
     if geometry["kind"] == "PROFILE_EXTRUSION":
         return 4 * len(geometry["profile_points"]) - 4
+    if geometry["kind"] == "PROFILE_BEVELED_EXTRUSION":
+        return 6 * len(geometry["outer_profile_points"]) - 4
     primitive = geometry["primitive"]
     if primitive == "BOX":
         return 12
@@ -200,7 +241,10 @@ def validate_request(request):
     if not isinstance(request, dict):
         raise ValueError("request must be an object")
     expected = {"schema", "scene_name", "asset_name", "collection_name", "materials", "parts", "policy"}
-    if request.get("schema") == "gameassetai.static-asset-assembly-request.v3":
+    if request.get("schema") in {
+        "gameassetai.static-asset-assembly-request.v3",
+        "gameassetai.static-asset-assembly-request.v4",
+    }:
         expected.add("style")
     if set(request) != expected:
         raise ValueError(f"request fields must be exactly {sorted(expected)}")
@@ -236,7 +280,10 @@ def validate_request(request):
     semantic_roles = set()
     estimated_triangles = 0
     for index, part in enumerate(parts):
-        if request["schema"].endswith(".v3"):
+        if request["schema"] in {
+            "gameassetai.static-asset-assembly-request.v3",
+            "gameassetai.static-asset-assembly-request.v4",
+        }:
             fields = {"name", "semantic_role", "geometry", "location", "rotation_degrees", "material"}
         else:
             fields = {"name", "primitive", "dimensions", "location", "rotation_degrees", "material", "segments"}
@@ -254,7 +301,10 @@ def validate_request(request):
                 raise ValueError("semantic roles must be case-insensitively unique")
             semantic_roles.add(role.casefold())
         if "geometry" in part:
-            part["geometry"] = _geometry(part["geometry"], f"parts[{index}].geometry")
+            part["geometry"] = _geometry(
+                part["geometry"], f"parts[{index}].geometry",
+                allow_beveled=request["schema"].endswith(".v4"),
+            )
             estimated_triangles += _estimated_triangles(part["geometry"])
         else:
             if part["primitive"] not in PRIMITIVES:
@@ -272,7 +322,10 @@ def validate_request(request):
             elif isinstance(segments, bool) or not isinstance(segments, int) or not 3 <= segments <= 64:
                 raise ValueError("CYLINDER/ICOSPHERE segments must be an integer from 3 to 64")
 
-    if request["schema"].endswith(".v3"):
+    if request["schema"] in {
+        "gameassetai.static-asset-assembly-request.v3",
+        "gameassetai.static-asset-assembly-request.v4",
+    }:
         request["style"] = _style(request["style"], len(materials))
         if estimated_triangles > request["style"]["triangle_budget"]:
             raise ValueError(
@@ -320,7 +373,7 @@ def validate_revision_request(request):
     roles = set()
     for index, revision in enumerate(revisions):
         fields = {"semantic_role", "dimensions", "location", "rotation_degrees"}
-        if request["schema"].endswith(".v2"):
+        if request["schema"].endswith((".v2", ".v3")):
             fields = {"semantic_role", "geometry", "location", "rotation_degrees"}
         if not isinstance(revision, dict) or set(revision) != fields:
             raise ValueError(f"revisions[{index}] has invalid fields")
@@ -330,7 +383,10 @@ def validate_revision_request(request):
         roles.add(role.casefold())
         changed = False
         if "geometry" in revision and revision["geometry"] is not None:
-            revision["geometry"] = _geometry(revision["geometry"], f"revisions[{index}].geometry")
+            revision["geometry"] = _geometry(
+                revision["geometry"], f"revisions[{index}].geometry",
+                allow_beveled=request["schema"].endswith(".v3"),
+            )
             changed = True
         vector_fields = (("location", False), ("rotation_degrees", False))
         if "dimensions" in revision:

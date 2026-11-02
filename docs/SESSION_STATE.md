@@ -21,10 +21,9 @@ The user selected the first B-plan production domain and the bounded implementat
 replacement. The accepted axe/shield run is recorded below. This is a real increase in static
 production expression, not a claim of general modeling.
 
-The official active sequence is now B1 (complete), B1.1 (complete), then B2 shape-production
-breadth. B3 explicit external static
-asset revision follows B2; the former recommendation to make it the immediate next step is
-superseded. B4-B8 are recorded in `docs/roadmap.md`.
+The official active sequence is now B1 (complete), B1.1 (complete), B2 bounded shape-production
+(complete), then B3 explicit external static asset revision. B4-B8 are recorded in
+`docs/roadmap.md`.
 
 Proven foundations to retain:
 
@@ -104,12 +103,25 @@ depth is recorded rather than implying uniform line-by-line review.
 - Ten `FREEZE` modules remain optional explicit downstream tools and are not default creation
   routes.
 
+## Completed B2 bounded profile-beveled solids -- 2026-11-02
+
+- Creation v4 and revision v3 add `PROFILE_BEVELED_EXTRUSION`: matching outer/core XZ profiles
+  create real sloped bands around a closed positive-volume solid.
+- The operation is reused by a fantasy axe blade and reinforced crate body/front panel; revisions
+  change actual vertices/cross-section with Object scale unchanged and preserve source, unrelated
+  parts and shared materials.
+- Blender structural checks, induced rollback, 12-view hash-bound explicit visual acceptance and
+  fresh-process reopen passed.
+- Evidence: `D:/Blender/MCP_Test/GameAssetAI/runs/B2-static-solid-form/`
+  `20261102T095617Z-axe-crate-profile-bevel-final-550c3c36`.
+- The scope remains matched-profile bevel/chamfer/panel forms. General Bevel, free inset/extrude,
+  sweep, Boolean, UV/texture and arbitrary imported-Mesh editing are not implemented.
+
 ## Next B-plan target
 
-B2 expands static shape production only as demanded by at least two representative assets that
-profile extrusion alone cannot express. Start with the smallest justified operation set among
-taper/section variation, bounded bevel/chamfer and inset/extrude. Do not implement B3 external
-asset revision or a general modeling framework inside the B2 work package.
+B3 adds explicit revision of a real non-GameAssetAI multi-object static asset while preserving its
+source, unrelated parts and materials. Do not infer arbitrary semantics or turn B3 into a general
+modeling framework.
 
 ## Repository state and safety
 

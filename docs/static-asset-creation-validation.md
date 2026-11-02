@@ -136,6 +136,30 @@ temporary valid concave profile passed the same normal/manifold/volume checks. S
 parts and materials remained exact; induced failure rolled back; the saved Blend reopened in a
 fresh Blender process. This closes B1.1 correctness only, not B2 modeling breadth.
 
+## B2 matched-profile beveled solids -- 2026-11-02
+
+Creation schema v4 adds `PROFILE_BEVELED_EXTRUSION`: an explicit outer XZ silhouette at the center
+plane and a corresponding inner/core profile on both Y caps. The resulting bands are actual Mesh
+faces, so cutting edges, machined perimeters and panel transitions have real section variation.
+Revision schema v3 replaces this geometry only on an owned v4 semantic part in an independent
+copy. V1-v3 behavior remains unchanged.
+
+Accepted Blender 5.0.1 evidence:
+
+`D:/Blender/MCP_Test/GameAssetAI/runs/B2-static-solid-form/20261102T095617Z-axe-crate-profile-bevel-final-550c3c36`
+
+The run contains an original and wider/thinner-bevel fantasy axe plus an original and revised
+reinforced crate. The crate reuses the same operation for its chamfered body and front panel.
+All six beveled parts are closed manifold, outward, positive volume, free of zero-area faces and
+within declared budgets. Semantic revisions changed Mesh vertices without Object scaling; source,
+unrelated parts and materials remained exact, and an induced failure rolled back. Twelve shared-
+camera images were explicitly inspected and recorded with image hashes in `visual-review.json`;
+the saved Blend reopened successfully in a fresh process.
+
+This is accepted for bounded matched-profile bevel/chamfer and panel forms. It does not implement
+the general Blender Bevel operator, arbitrary inset/extrude, sweep, Boolean, UV/textures or B3
+external-Mesh revision.
+
 ## Kiln review — 2026-10-27
 
 Kiln 1.5.0 was reviewed from its official repository and release record. It is MIT-licensed and
