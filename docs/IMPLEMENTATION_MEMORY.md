@@ -13,17 +13,18 @@ narrow validators or render passes.
 
 Current product facts:
 
-- static creation retains four legacy primitives, bounded v3 profile extrusion and accepted v4
-  matched-profile beveled solids plus copy-only owned semantic geometry replacement;
+- static creation retains four legacy primitives, bounded v3 profile extrusion, accepted v4
+  matched-profile beveled solids and v5 explicit art-direction/UV/generated-image material
+  production plus copy-only owned semantic geometry replacement;
 - character creation is blockout or a hash-pinned CC0 human-template proportion workflow, not a
   general character/style generator;
 - M2/M3/M3.4/M4 evidence is valid only for its documented A-pose, 17-role `IN_PLACE`, single-Action
   and Unity Generic scopes;
 - the Add-on is persistently installable, but its implemented UI is primarily 2D
   preview/setup/export rather than the complete creation workflow;
-- v3 style facts now enforce explicit silhouette geometry, flat shading, material count and
-  triangle budget for one bounded low-poly workflow; broad multi-style and texture art direction
-  remain unimplemented.
+- v3 style facts enforce explicit silhouette geometry, flat shading, material count and triangle
+  budget; v5 adds a bounded two-style static art-direction/UV/image-texture path, not a general
+  style or texturing engine.
 
 Before another feature milestone, select one bounded production domain and representative art
 direction, then improve actual creation/revision quality through visible Blender acceptance. Do
@@ -86,6 +87,13 @@ back to modeling, rigging or Mixamo work must not cause the Add-on UI work to be
   result delta on failure. A 13-part Kiln evaluation field cannon passed accepted two-trail
   extension evidence. This does not support `.blend`, semantic inference, arbitrary regions,
   modifiers, vertex groups, Shape Keys, linked data, topology, material or UV editing.
+- Static creation v5 resolves a complete explicit art-direction decision from the user or a hash-
+  recorded Workspace Profile, then applies style-specific geometry parameters, deterministic
+  `LOCAL_BOX_PROJECT` UVs and optional `WOOD_GRAIN`/`PAINTED_METAL` PNG base-color textures. Images
+  are connected to Principled materials, packed, externally hash-recorded, budget checked and
+  rolled back with owned files/data. Accepted Angular Low-Poly and Painted-Look crate evidence
+  proves visible geometry and surface differences, not general UV unwrap, texture painting, PBR
+  maps, arbitrary material revision or broad art-style generation.
 - `blender-create-character-base`: V1 separate-volume and guarded v3 Boolean blockout paths remain
   intact. Experimental v4 `DEFORMATION_TEMPLATE` duplicates an explicit hash-pinned Blender
   Studio Human Base Meshes v1.4.1 CC0 Mesh, applies two tested non-affine proportion ranges,
@@ -163,9 +171,9 @@ integrated into the Add-on; advanced passes remain explicit opt-in tools.
 
 ## Active product gaps, in order
 
-1. Execute B4 game-specific art direction, material, UV and texture production without making one
-   representative style a global default.
-2. Continue B5-B8 in the official roadmap order unless a concrete user request justifies a
+1. Execute B5 static-domain breadth using the shared v3-v5 production operations instead of one
+   Skill per asset noun.
+2. Continue B6-B8 in the official roadmap order unless a concrete user request justifies a
    documented bounded dependency.
 
 Unity Humanoid Avatar/root-motion work remains a separate optional gate only when a concrete game

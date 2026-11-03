@@ -148,6 +148,31 @@ def main():
         assert "SHA-256 mismatch" in str(exc)
     assert datablock_snapshot() == baseline
 
+    unsafe = json.loads(json.dumps(payload))
+    unsafe["source_collection_name"] = "GAA Unsafe Field Cannon Source"
+    unsafe["collection_name"] = "GAA Unsafe Field Cannon"
+    unsafe["asset_name"] = "GAA Unsafe Field Cannon"
+    unsafe["revisions"] = [{"semantic_role": "trail_left", "operation": "LOCAL_AXIS_END_OFFSET",
+                             "axis": "X", "side": "MIN", "threshold": -.5, "delta": 2.0}]
+    try:
+        revise_external_glb(unsafe, authorized=True)
+        raise AssertionError("overlarge end offset must refuse")
+    except ValueError as exc:
+        assert "axis span" in str(exc) or "cross the unselected" in str(exc)
+    assert datablock_snapshot() == baseline
+
+    shrink = json.loads(json.dumps(payload))
+    shrink["source_collection_name"] = "GAA Safe Shrink Field Cannon Source"
+    shrink["collection_name"] = "GAA Safe Shrink Field Cannon"
+    shrink["asset_name"] = "GAA Safe Shrink Field Cannon"
+    shrink["revisions"] = [{"semantic_role": "trail_left", "operation": "LOCAL_AXIS_END_OFFSET",
+                             "axis": "X", "side": "MIN", "threshold": -.5, "delta": .3}]
+    shrink_before = assembly._snapshot_import_data()
+    shrink_receipt = revise_external_glb(shrink, authorized=True)
+    assert shrink_receipt["revisions"][0]["selected_vertex_count"] > 0
+    assembly._rollback_import_delta(shrink_before)
+    assert datablock_snapshot() == baseline
+
     occupied_root = bpy.data.objects.new(payload["asset_name"] + " Root 1", None)
     scene.collection.objects.link(occupied_root)
     collision_baseline = datablock_snapshot()
@@ -215,6 +240,7 @@ def main():
                    "topology_preserved": True, "materials_preserved": True,
                    "uv_layers_preserved": True, "object_transforms_preserved": True,
                    "empty_parent_hierarchy_preserved": True, "bad_hash_refused": True,
+                   "overlarge_offset_refused": True, "safe_contraction_accepted": True,
                    "result_root_name_collision_refused": True,
                    "induced_failure_rolled_back": True, "shared_camera_comparison": True},
     }

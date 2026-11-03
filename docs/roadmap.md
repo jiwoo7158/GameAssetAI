@@ -187,7 +187,8 @@ cannon passed source/hash preservation, two-trail end extension, unrelated-part/
 transform preservation, name/hash refusal, induced rollback, shared-camera visual acceptance and
 fresh-process reopen. This completes B3 only for that bounded GLB/static/no-modifier contract;
 `.blend`, automatic semantics, arbitrary selection/topology edits, modifiers, Shape Keys, vertex
-groups and linked data remain unsupported. B4 is next.
+groups and linked data remain unsupported. B4 was the next gate at this B3 closeout and is now
+completed in the following section.
 
 ### B4 -- Game-specific art direction, materials and textures
 
@@ -195,6 +196,42 @@ Connect Workspace Profile and explicit request decisions to silhouette, proporti
 language, material/shading, UV/texture policy and polygon/texture budgets. Completion requires the
 same class of asset in two visibly different styles through geometry and surface treatment, not a
 color-only variant. Stylized Low-Poly is evidence, not a global default.
+
+#### Completed work package: B3 end-offset hardening and B4 styled static creation -- 2026-11-02
+
+- Requirements: `REQ-STATIC`, `REQ-STYLE`, `REQ-SAFE`, `REQ-COST`, bounded `REQ-WORKFLOW`.
+- Reuse: Static Asset v1-v4 geometry/material/ownership mechanics, B3 explicit external revision,
+  Workspace `read_profile_context.py`, Blender Mesh UV/Image/Material APIs, Artifact Lifecycle and
+  hash-bound visual review.
+- Concrete gaps: B3 checks only empty/all selection and zero-area faces after an offset; it does
+  not bound excessive movement or reject a moved end that crosses the unselected region. Static
+  style fields do not create UVs or image-backed surface treatment.
+- Implementation boundary: retain all older schemas; add runtime end-region separation/span,
+  face-orientation, edge/area and closed-volume safety gates; add creation v5 with explicit art-
+  direction provenance, deterministic local box UV, bounded generated PNG patterns and Principled
+  image-texture materials. Do not add general self-intersection analysis, UV unwrap, PBR map sets,
+  material revision, a new Skill or an external dependency.
+- Validation assets: one Angular Low-Poly crate and one Painted-Look Stylized crate using different
+  explicit proportions/profile geometry and surface policies. The painted result must use actual
+  generated wood/metal PNGs connected through UVs; both use the same reusable operations rather
+  than noun-specific generation code.
+- Acceptance: excessive contraction/extension is refused and rolled back while the accepted field-
+  cannon trail extension still passes; v1-v4 remain compatible; v5 enforces polygon/material/
+  texture budgets, no-overwrite output and provenance; both crates save/reopen with valid UVs,
+  packed image nodes and visible shape/surface differences under identical camera and lighting;
+  installed Skill execution and source/install hashes pass.
+- Non-goals: arbitrary external material editing, automatic Markdown interpretation, general UV
+  unwrap, hand-painted-quality synthesis, normal/roughness/AO maps, character work, export-system
+  changes, Add-on UI, external packages or a new style-specific Skill.
+
+Result: external end offsets now reject movement beyond the source axis span, crossing through the
+unselected region, collapsed edges/faces, inverted normals and invalid closed volume while the
+accepted field-cannon extension and a safe contraction remain valid. Creation v5 records explicit
+user/Profile provenance, applies actual style parameters to geometry, creates deterministic local-
+box UVs and optional hash-recorded/packed base-color PNG textures, and connects them to Principled
+materials. Angular Low-Poly and Painted-Look crate variants passed Blender 5.0.1 structural,
+rollback, no-overwrite, fresh-reopen and explicit visual acceptance. This is bounded to current
+static geometry and two generated pattern kinds; B5 static-domain breadth is next.
 
 ### B5 -- Broaden static asset domains
 

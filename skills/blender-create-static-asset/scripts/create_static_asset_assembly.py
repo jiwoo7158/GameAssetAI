@@ -21,6 +21,10 @@ ROLE_KEY = "gameassetai_semantic_role"
 ASSEMBLY_SCHEMA_KEY = "gameassetai_static_assembly_schema"
 GEOMETRY_SPEC_KEY = "gameassetai_geometry_spec"
 STYLE_SPEC_KEY = "gameassetai_style_spec"
+ART_DIRECTION_SPEC_KEY = "gameassetai_art_direction_spec"
+APPEARANCE_SPEC_KEY = "gameassetai_appearance_spec"
+MATERIAL_ROLE_KEY = "gameassetai_material_role"
+TEXTURE_SPEC_KEY = "gameassetai_texture_spec"
 IMPORT_OWNER_KEY = "gameassetai_kiln_import_owner"
 PROVENANCE_KIND_KEY = "gameassetai_source_kind"
 PROVENANCE_SHA_KEY = "gameassetai_source_sha256"
@@ -226,7 +230,84 @@ def _make_mesh(part, token):
     return mesh
 
 
-def _make_material(spec, token):
+def _assign_local_box_uv(mesh):
+    if not mesh.vertices or not mesh.polygons:
+        raise ValueError("LOCAL_BOX_PROJECT requires a non-empty Mesh")
+    coordinates = [vertex.co for vertex in mesh.vertices]
+    minimum = Vector(tuple(min(value[index] for value in coordinates) for index in range(3)))
+    maximum = Vector(tuple(max(value[index] for value in coordinates) for index in range(3)))
+    span = maximum - minimum
+    if min(span) <= 1e-9:
+        raise ValueError("LOCAL_BOX_PROJECT requires non-zero local dimensions")
+    layer = mesh.uv_layers.new(name="UVMap")
+    for polygon in mesh.polygons:
+        dominant = max(range(3), key=lambda index: abs(polygon.normal[index]))
+        axes = (1, 2) if dominant == 0 else (0, 2) if dominant == 1 else (0, 1)
+        for loop_index in polygon.loop_indices:
+            coordinate = mesh.vertices[mesh.loops[loop_index].vertex_index].co
+            layer.data[loop_index].uv = (
+                (coordinate[axes[0]] - minimum[axes[0]]) / span[axes[0]],
+                (coordinate[axes[1]] - minimum[axes[1]]) / span[axes[1]],
+            )
+    if any(
+        not math.isfinite(component) or component < -1e-6 or component > 1.000001
+        for loop in layer.data for component in loop.uv
+    ):
+        raise ValueError("LOCAL_BOX_PROJECT produced invalid UV coordinates")
+    return layer
+
+
+def _mix_color(first, second, amount):
+    return tuple(first[index] * (1.0 - amount) + second[index] * amount for index in range(4))
+
+
+def _texture_pixels(spec):
+    resolution = spec["resolution"]
+    palette = spec["palette"]
+    pixels = []
+    for y in range(resolution):
+        v = (y + 0.5) / resolution
+        for x in range(resolution):
+            u = (x + 0.5) / resolution
+            if spec["kind"] == "WOOD_GRAIN":
+                wave = math.sin((v * spec["scale"] + math.sin(u * 9.0 + spec["seed"]) * 0.18) * math.tau)
+                knot = math.sin(math.hypot(u - 0.68, v - 0.38) * 38.0 + spec["seed"] * 0.13)
+                amount = max(0.0, min(1.0, 0.48 + wave * 0.27 + knot * 0.10))
+            else:
+                strokes = math.sin((u * 1.7 + v * 0.55) * spec["scale"] * math.tau + spec["seed"])
+                fleck = ((x * 73856093 ^ y * 19349663 ^ spec["seed"]) & 255) / 255.0
+                amount = max(0.0, min(1.0, 0.46 + strokes * 0.18 + (fleck - 0.5) * 0.22))
+            color = _mix_color(palette[0], palette[1], amount)
+            if len(palette) >= 3:
+                if spec["kind"] == "WOOD_GRAIN":
+                    accent_phase = v * spec["scale"] * 0.5 + math.sin(u * 7.0 + spec["seed"]) * 0.16
+                    accent = max(0.0, math.sin(accent_phase * math.tau)) ** 14
+                    color = _mix_color(color, palette[2], accent * 0.22)
+                else:
+                    accent = max(0.0, math.sin((u - v) * spec["scale"] * math.tau)) ** 10
+                    color = _mix_color(color, palette[2], accent * 0.45)
+            pixels.extend(color)
+    return pixels
+
+
+def _make_texture_image(spec, output_directory, token, created_files):
+    output = output_directory / spec["file_name"]
+    if output.exists() or output.is_symlink():
+        raise ValueError(f"texture output already exists: {output}")
+    image = _tag(bpy.data.images.new(spec["image_name"], width=spec["resolution"],
+                                     height=spec["resolution"], alpha=True), token)
+    image[TEXTURE_SPEC_KEY] = _canonical(spec)
+    image.colorspace_settings.name = "sRGB"
+    image.pixels.foreach_set(_texture_pixels(spec))
+    image.filepath_raw = str(output)
+    image.file_format = "PNG"
+    image.save()
+    created_files.append(output)
+    image.pack()
+    return image
+
+
+def _make_material(spec, token, *, output_directory=None, created_files=None):
     material = _tag(bpy.data.materials.new(spec["name"]), token)
     material.diffuse_color = spec["base_color"]
     material.use_nodes = True
@@ -234,6 +315,17 @@ def _make_material(spec, token):
     principled.inputs["Base Color"].default_value = spec["base_color"]
     principled.inputs["Metallic"].default_value = spec["metallic"]
     principled.inputs["Roughness"].default_value = spec["roughness"]
+    if "material_role" in spec:
+        material[MATERIAL_ROLE_KEY] = spec["material_role"]
+    texture = spec.get("texture")
+    if texture is not None:
+        image = _make_texture_image(texture, output_directory, token, created_files)
+        node = material.node_tree.nodes.new("ShaderNodeTexImage")
+        node.name = "GameAssetAI Image Texture"
+        node.label = texture["kind"]
+        node.image = image
+        material.node_tree.links.new(node.outputs["Color"], principled.inputs["Base Color"])
+        material[TEXTURE_SPEC_KEY] = _canonical(texture)
     return material
 
 
@@ -247,6 +339,9 @@ def _rollback(token):
     for material in list(bpy.data.materials):
         if material.get(OWNER_KEY) == token and material.users == 0:
             bpy.data.materials.remove(material)
+    for image in list(bpy.data.images):
+        if image.get(OWNER_KEY) == token and image.users == 0:
+            bpy.data.images.remove(image)
     for collection in list(bpy.data.collections):
         if collection.get(OWNER_KEY) == token:
             bpy.data.collections.remove(collection)
@@ -265,25 +360,49 @@ def create_asset(request, *, authorized=False):
     occupied_objects = [part["name"] for part in normalized["parts"] if bpy.data.objects.get(part["name"])]
     occupied_meshes = [part["name"] + " Mesh" for part in normalized["parts"] if bpy.data.meshes.get(part["name"] + " Mesh")]
     occupied_materials = [spec["name"] for spec in normalized["materials"] if bpy.data.materials.get(spec["name"])]
-    if occupied_objects or occupied_meshes or occupied_materials:
-        raise ValueError(f"requested names are occupied: {occupied_objects + occupied_meshes + occupied_materials}")
+    texture_specs = [spec.get("texture") for spec in normalized["materials"] if spec.get("texture") is not None]
+    occupied_images = [spec["image_name"] for spec in texture_specs if bpy.data.images.get(spec["image_name"])]
+    output_directory = None
+    output_paths = []
+    if normalized["schema"].endswith(".v5"):
+        output_directory = Path(normalized["appearance"]["texture_output_directory"])
+        if not output_directory.is_dir() or output_directory.is_symlink():
+            raise ValueError("texture_output_directory must be an existing real directory")
+        output_paths = [output_directory / spec["file_name"] for spec in texture_specs]
+        occupied_files = [str(path) for path in output_paths if path.exists() or path.is_symlink()]
+    else:
+        occupied_files = []
+    occupied = occupied_objects + occupied_meshes + occupied_materials + occupied_images + occupied_files
+    if occupied:
+        raise ValueError(f"requested names are occupied: {occupied}")
 
     token = uuid.uuid4().hex
-    created = {"objects": [], "meshes": [], "materials": [], "collection": normalized["collection_name"]}
+    created_files = []
+    created = {"objects": [], "meshes": [], "materials": [], "images": [],
+               "collection": normalized["collection_name"]}
     try:
         collection = _tag(bpy.data.collections.new(normalized["collection_name"]), token)
         collection[ASSEMBLY_SCHEMA_KEY] = normalized["schema"]
         if "style" in normalized:
             collection[STYLE_SPEC_KEY] = _canonical(normalized["style"])
+        if "art_direction" in normalized:
+            collection[ART_DIRECTION_SPEC_KEY] = _canonical(normalized["art_direction"])
+            collection[APPEARANCE_SPEC_KEY] = _canonical(normalized["appearance"])
         scene.collection.children.link(collection)
         materials = {}
         for spec in normalized["materials"]:
-            material = _make_material(spec, token)
+            material = _make_material(
+                spec, token, output_directory=output_directory, created_files=created_files
+            )
             materials[spec["name"].casefold()] = material
             created["materials"].append(material.name)
+            if spec.get("texture") is not None:
+                created["images"].append(spec["texture"]["image_name"])
 
         for part in normalized["parts"]:
             mesh = _make_mesh(part, token)
+            if normalized["schema"].endswith(".v5"):
+                _assign_local_box_uv(mesh)
             obj = _tag(bpy.data.objects.new(part["name"], mesh), token)
             if "semantic_role" in part:
                 obj[ROLE_KEY] = part["semantic_role"]
@@ -314,6 +433,7 @@ def create_asset(request, *, authorized=False):
                     json.loads(obj.data["gameassetai_profile_mesh_quality"])
                     if obj.data.get("gameassetai_profile_mesh_quality") is not None else None
                 ),
+                "uv_layers": [layer.name for layer in obj.data.uv_layers],
             })
         triangle_count = sum(item["triangles"] for item in facts)
         if "style" in normalized and triangle_count > normalized["style"]["triangle_budget"]:
@@ -321,6 +441,19 @@ def create_asset(request, *, authorized=False):
                 f"actual triangles {triangle_count} exceed style.triangle_budget "
                 f"{normalized['style']['triangle_budget']}"
             )
+        texture_facts = []
+        for spec, path in zip(texture_specs, output_paths):
+            if not path.is_file():
+                raise RuntimeError(f"texture output was not created: {path}")
+            texture_facts.append({
+                "image_name": spec["image_name"], "kind": spec["kind"],
+                "path": str(path), "resolution": spec["resolution"],
+                "bytes": path.stat().st_size,
+                "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+                "packed": bpy.data.images[spec["image_name"]].packed_file is not None,
+            })
+        if normalized["schema"].endswith(".v5") and sum(item["bytes"] for item in texture_facts) > normalized["appearance"]["max_texture_bytes"]:
+            raise ValueError("generated textures exceed appearance.max_texture_bytes")
         receipt = {
             "status": "created",
             "asset_name": normalized["asset_name"],
@@ -328,6 +461,9 @@ def create_asset(request, *, authorized=False):
             "request_sha256": validated["request_sha256"],
             "parts": facts,
             "style": normalized.get("style"),
+            "art_direction": normalized.get("art_direction"),
+            "appearance": normalized.get("appearance"),
+            "textures": texture_facts,
             "triangle_count": triangle_count,
             "source_scene_preserved": True,
         }
@@ -335,6 +471,9 @@ def create_asset(request, *, authorized=False):
         return receipt
     except Exception:
         _rollback(token)
+        for path in reversed(created_files):
+            if path.is_file() and not path.is_symlink():
+                path.unlink()
         raise
 
 
@@ -723,6 +862,24 @@ def _external_mesh_snapshot(obj):
     }
 
 
+def _external_mesh_safety(mesh):
+    mesh.update(calc_edges=True)
+    mesh.calc_loop_triangles()
+    bm = bmesh.new()
+    bm.from_mesh(mesh)
+    closed = bool(bm.faces) and all(len(edge.link_faces) == 2 for edge in bm.edges)
+    signed_volume = float(bm.calc_volume(signed=True)) if closed else None
+    bm.free()
+    return {
+        "areas": tuple(float(polygon.area) for polygon in mesh.polygons),
+        "normals": tuple(tuple(float(value) for value in polygon.normal) for polygon in mesh.polygons),
+        "edge_lengths": tuple(float((mesh.vertices[edge.vertices[0]].co - mesh.vertices[edge.vertices[1]].co).length)
+                              for edge in mesh.edges),
+        "closed": closed,
+        "signed_volume": signed_volume,
+    }
+
+
 def _apply_external_region_revision(obj, revision):
     axis_index = {"X": 0, "Y": 1, "Z": 2}[revision["axis"]]
     threshold = revision["threshold"]
@@ -732,11 +889,37 @@ def _apply_external_region_revision(obj, revision):
     ]
     if not selected or len(selected) == len(obj.data.vertices):
         raise ValueError(f"revision region must select some but not all vertices: {obj[ROLE_KEY]}")
+    unselected = [vertex for vertex in obj.data.vertices if vertex not in selected]
+    coordinates = [float(vertex.co[axis_index]) for vertex in obj.data.vertices]
+    span = max(coordinates) - min(coordinates)
+    tolerance = max(1e-9, span * 1e-6)
+    if span <= tolerance:
+        raise ValueError(f"external revision axis is numerically unstable: {obj[ROLE_KEY]}")
+    if abs(revision["delta"]) > span + tolerance:
+        raise ValueError(f"external revision delta exceeds the source axis span: {obj[ROLE_KEY]}")
+    selected_boundary = max(vertex.co[axis_index] for vertex in selected) if revision["side"] == "MIN" else min(vertex.co[axis_index] for vertex in selected)
+    unselected_boundary = min(vertex.co[axis_index] for vertex in unselected) if revision["side"] == "MIN" else max(vertex.co[axis_index] for vertex in unselected)
+    moved_boundary = selected_boundary + revision["delta"]
+    if revision["side"] == "MIN" and moved_boundary >= unselected_boundary - tolerance:
+        raise ValueError(f"external revision would cross the unselected region: {obj[ROLE_KEY]}")
+    if revision["side"] == "MAX" and moved_boundary <= unselected_boundary + tolerance:
+        raise ValueError(f"external revision would cross the unselected region: {obj[ROLE_KEY]}")
+    before = _external_mesh_safety(obj.data)
     for vertex in selected:
         vertex.co[axis_index] += revision["delta"]
     obj.data.update(calc_edges=True)
-    if any(polygon.area <= 1e-12 for polygon in obj.data.polygons):
+    after = _external_mesh_safety(obj.data)
+    if any(area <= tolerance * tolerance for area in after["areas"]):
         raise ValueError(f"external revision created a zero-area face: {obj[ROLE_KEY]}")
+    if any(length <= tolerance for length in after["edge_lengths"]):
+        raise ValueError(f"external revision created a collapsed edge: {obj[ROLE_KEY]}")
+    if any(Vector(first).dot(Vector(second)) <= 1e-5 for first, second in zip(before["normals"], after["normals"])):
+        raise ValueError(f"external revision inverted a face normal: {obj[ROLE_KEY]}")
+    if before["closed"]:
+        if not after["closed"] or before["signed_volume"] * after["signed_volume"] <= 0:
+            raise ValueError(f"external revision invalidated closed volume orientation: {obj[ROLE_KEY]}")
+        if abs(after["signed_volume"]) <= max(tolerance ** 3, abs(before["signed_volume"]) * 0.05):
+            raise ValueError(f"external revision collapsed the closed volume: {obj[ROLE_KEY]}")
     return [vertex.index for vertex in selected]
 
 

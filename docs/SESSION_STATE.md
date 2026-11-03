@@ -16,14 +16,16 @@ core production layer**. Do not restart from scratch, and do not continue the pr
 adding narrow validators, render passes or export variants while broad creation and style support
 remain missing.
 
-The user selected the static B-plan production domain. B1/B1.1/B2 and the bounded B3 path are now
-complete: the Static Asset Skill supports owned profile/profile-beveled production and revision,
-plus an explicit-map static-GLB end-region edit on independent copies. These are real increases in
-production/reuse capability, not a claim of general modeling or arbitrary external-Mesh editing.
+The user selected the static B-plan production domain. B1/B1.1/B2, bounded B3 and bounded B4 are
+now complete: the Static Asset Skill supports owned profile/profile-beveled production and
+revision, explicit-map static-GLB end-region edits, plus explicit style provenance, deterministic
+local-box UVs and generated image-textured materials. These are real increases in production/
+reuse capability, not a claim of general modeling, arbitrary external-Mesh editing or broad style
+generation.
 
 The official active sequence is now B1 (complete), B1.1 (complete), B2 bounded shape-production
-(complete), B3 bounded external static GLB revision (complete), then B4 art direction/material/
-UV/texture production. B5-B8 are recorded in
+(complete), B3 bounded external static GLB revision (complete), B4 bounded art direction/material/
+UV/texture production (complete), then B5 static-domain breadth. B6-B8 are recorded in
 `docs/roadmap.md`.
 
 Proven foundations to retain:
@@ -39,9 +41,10 @@ Proven foundations to retain:
 
 Do not overstate:
 
-- static creation remains bounded: v3/v4 support explicit profile/profile-beveled solids and owned
-  semantic replacement; B3 supports only explicit-map static-GLB local-axis end edits, not
-  arbitrary prompt-to-mesh or arbitrary imported-Mesh editing;
+- static creation remains bounded: v3/v4 support explicit profile/profile-beveled solids, v5 adds
+  local-box UVs and two generated base-color texture patterns, and B3 supports only explicit-map
+  static-GLB local-axis end edits; none implies arbitrary prompt-to-mesh, general UV/texturing or
+  arbitrary imported-Mesh editing;
 - character v4 is a CC0 human-template proportion workflow, not general character generation;
 - hair, clothing, creatures, broad existing-mesh editing, texture authoring and practical
   multi-style generation are not implemented;
@@ -136,11 +139,24 @@ depth is recorded rather than implying uniform line-by-line review.
 - Scope is `.glb`, static Mesh/Empty hierarchy, no modifiers/groups/Shape Keys/linked data and one
   explicit `LOCAL_AXIS_END_OFFSET`; it is not arbitrary imported-Mesh editing.
 
-## Next B-plan target
+## Completed B4 bounded static art direction -- 2026-11-02
 
-B4 connects explicit request/Workspace art direction to actual silhouette, proportion, material,
-UV and texture production. Do not treat the B3 field cannon or Stylized Low-Poly evidence as a
-global style default.
+- Creation v5 adds explicit user/Workspace provenance, style/silhouette/proportion/detail fields,
+  deterministic local-box UVs, texture resolution/byte budgets, generated PNG base-color patterns,
+  Principled image-node connections and packed images.
+- Angular Low-Poly and Painted-Look crate variants differ in actual profile geometry, proportions,
+  parts, materials and surface treatment; six shared-camera renders received hash-bound explicit
+  visual acceptance and the saved Blend passed fresh-process UV/image/node verification.
+- B3 hardening refuses unsafe end offsets while preserving the normal field-cannon extension and a
+  safe contraction. It is not a full arbitrary self-intersection solver.
+- Evidence: `D:/Blender/MCP_Test/GameAssetAI/runs/B4-static-art-direction/`
+  `20261102T143819Z-two-style-crates-a4c08b55`.
+- The active next target is B5 static-domain breadth. Do not treat either representative crate
+  style as a global default.
+- `blender-create-static-asset` and `blender-create-game-asset` were updated through the hash-
+  checked Workspace workflow with distinct pre-B4 backups. Source/install manifests align, and
+  Blender 5.0.1 directly executed creation v5 from the installed Static Asset Skill package.
+  Client discovery in a separate new Codex session remains unverified.
 
 ## Repository state and safety
 

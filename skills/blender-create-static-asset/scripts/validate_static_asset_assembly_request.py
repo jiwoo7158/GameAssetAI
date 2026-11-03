@@ -10,6 +10,7 @@ CREATE_SCHEMAS = {
     "gameassetai.static-asset-assembly-request.v2",
     "gameassetai.static-asset-assembly-request.v3",
     "gameassetai.static-asset-assembly-request.v4",
+    "gameassetai.static-asset-assembly-request.v5",
 }
 REVISION_SCHEMAS = {
     "gameassetai.static-asset-revision-request.v1",
@@ -21,6 +22,8 @@ EXTERNAL_REVISION_SCHEMA = "gameassetai.external-static-revision-request.v1"
 PRIMITIVES = {"BOX", "CYLINDER", "ICOSPHERE", "WEDGE"}
 GEOMETRY_KINDS = {"PRIMITIVE", "PROFILE_EXTRUSION", "PROFILE_BEVELED_EXTRUSION"}
 STYLE_FAMILIES = {"STYLIZED_LOW_POLY", "CUSTOM"}
+SURFACE_STYLES = {"ANGULAR_LOW_POLY", "PAINTED_LOOK_STYLIZED", "CUSTOM"}
+TEXTURE_PATTERNS = {"WOOD_GRAIN", "PAINTED_METAL"}
 SHA256_PATTERN = re.compile(r"^[0-9a-f]{64}$")
 PROFILE_RELATIVE_EPSILON = 1e-7
 
@@ -296,6 +299,104 @@ def _style(value, material_count):
     return value
 
 
+def _art_direction(value):
+    fields = {
+        "provenance", "surface_style", "silhouette", "proportion",
+        "geometry_detail", "palette", "unsupported",
+    }
+    if not isinstance(value, dict) or set(value) != fields:
+        raise ValueError(f"art_direction fields must be exactly {sorted(fields)}")
+    provenance = value["provenance"]
+    if not isinstance(provenance, dict) or set(provenance) != {"source", "source_ref", "profile_sha256"}:
+        raise ValueError("art_direction.provenance fields are invalid")
+    if provenance["source"] not in {"USER_REQUEST", "WORKSPACE_PROFILE"}:
+        raise ValueError("art_direction.provenance.source is invalid")
+    _name(provenance["source_ref"], "art_direction.provenance.source_ref")
+    profile_sha = provenance["profile_sha256"]
+    if provenance["source"] == "WORKSPACE_PROFILE":
+        if not isinstance(profile_sha, str) or not SHA256_PATTERN.fullmatch(profile_sha):
+            raise ValueError("Workspace Profile art direction requires profile_sha256")
+    elif profile_sha is not None:
+        raise ValueError("USER_REQUEST art direction profile_sha256 must be null")
+    if value["surface_style"] not in SURFACE_STYLES:
+        raise ValueError(f"art_direction.surface_style must be one of {sorted(SURFACE_STYLES)}")
+    for key in ("silhouette", "proportion", "geometry_detail"):
+        _name(value[key], f"art_direction.{key}")
+    palette = value["palette"]
+    if not isinstance(palette, list) or not 2 <= len(palette) <= 8:
+        raise ValueError("art_direction.palette must contain 2 to 8 RGBA colors")
+    value["palette"] = [
+        _finite_vector(color, 4, f"art_direction.palette[{index}]")
+        for index, color in enumerate(palette)
+    ]
+    if any(component < 0 or component > 1 for color in value["palette"] for component in color):
+        raise ValueError("art_direction.palette components must be in [0, 1]")
+    if not isinstance(value["unsupported"], list) or any(
+        not isinstance(item, str) or not item.strip() for item in value["unsupported"]
+    ):
+        raise ValueError("art_direction.unsupported must contain non-empty strings")
+    return value
+
+
+def _appearance(value):
+    fields = {
+        "uv_policy", "texture_policy", "texture_output_directory",
+        "max_texture_resolution", "max_texture_bytes", "pack_images",
+    }
+    if not isinstance(value, dict) or set(value) != fields:
+        raise ValueError(f"appearance fields must be exactly {sorted(fields)}")
+    if value["uv_policy"] != "LOCAL_BOX_PROJECT":
+        raise ValueError("appearance.uv_policy must be LOCAL_BOX_PROJECT")
+    if value["texture_policy"] != "OPTIONAL_GENERATED_PNG":
+        raise ValueError("appearance.texture_policy must be OPTIONAL_GENERATED_PNG")
+    directory = value["texture_output_directory"]
+    if not isinstance(directory, str) or not Path(directory).is_absolute():
+        raise ValueError("appearance.texture_output_directory must be absolute")
+    resolution = value["max_texture_resolution"]
+    if isinstance(resolution, bool) or not isinstance(resolution, int) or resolution not in {32, 64, 128, 256, 512}:
+        raise ValueError("appearance.max_texture_resolution must be 32, 64, 128, 256 or 512")
+    byte_budget = value["max_texture_bytes"]
+    if isinstance(byte_budget, bool) or not isinstance(byte_budget, int) or not 1024 <= byte_budget <= 16 * 1024 * 1024:
+        raise ValueError("appearance.max_texture_bytes must be an integer from 1024 to 16777216")
+    if value["pack_images"] is not True:
+        raise ValueError("appearance.pack_images must be true")
+    return value
+
+
+def _texture(value, label, appearance):
+    if value is None:
+        return None
+    fields = {"kind", "image_name", "file_name", "resolution", "palette", "scale", "seed"}
+    if not isinstance(value, dict) or set(value) != fields:
+        raise ValueError(f"{label} fields must be exactly {sorted(fields)}")
+    if value["kind"] not in TEXTURE_PATTERNS:
+        raise ValueError(f"{label}.kind must be one of {sorted(TEXTURE_PATTERNS)}")
+    _name(value["image_name"], f"{label}.image_name")
+    file_name = value["file_name"]
+    if (not isinstance(file_name, str) or not file_name or Path(file_name).name != file_name
+            or Path(file_name).suffix.casefold() != ".png"):
+        raise ValueError(f"{label}.file_name must be a plain PNG file name")
+    resolution = value["resolution"]
+    if (isinstance(resolution, bool) or not isinstance(resolution, int)
+            or resolution not in {32, 64, 128, 256, 512}
+            or resolution > appearance["max_texture_resolution"]):
+        raise ValueError(f"{label}.resolution exceeds the allowed texture resolution")
+    palette = value["palette"]
+    if not isinstance(palette, list) or not 2 <= len(palette) <= 4:
+        raise ValueError(f"{label}.palette must contain 2 to 4 RGBA colors")
+    value["palette"] = [_finite_vector(color, 4, f"{label}.palette[{index}]") for index, color in enumerate(palette)]
+    if any(component < 0 or component > 1 for color in value["palette"] for component in color):
+        raise ValueError(f"{label}.palette components must be in [0, 1]")
+    scale = value["scale"]
+    if isinstance(scale, bool) or not isinstance(scale, (int, float)) or not math.isfinite(scale) or not 1 <= scale <= 32:
+        raise ValueError(f"{label}.scale must be a finite number from 1 to 32")
+    value["scale"] = float(scale)
+    seed = value["seed"]
+    if isinstance(seed, bool) or not isinstance(seed, int) or not 0 <= seed <= 2147483647:
+        raise ValueError(f"{label}.seed must be an integer from 0 to 2147483647")
+    return value
+
+
 def _estimated_triangles(geometry):
     if geometry["kind"] == "PROFILE_EXTRUSION":
         return 4 * len(geometry["profile_points"]) - 4
@@ -318,8 +419,11 @@ def validate_request(request):
     if request.get("schema") in {
         "gameassetai.static-asset-assembly-request.v3",
         "gameassetai.static-asset-assembly-request.v4",
+        "gameassetai.static-asset-assembly-request.v5",
     }:
         expected.add("style")
+    if request.get("schema") == "gameassetai.static-asset-assembly-request.v5":
+        expected.update({"art_direction", "appearance"})
     if set(request) != expected:
         raise ValueError(f"request fields must be exactly {sorted(expected)}")
     if request["schema"] not in CREATE_SCHEMAS:
@@ -327,12 +431,19 @@ def validate_request(request):
     for key in ("scene_name", "asset_name", "collection_name"):
         _name(request[key], key)
 
+    is_v5 = request["schema"] == "gameassetai.static-asset-assembly-request.v5"
+    if is_v5:
+        request["art_direction"] = _art_direction(request["art_direction"])
+        request["appearance"] = _appearance(request["appearance"])
     materials = request["materials"]
     if not isinstance(materials, list) or not 1 <= len(materials) <= 16:
         raise ValueError("materials must contain 1 to 16 entries")
     material_names = set()
     for index, material in enumerate(materials):
-        if not isinstance(material, dict) or set(material) != {"name", "base_color", "metallic", "roughness"}:
+        material_fields = {"name", "base_color", "metallic", "roughness"}
+        if is_v5:
+            material_fields.update({"material_role", "texture"})
+        if not isinstance(material, dict) or set(material) != material_fields:
             raise ValueError(f"materials[{index}] has invalid fields")
         name = material["name"]
         if not isinstance(name, str) or not name.strip() or name.casefold() in material_names:
@@ -346,6 +457,20 @@ def validate_request(request):
             if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or not 0 <= value <= 1:
                 raise ValueError(f"materials[{index}].{key} must be in [0, 1]")
             material[key] = float(value)
+        if is_v5:
+            _name(material["material_role"], f"materials[{index}].material_role")
+            material["texture"] = _texture(
+                material["texture"], f"materials[{index}].texture", request["appearance"]
+            )
+
+    if is_v5:
+        texture_specs = [material["texture"] for material in materials if material["texture"] is not None]
+        image_names = [item["image_name"].casefold() for item in texture_specs]
+        file_names = [item["file_name"].casefold() for item in texture_specs]
+        if len(image_names) != len(set(image_names)) or len(file_names) != len(set(file_names)):
+            raise ValueError("texture image names and file names must each be unique")
+        if request["art_direction"]["surface_style"] == "PAINTED_LOOK_STYLIZED" and not texture_specs:
+            raise ValueError("PAINTED_LOOK_STYLIZED requires at least one generated texture")
 
     parts = request["parts"]
     if not isinstance(parts, list) or not 1 <= len(parts) <= 64:
@@ -357,6 +482,7 @@ def validate_request(request):
         if request["schema"] in {
             "gameassetai.static-asset-assembly-request.v3",
             "gameassetai.static-asset-assembly-request.v4",
+            "gameassetai.static-asset-assembly-request.v5",
         }:
             fields = {"name", "semantic_role", "geometry", "location", "rotation_degrees", "material"}
         else:
@@ -377,7 +503,7 @@ def validate_request(request):
         if "geometry" in part:
             part["geometry"] = _geometry(
                 part["geometry"], f"parts[{index}].geometry",
-                allow_beveled=request["schema"].endswith(".v4"),
+                allow_beveled=request["schema"].endswith((".v4", ".v5")),
             )
             estimated_triangles += _estimated_triangles(part["geometry"])
         else:
@@ -399,6 +525,7 @@ def validate_request(request):
     if request["schema"] in {
         "gameassetai.static-asset-assembly-request.v3",
         "gameassetai.static-asset-assembly-request.v4",
+        "gameassetai.static-asset-assembly-request.v5",
     }:
         request["style"] = _style(request["style"], len(materials))
         if estimated_triangles > request["style"]["triangle_budget"]:
@@ -408,12 +535,22 @@ def validate_request(request):
             )
 
     policy = request["policy"]
-    required_policy = {
-        "existing_names": "REFUSE",
-        "source_scene": "PRESERVE",
-        "creation": "NEW_COLLECTION_OBJECTS_MESHES_MATERIALS",
-        "failure": "ROLL_BACK_OWNED_DATA",
-    }
+    required_policy = (
+        {
+            "existing_names": "REFUSE",
+            "source_scene": "PRESERVE",
+            "creation": "NEW_COLLECTION_OBJECTS_MESHES_MATERIALS_IMAGES",
+            "external_files": "NO_OVERWRITE_OWNED_PNG",
+            "failure": "ROLL_BACK_OWNED_DATA_AND_FILES",
+        }
+        if is_v5 else
+        {
+            "existing_names": "REFUSE",
+            "source_scene": "PRESERVE",
+            "creation": "NEW_COLLECTION_OBJECTS_MESHES_MATERIALS",
+            "failure": "ROLL_BACK_OWNED_DATA",
+        }
+    )
     if policy != required_policy:
         raise ValueError(f"policy must be exactly {required_policy}")
 

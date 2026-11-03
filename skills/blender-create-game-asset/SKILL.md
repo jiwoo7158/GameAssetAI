@@ -16,7 +16,7 @@ Use these creation entries:
 
 - recognizable low-poly prop, weapon, furniture-like or simple environment assembly, including
   an explicit profile-authored silhouette, a bounded matched-profile beveled solid, and owned
-  semantic geometry revision, plus bounded revision of an explicitly mapped static external GLB:
+  semantic geometry revision, bounded v5 UV/image-textured style production, plus bounded revision of an explicitly mapped static external GLB:
   `blender-create-static-asset`;
 - new low-poly humanoid blockout: `blender-create-character-base`;
 - reviewed owned character base that needs its first rig: `blender-rig-character-base`;
@@ -74,6 +74,14 @@ Use v3 when constant-depth profile extrusion is sufficient. Translate a complete
 or active-profile style decision into the style object; do not infer missing art direction.
 Geometry revision is supported only for an owned matching-version semantic part and must create an
 independent collection.
+
+For requests such as "make an angular low-poly crate" or "make a painted-look crate with wood and
+metal textures", route one complete creation v5 request through `blender-create-static-asset`.
+Apply explicit user art-direction fields first; read the active Workspace Profile only for missing
+facts and record its path/hash provenance. Refuse unresolved required facts or conflicts rather
+than silently mixing directions. V5 supports deterministic local-box UVs and bounded generated
+base-color PNG patterns only; it is not general unwrapping, hand-painted art, PBR map generation or
+material revision of arbitrary existing assets.
 
 For requests such as "extend the handle in this existing GLB" or "modify only this mapped metal
 part", inspect the actual file first and require its absolute path/SHA-256, provenance, a complete

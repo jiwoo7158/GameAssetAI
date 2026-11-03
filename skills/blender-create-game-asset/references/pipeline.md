@@ -4,7 +4,7 @@
 
 | User intent | First Skill | Continue only when applicable |
 | --- | --- | --- |
-| New prop, weapon, furniture-like or simple environment piece | `blender-create-static-asset` v3/v4 when explicit profile geometry is suitable | semantic geometry revision, inspection, static export or 2D rendering |
+| New prop, weapon, furniture-like or simple environment piece | `blender-create-static-asset` v3/v4 for explicit profile geometry; v5 for bounded UV/image-textured style production | semantic geometry revision, inspection, static export or 2D rendering |
 | New low-poly humanoid | `blender-create-character-base` v3 `BOOLEAN_CONNECTED` blockout | topology/revision and deformation-readiness gate, then rigging and reviewed Action authoring |
 | Existing static GLB with explicit part mapping and a supported local-axis end edit | inspect the file, hash, Object names and structure, then `blender-create-static-asset` external-revision v1 | visual/structural review, then static export or 2D rendering |
 | Other existing static Mesh | `blender-inspect-asset` and `blender-validate-static-mesh` | guarded cleanup/transform/pivot/LOD or static export; do not imply arbitrary geometry editing |
@@ -30,7 +30,9 @@
   semantic geometry replacement. External-revision v1 additionally supports one complete,
   explicit static-GLB Object/role map and local-axis end-region offset on independent copies. It
   remains a bounded workflow rather than arbitrary prompt-to-mesh, sculpting, `.blend` ingestion,
-  automatic semantics, arbitrary imported-region/topology editing or UV/texture authoring.
+  automatic semantics or arbitrary imported-region/topology editing. Creation v5 adds local-box
+  UVs and deterministic generated base-color PNGs for current static geometry only; it does not
+  provide general unwrap, hand painting, PBR map sets or existing-material revision.
 - Character creation has a guarded v3 exact-Boolean connected candidate. The global
   `VOXEL_CONNECTED` experiment remains suspended after visible limb/foot fusion. V3 must pass
   component/manifold/clearance gates and recorded multi-view acceptance. Its current Boolean

@@ -188,6 +188,27 @@ six shared-camera images were explicitly accepted, and the saved Blend reopened 
 process. This evidence does not claim `.blend`, automatic semantic discovery, arbitrary region or
 topology editing, modifier/Shape Key/vertex-group/linked-data support, or material/UV authoring.
 
+## B3 offset hardening and B4 art direction/UV/texture -- 2026-11-02
+
+`LOCAL_AXIS_END_OFFSET` now refuses deltas beyond the source axis span, crossing through the
+unselected region, collapsed edges/faces, face-normal inversion and invalid or collapsed closed
+volume. The prior 13-part field-cannon extension, a safe contraction, bad-input refusal, rollback
+and fresh reopen pass in:
+
+`D:/Blender/MCP_Test/GameAssetAI/runs/B3-safety-hardening/20261102T143919Z-field-cannon-offset-bounds-cb03f6f2`
+
+Creation v5 retains v1-v4 and adds explicit art-direction provenance, deterministic dominant-face
+local-box UVs, optional generated `WOOD_GRAIN`/`PAINTED_METAL` PNG base-color images, Principled
+image-node materials, packing and polygon/texture budgets. An Angular Low-Poly crate (112
+triangles, no image texture by design) and Painted-Look crate (198 triangles, two 128x128 PNGs)
+passed no-overwrite/rollback, UV/node/image checks and fresh Blender reopen. Six identical-camera
+renders were explicitly reviewed and accepted:
+
+`D:/Blender/MCP_Test/GameAssetAI/runs/B4-static-art-direction/20261102T143819Z-two-style-crates-a4c08b55`
+
+This evidence does not establish general UV unwrap, hand-painted artistry, PBR map generation,
+material revision of existing assets or arbitrary art-style generation.
+
 ## Kiln review — 2026-10-27
 
 Kiln 1.5.0 was reviewed from its official repository and release record. It is MIT-licensed and
