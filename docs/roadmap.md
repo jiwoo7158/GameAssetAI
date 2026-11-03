@@ -231,13 +231,49 @@ user/Profile provenance, applies actual style parameters to geometry, creates de
 box UVs and optional hash-recorded/packed base-color PNG textures, and connects them to Principled
 materials. Angular Low-Poly and Painted-Look crate variants passed Blender 5.0.1 structural,
 rollback, no-overwrite, fresh-reopen and explicit visual acceptance. This is bounded to current
-static geometry and two generated pattern kinds; B5 static-domain breadth is next.
+static geometry and two generated pattern kinds; the completed B5 boundary below reuses them
+across three representative domains.
 
 ### B5 -- Broaden static asset domains
 
 Reuse common operations across weapons/armor, props/furniture, machinery/devices,
 architecture/structures and natural environment assets instead of adding one Skill per noun.
 Completion requires creation and follow-up revision in at least three different domains.
+
+#### Completed work package: B4 publication hardening, v5 revision and B5 domain breadth -- 2026-11-03
+
+- Requirements: `REQ-STATIC`, `REQ-STYLE`, `REQ-SAFE`, `REQ-COST`, bounded `REQ-WORKFLOW`.
+- Reuse: Static Asset creation v1-v5, revision v1-v3, semantic roles, Primitive/Profile/Profile-
+  Beveled geometry, local-box UV, generated base-color textures, ownership/rollback, Artifact
+  Lifecycle and hash-bound visual review.
+- Concrete gaps: texture output is tracked only after direct final-path save; v5 has no copy-only
+  geometry revision contract; static production breadth is proven only on axe/shield/crate-like
+  representatives.
+- Implementation boundary: stage PNGs to unique same-directory files, validate and publish with
+  atomic no-overwrite semantics, then pack; add revision v4 only for owned creation-v5 sources,
+  regenerating UV on replaced geometry while sharing source Material/Image data read-only; add an
+  optional per-part quarter-turn/mirror local-box UV mapping without general unwrap; expose applied
+  geometry/material/texture facts separately from descriptive art-direction text.
+- Validation assets: original/revised Stylized Fantasy Shield, Stylized Fantasy Lantern and
+  Modular Fantasy Stone Doorway. At least the shield uses generated image textures. All six
+  results use common request operations, semantic roles and revision v4 rather than noun-specific
+  runtime generators.
+- Acceptance: seven texture publication/failure cases preserve user files and exact Scene state;
+  all three originals and revisions preserve source/unrelated parts, shared Materials/Packed Images
+  and budgets; fresh Blender reopen, identical-camera comparison, explicit visual review, legacy
+  v1-v4 regression, installed-Skill direct execution and source/install hashes pass.
+- Non-goals: material/image revision, arbitrary UV unwrap, PBR map sets, Boolean assembly, asset-
+  noun Skills, character/animation/2D/Add-on/Unity changes or external dependencies.
+
+Result: creation v5 PNGs now use validated unique staging plus atomic no-overwrite publication;
+six injected save/pack/second-image/collision/geometry failures restored exact Scene/file state and
+preserved a simulated user collision winner. Revision v4 supports owned v5 assemblies with
+independent Meshes, replacement UV regeneration and read-only shared Material/Packed Image data.
+The same Primitive/Profile/Profile-Beveled operations created and revised a painted fantasy shield,
+an angular lantern and a modular stone doorway. Eighteen shared-camera views were directly reviewed
+and accepted, and a fresh Blender process reopened all six assets. Evidence:
+`D:/Blender/MCP_Test/GameAssetAI/runs/B5/20261103T040438Z-static-domain-breadth-81459f66`.
+This closes B5 only for those bounded representative domains; B6 is next.
 
 ### B6 -- Redesign character, clothing and creature production
 

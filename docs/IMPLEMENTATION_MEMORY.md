@@ -171,9 +171,9 @@ integrated into the Add-on; advanced passes remain explicit opt-in tools.
 
 ## Active product gaps, in order
 
-1. Execute B5 static-domain breadth using the shared v3-v5 production operations instead of one
-   Skill per asset noun.
-2. Continue B6-B8 in the official roadmap order unless a concrete user request justifies a
+1. Execute B6 character/clothing/creature production redesign while reusing eligible M2-M4
+   rig/animation/export foundations.
+2. Continue B7-B8 in the official roadmap order unless a concrete user request justifies a
    documented bounded dependency.
 
 Unity Humanoid Avatar/root-motion work remains a separate optional gate only when a concrete game
@@ -268,3 +268,32 @@ candidate retention is an agent workflow choice unless the user explicitly says 
 - `docs/roadmap.md`: actionable checked/unchecked backlog.
 - `docs/SESSION_STATE.md`: concise exact continuation point for the next session.
 - `docs/session-history/`: historical evidence only, never the active plan.
+
+## B4 hardening and B5 static-domain breadth -- 2026-11-03
+
+Creation v5 texture publication now uses a unique same-directory staged PNG, signature validation
+and atomic no-overwrite hard-link publication. Rollback records staged ownership before saving and
+deletes final files only when path identity and SHA-256 still match. Focused Blender probes covered
+failure before save, a partial staged file, post-save packing, the second of two textures, a
+publication race won by a simulated user file, and geometry failure after Material creation.
+
+Revision schema `gameassetai.static-asset-revision-request.v4` is limited to an owned creation-v5
+assembly. Every result Mesh is independent. Selected replacement geometry receives a fresh
+deterministic local-box UV layer using the source part's recorded quarter-turn/mirror mapping;
+Materials and packed Images remain shared read-only. Style, art-direction, applied-fact and
+appearance provenance persist, and the original triangle budget is rechecked. This does not edit
+texture pixels, Material nodes or arbitrary external assets.
+
+Accepted Blender 5.0.1 evidence:
+
+`D:/Blender/MCP_Test/GameAssetAI/runs/B5/20261103T040438Z-static-domain-breadth-81459f66`
+
+One shared implementation created and revised a painted fantasy shield, an angular fantasy
+lantern and a modular stone doorway. Triangle counts are 168, 148 and 182 respectively for both
+original and revision. All six results retained one valid UV layer per part; the shield retained
+two hashed/packed 128px textures. Eighteen immutable-pair-camera renders were explicitly reviewed
+and accepted after correcting a hidden wood surface and a revised doorway connection gap. A fresh
+Blender process reopened the Blend and verified semantic roles, independent Meshes, shared
+Materials, packed Images and external texture hashes. This closes B5 only for these representative
+static domains. It is not evidence of arbitrary noun-to-mesh generation, general unwrap, texture
+painting, material revision or character/creature production.

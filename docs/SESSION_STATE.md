@@ -16,17 +16,18 @@ core production layer**. Do not restart from scratch, and do not continue the pr
 adding narrow validators, render passes or export variants while broad creation and style support
 remain missing.
 
-The user selected the static B-plan production domain. B1/B1.1/B2, bounded B3 and bounded B4 are
-now complete: the Static Asset Skill supports owned profile/profile-beveled production and
-revision, explicit-map static-GLB end-region edits, plus explicit style provenance, deterministic
-local-box UVs and generated image-textured materials. These are real increases in production/
-reuse capability, not a claim of general modeling, arbitrary external-Mesh editing or broad style
-generation.
+The user selected the static B-plan production domain. B1/B1.1/B2, bounded B3, bounded B4 and
+bounded B5 are now complete: the Static Asset Skill supports owned profile/profile-beveled
+production and revision, explicit-map static-GLB end-region edits, explicit style provenance,
+deterministic local-box UVs, generated image-textured materials and copy-only revision of owned v5
+assemblies. Common operations have accepted creation/revision evidence for a shield, lantern and
+modular doorway. These are real increases in production/reuse capability, not a claim of general
+modeling, arbitrary external-Mesh editing or broad style generation.
 
 The official active sequence is now B1 (complete), B1.1 (complete), B2 bounded shape-production
 (complete), B3 bounded external static GLB revision (complete), B4 bounded art direction/material/
-UV/texture production (complete), then B5 static-domain breadth. B6-B8 are recorded in
-`docs/roadmap.md`.
+UV/texture production (complete), B5 bounded static-domain breadth (complete), then B6 character,
+clothing and creature production redesign. B7-B8 are recorded in `docs/roadmap.md`.
 
 Proven foundations to retain:
 
@@ -151,12 +152,35 @@ depth is recorded rather than implying uniform line-by-line review.
   safe contraction. It is not a full arbitrary self-intersection solver.
 - Evidence: `D:/Blender/MCP_Test/GameAssetAI/runs/B4-static-art-direction/`
   `20261102T143819Z-two-style-crates-a4c08b55`.
-- The active next target is B5 static-domain breadth. Do not treat either representative crate
-  style as a global default.
+- Do not treat either representative crate style as a global default.
 - `blender-create-static-asset` and `blender-create-game-asset` were updated through the hash-
   checked Workspace workflow with distinct pre-B4 backups. Source/install manifests align, and
   Blender 5.0.1 directly executed creation v5 from the installed Static Asset Skill package.
   Client discovery in a separate new Codex session remains unverified.
+
+## Completed B5 bounded static-domain breadth -- 2026-11-03
+
+- Creation v5 PNG publication now stages to a unique same-directory file, validates the PNG and
+  publishes without overwrite. Rollback deletes a published file only while its identity and
+  SHA-256 still match; six injected failure/collision paths restored exact Scene/file state.
+- Revision v4 accepts only an owned creation-v5 source. It independently copies every Mesh,
+  regenerates the recorded local-box UV mapping for replacement geometry, shares source
+  Materials/Packed Images read-only, preserves art-direction/application metadata and rechecks the
+  source triangle budget. Per-part quarter-turn/mirror UV controls are bounded orientation aids.
+- The shared production contract created and revised a painted fantasy shield (168 triangles), an
+  angular lantern (148) and a modular stone doorway (182). No noun-specific runtime generator or
+  new Geometry Kind was added. Eighteen front/side/three-quarter images were directly inspected;
+  the first shield/doorway candidates were rejected and corrected before the accepted run.
+- Accepted evidence: `D:/Blender/MCP_Test/GameAssetAI/runs/B5/`
+  `20261103T040438Z-static-domain-breadth-81459f66`. The saved Blend passed a fresh Blender 5.0.1
+  reopen with all six Collections, independent Meshes, valid UVs, shared Materials and packed
+  image hashes intact.
+- Updated Static Asset and Router Skills are backed up as distinct pre-B5 versions, source/install
+  hashes align, and the installed Static Skill directly passed creation v5 plus revision v4 and
+  complete cleanup. Separate new-session Codex discovery remains unverified.
+- B6 character/clothing/creature production redesign is next. B5 evidence is bounded to these
+  three representative domains and does not establish arbitrary asset-noun generation, general
+  UV unwrap, texture painting or material revision.
 
 ## Repository state and safety
 

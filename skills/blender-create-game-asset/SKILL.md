@@ -83,6 +83,13 @@ than silently mixing directions. V5 supports deterministic local-box UVs and bou
 base-color PNG patterns only; it is not general unwrapping, hand-painted art, PBR map generation or
 material revision of arbitrary existing assets.
 
+For a v5-owned static asset, route a later request such as "widen the shield and thicken its rim",
+"make the lantern body taller" or "widen this modular doorway" through static revision v4. Require
+explicit semantic roles and replacement geometry/transforms. The result is a new Collection with
+independent Meshes; selected geometry receives regenerated recorded local-box UVs, while source
+Materials and Images are shared read-only. Do not use this path for arbitrary imported Meshes or
+silently reinterpret descriptive style strings as geometry.
+
 For requests such as "extend the handle in this existing GLB" or "modify only this mapped metal
 part", inspect the actual file first and require its absolute path/SHA-256, provenance, a complete
 unique Mesh Object-to-role map, unused source/result Collection names, and an explicit local-axis

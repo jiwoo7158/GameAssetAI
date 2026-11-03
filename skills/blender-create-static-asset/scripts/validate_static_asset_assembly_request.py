@@ -16,6 +16,7 @@ REVISION_SCHEMAS = {
     "gameassetai.static-asset-revision-request.v1",
     "gameassetai.static-asset-revision-request.v2",
     "gameassetai.static-asset-revision-request.v3",
+    "gameassetai.static-asset-revision-request.v4",
 }
 KILN_IMPORT_SCHEMA = "gameassetai.kiln-glb-import-request.v1"
 EXTERNAL_REVISION_SCHEMA = "gameassetai.external-static-revision-request.v1"
@@ -24,6 +25,7 @@ GEOMETRY_KINDS = {"PRIMITIVE", "PROFILE_EXTRUSION", "PROFILE_BEVELED_EXTRUSION"}
 STYLE_FAMILIES = {"STYLIZED_LOW_POLY", "CUSTOM"}
 SURFACE_STYLES = {"ANGULAR_LOW_POLY", "PAINTED_LOOK_STYLIZED", "CUSTOM"}
 TEXTURE_PATTERNS = {"WOOD_GRAIN", "PAINTED_METAL"}
+UV_ROTATIONS = {0, 90, 180, 270}
 SHA256_PATTERN = re.compile(r"^[0-9a-f]{64}$")
 PROFILE_RELATIVE_EPSILON = 1e-7
 
@@ -397,6 +399,18 @@ def _texture(value, label, appearance):
     return value
 
 
+def _uv_mapping(value, label):
+    fields = {"rotation_degrees", "mirror_u", "mirror_v"}
+    if not isinstance(value, dict) or set(value) != fields:
+        raise ValueError(f"{label} fields must be exactly {sorted(fields)}")
+    if isinstance(value["rotation_degrees"], bool) or value["rotation_degrees"] not in UV_ROTATIONS:
+        raise ValueError(f"{label}.rotation_degrees must be one of {sorted(UV_ROTATIONS)}")
+    for key in ("mirror_u", "mirror_v"):
+        if not isinstance(value[key], bool):
+            raise ValueError(f"{label}.{key} must be boolean")
+    return value
+
+
 def _estimated_triangles(geometry):
     if geometry["kind"] == "PROFILE_EXTRUSION":
         return 4 * len(geometry["profile_points"]) - 4
@@ -489,7 +503,16 @@ def validate_request(request):
             fields = {"name", "primitive", "dimensions", "location", "rotation_degrees", "material", "segments"}
             if request["schema"].endswith(".v2"):
                 fields.add("semantic_role")
-        if not isinstance(part, dict) or set(part) != fields:
+        if not isinstance(part, dict):
+            raise ValueError(f"parts[{index}] has invalid fields")
+        if is_v5:
+            if not fields.issubset(part) or set(part) - (fields | {"uv_mapping"}):
+                raise ValueError(f"parts[{index}] has invalid fields")
+            part["uv_mapping"] = _uv_mapping(
+                part.get("uv_mapping", {"rotation_degrees": 0, "mirror_u": False, "mirror_v": False}),
+                f"parts[{index}].uv_mapping",
+            )
+        elif set(part) != fields:
             raise ValueError(f"parts[{index}] has invalid fields")
         name = part["name"]
         if not isinstance(name, str) or not name.strip() or name.casefold() in part_names:
@@ -584,7 +607,7 @@ def validate_revision_request(request):
     roles = set()
     for index, revision in enumerate(revisions):
         fields = {"semantic_role", "dimensions", "location", "rotation_degrees"}
-        if request["schema"].endswith((".v2", ".v3")):
+        if request["schema"].endswith((".v2", ".v3", ".v4")):
             fields = {"semantic_role", "geometry", "location", "rotation_degrees"}
         if not isinstance(revision, dict) or set(revision) != fields:
             raise ValueError(f"revisions[{index}] has invalid fields")
@@ -596,7 +619,7 @@ def validate_revision_request(request):
         if "geometry" in revision and revision["geometry"] is not None:
             revision["geometry"] = _geometry(
                 revision["geometry"], f"revisions[{index}].geometry",
-                allow_beveled=request["schema"].endswith(".v3"),
+                allow_beveled=request["schema"].endswith((".v3", ".v4")),
             )
             changed = True
         vector_fields = (("location", False), ("rotation_degrees", False))
@@ -610,12 +633,21 @@ def validate_revision_request(request):
         if not changed:
             raise ValueError(f"revisions[{index}] must change at least one transform field")
 
-    required_policy = {
-        "existing_names": "REFUSE",
-        "source": "PRESERVE",
-        "revision": "NEW_COLLECTION_OBJECTS_MESHES_SHARED_MATERIALS",
-        "failure": "ROLL_BACK_OWNED_DATA",
-    }
+    required_policy = (
+        {
+            "existing_names": "REFUSE",
+            "source": "PRESERVE",
+            "revision": "NEW_COLLECTION_OBJECTS_MESHES_REGENERATED_UV_SHARED_MATERIALS_IMAGES",
+            "failure": "ROLL_BACK_OWNED_DATA",
+        }
+        if request["schema"].endswith(".v4") else
+        {
+            "existing_names": "REFUSE",
+            "source": "PRESERVE",
+            "revision": "NEW_COLLECTION_OBJECTS_MESHES_SHARED_MATERIALS",
+            "failure": "ROLL_BACK_OWNED_DATA",
+        }
+    )
     if request["policy"] != required_policy:
         raise ValueError(f"policy must be exactly {required_policy}")
 

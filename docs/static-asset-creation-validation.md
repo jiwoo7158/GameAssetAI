@@ -209,6 +209,39 @@ renders were explicitly reviewed and accepted:
 This evidence does not establish general UV unwrap, hand-painted artistry, PBR map generation,
 material revision of existing assets or arbitrary art-style generation.
 
+## B4 publication hardening and B5 static-domain breadth -- 2026-11-03
+
+Creation v5 PNG publication is now staged, signature-checked and atomically published without
+overwrite. The rollback ledger records staging before Blender save and binds final-file deletion to
+both file identity and SHA-256. Blender failure probes covered pre-save failure, partial staged
+output, pack failure, failure on the second texture, a final-path collision race, and geometry
+failure after Material creation. Every probe restored the exact data/file baseline and the
+simulated user collision winner was preserved.
+
+Revision v4 accepts only owned creation-v5 Collections. It creates independent Object/Mesh copies,
+regenerates the replacement Mesh UV layer from recorded bounded quarter-turn/mirror mapping,
+shares source Materials/Packed Images read-only, preserves style/art-direction/application facts
+and rechecks the source triangle budget. It does not revise texture pixels or Material nodes.
+
+Accepted Blender 5.0.1 evidence:
+
+`D:/Blender/MCP_Test/GameAssetAI/runs/B5/20261103T040438Z-static-domain-breadth-81459f66`
+
+The run contains original/revised fantasy shield, fantasy lantern and modular stone doorway
+Collections. They use only the common Primitive, Profile Extrusion and Matched-Profile Beveled
+Solid operations. The shield has two generated, packed and hash-bound 128px textures; all parts in
+all six assets have one valid local-box UV layer. Original/revised triangle counts are 168/168,
+148/148 and 182/182, within their declared budgets. Source Meshes remain unchanged, every result
+Mesh is independent, unrelated parts are exact copies, and Materials/Images are shared read-only.
+
+Eighteen front/side/three-quarter renders used one camera frame per source/revision pair. Direct
+review rejected an initially hidden wooden shield surface and a revised doorway connection gap;
+the corrected results were then explicitly accepted with image hashes in `visual-review.json`.
+Fresh-process reopen verified all semantic roles, UVs, texture hashes and packed images. The
+installed Workspace package directly executed creation v5 plus revision v4 and cleaned back to the
+factory baseline. This is accepted B5 evidence for three bounded static domains, not general
+asset-noun generation or production-quality art across all games.
+
 ## Kiln review — 2026-10-27
 
 Kiln 1.5.0 was reviewed from its official repository and release record. It is MIT-licensed and

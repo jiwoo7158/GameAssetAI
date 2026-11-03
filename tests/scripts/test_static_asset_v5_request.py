@@ -6,7 +6,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
-from validate_static_asset_assembly_request import validate_request  # noqa: E402
+from validate_static_asset_assembly_request import validate_request, validate_revision_request  # noqa: E402
 
 
 def request():
@@ -65,6 +65,44 @@ class StaticAssetV5RequestTests(unittest.TestCase):
         result = validate_request(request())
         self.assertEqual("ready", result["status"])
         self.assertEqual("LOCAL_BOX_PROJECT", result["request"]["appearance"]["uv_policy"])
+        self.assertEqual(
+            {"rotation_degrees": 0, "mirror_u": False, "mirror_v": False},
+            result["request"]["parts"][0]["uv_mapping"],
+        )
+
+    def test_explicit_uv_mapping_is_bounded(self):
+        payload = request()
+        payload["parts"][0]["uv_mapping"] = {
+            "rotation_degrees": 90, "mirror_u": True, "mirror_v": False,
+        }
+        self.assertEqual(90, validate_request(payload)["request"]["parts"][0]["uv_mapping"]["rotation_degrees"])
+        payload = request()
+        payload["parts"][0]["uv_mapping"] = {
+            "rotation_degrees": 45, "mirror_u": False, "mirror_v": False,
+        }
+        with self.assertRaisesRegex(ValueError, "rotation_degrees"):
+            validate_request(payload)
+
+    def test_revision_v4_accepts_v5_geometry_policy(self):
+        payload = request()
+        revision = {
+            "schema": "gameassetai.static-asset-revision-request.v4",
+            "scene_name": "Scene", "source_collection_name": payload["collection_name"],
+            "asset_name": "Wider Painted Crate", "collection_name": "GAA Wider Painted Crate",
+            "revisions": [{
+                "semantic_role": "body", "geometry": copy.deepcopy(payload["parts"][0]["geometry"]),
+                "location": None, "rotation_degrees": None,
+            }],
+            "policy": {
+                "existing_names": "REFUSE", "source": "PRESERVE",
+                "revision": "NEW_COLLECTION_OBJECTS_MESHES_REGENERATED_UV_SHARED_MATERIALS_IMAGES",
+                "failure": "ROLL_BACK_OWNED_DATA",
+            },
+        }
+        self.assertEqual("ready", validate_revision_request(revision)["status"])
+        revision["policy"]["revision"] = "NEW_COLLECTION_OBJECTS_MESHES_SHARED_MATERIALS"
+        with self.assertRaisesRegex(ValueError, "policy"):
+            validate_revision_request(revision)
 
     def test_painted_style_requires_texture(self):
         payload = request()

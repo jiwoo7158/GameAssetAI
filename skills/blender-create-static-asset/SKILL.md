@@ -17,7 +17,9 @@ front/back core, creating actual sloped faces rather than a shading-only bevel. 
 one semantic part on an independent copy without scaling the whole Object.
 Creation v5 keeps these geometry kinds and adds explicit art-direction provenance, deterministic
 local box UVs, bounded generated PNG base-color patterns, packed Blender Images and image-textured
-materials. It is a narrow production path, not a general UV unwrap or texture-painting system.
+materials. Revision v4 makes an independent copy of an owned v5 assembly, regenerates the selected
+replacement part UVs and shares existing Materials and packed Images read-only. It is a narrow
+production path, not a general UV unwrap or texture-painting system.
 External-revision v1 imports a hash-pinned static GLB, assigns explicit roles to every Mesh Object
 and offsets a declared local-axis end region on independent Mesh copies. It does not infer
 semantics or claim general imported-Mesh editing.
@@ -45,6 +47,7 @@ installs nor invokes Kiln.
    explicit art-direction provenance, UVs and optional generated image textures,
    `gameassetai.static-asset-revision-request.v1` for legacy transform revision, revision v2 for
    copy-only replacement of owned v3 part geometry, revision v3 for owned v4 part geometry,
+   revision v4 for owned v5 geometry with UV regeneration and read-only appearance sharing,
    the Kiln request for a verified GLB, or external-revision v1 for a verified static GLB with an
    explicit Object/role map and bounded end-region edit.
 3. Use meaningful, unique part names and stable `semantic_role` values in v2-v5. A recognizable result
@@ -66,6 +69,9 @@ installs nor invokes Kiln.
 - Geometry revision v2 accepts only an owned v3 source with complete geometry metadata. It creates
   a new Mesh for the selected role and shares source materials read-only; other parts are copied.
 - Geometry revision v3 applies the same copy-only policy to an owned v4 source.
+- Geometry revision v4 applies it to an owned v5 source. Every result Mesh is independent;
+  replacement Meshes receive a newly generated UV layer using the source part's recorded mapping,
+  while unchanged Materials and packed Images remain shared read-only.
 - Refuse occupied requested names; never accept Blender auto-suffixed replacements.
 - Do not modify, hide, rename or delete existing Scene data.
 - Tag all created data with one run owner token.
@@ -78,8 +84,11 @@ installs nor invokes Kiln.
   Collection. Every result Mesh datablock is independent; materials remain shared read-only. A
   failure removes the complete operation delta without changing the external file or existing data.
 - Creation v5 creates independent Material and Image data and refuses occupied Blender names or
-  existing texture files. Generated PNGs are written only to the explicit output directory,
-  packed into the Blend, hash-recorded and removed on failure only when created by that run.
+  existing texture files. Each PNG is first saved to a unique same-directory staging name,
+  signature-checked, then published through an atomic no-overwrite hard link. Published files are
+  rollback-owned only while their path identity and SHA-256 still match. A save, pack, second-image,
+  geometry or publication-collision failure removes owned staging/final files and data without
+  deleting a collision winner or any pre-existing user file.
 
 ## Request boundary
 
@@ -130,6 +139,8 @@ face local box projection, writes a real PNG, connects a `ShaderNodeTexImage` to
 Color and packs the image. Painted-look style requires at least one image texture; Angular Low-
 Poly may deliberately remain color-material only. This UV policy is supported only for the
 current non-degenerate static geometry kinds and does not minimize seams or distortion.
+Each part may additionally declare a bounded local-box UV quarter-turn (`0`, `90`, `180` or `270`)
+and U/V mirror flags. This is a deterministic orientation control, not general seam placement.
 
 Resolve style input before constructing v5. Explicit user decisions win. For missing decisions,
 read the active Workspace Profile verbatim with Repository `scripts/read_profile_context.py` and
@@ -147,6 +158,9 @@ global default.
 Revision v1 may replace selected role transforms. Revision v2 may replace a selected v3 role's
 complete geometry and/or transform, producing a new Mesh while leaving Object scale unchanged.
 Revision v3 does the same for a selected v4 role and may replace beveled-profile parameters.
+Revision v4 does the same for a selected v5 role, preserving art-direction provenance and
+appearance metadata while regenerating UVs for replaced geometry. It does not edit texture pixels,
+Materials or Images.
 Neither owned revision edits arbitrary imported meshes or materials.
 
 Kiln import records producer/version/program provenance, source hash, all newly created data and
@@ -176,6 +190,11 @@ assets with the same camera transform and orthographic scale when judging dimens
 An induced helper failure must leave no target Collection/Object/Mesh residue. Structural tests are
 `tested`; a recognizable reviewed asset is `representative`; only recorded visible/semantic review
 may be called `accepted`.
+
+The accepted B5 breadth boundary uses this one contract for a painted fantasy shield, an angular
+fantasy lantern and a modular stone doorway, plus an independent revision of each. Those examples
+prove reuse across three bounded static domains; they do not imply arbitrary weapons, furniture or
+architecture can be generated from a noun alone.
 
 ## Boundary
 

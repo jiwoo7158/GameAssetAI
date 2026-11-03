@@ -1,6 +1,7 @@
 import hashlib
 import json
 import math
+import os
 import uuid
 from pathlib import Path
 
@@ -22,9 +23,11 @@ ASSEMBLY_SCHEMA_KEY = "gameassetai_static_assembly_schema"
 GEOMETRY_SPEC_KEY = "gameassetai_geometry_spec"
 STYLE_SPEC_KEY = "gameassetai_style_spec"
 ART_DIRECTION_SPEC_KEY = "gameassetai_art_direction_spec"
+ART_DIRECTION_APPLICATION_KEY = "gameassetai_art_direction_application"
 APPEARANCE_SPEC_KEY = "gameassetai_appearance_spec"
 MATERIAL_ROLE_KEY = "gameassetai_material_role"
 TEXTURE_SPEC_KEY = "gameassetai_texture_spec"
+UV_MAPPING_SPEC_KEY = "gameassetai_uv_mapping_spec"
 IMPORT_OWNER_KEY = "gameassetai_kiln_import_owner"
 PROVENANCE_KIND_KEY = "gameassetai_source_kind"
 PROVENANCE_SHA_KEY = "gameassetai_source_sha256"
@@ -230,7 +233,8 @@ def _make_mesh(part, token):
     return mesh
 
 
-def _assign_local_box_uv(mesh):
+def _assign_local_box_uv(mesh, mapping=None):
+    mapping = mapping or {"rotation_degrees": 0, "mirror_u": False, "mirror_v": False}
     if not mesh.vertices or not mesh.polygons:
         raise ValueError("LOCAL_BOX_PROJECT requires a non-empty Mesh")
     coordinates = [vertex.co for vertex in mesh.vertices]
@@ -245,15 +249,23 @@ def _assign_local_box_uv(mesh):
         axes = (1, 2) if dominant == 0 else (0, 2) if dominant == 1 else (0, 1)
         for loop_index in polygon.loop_indices:
             coordinate = mesh.vertices[mesh.loops[loop_index].vertex_index].co
-            layer.data[loop_index].uv = (
+            u, v = (
                 (coordinate[axes[0]] - minimum[axes[0]]) / span[axes[0]],
                 (coordinate[axes[1]] - minimum[axes[1]]) / span[axes[1]],
             )
+            if mapping["mirror_u"]:
+                u = 1.0 - u
+            if mapping["mirror_v"]:
+                v = 1.0 - v
+            for _ in range(mapping["rotation_degrees"] // 90):
+                u, v = 1.0 - v, u
+            layer.data[loop_index].uv = (u, v)
     if any(
         not math.isfinite(component) or component < -1e-6 or component > 1.000001
         for loop in layer.data for component in loop.uv
     ):
         raise ValueError("LOCAL_BOX_PROJECT produced invalid UV coordinates")
+    mesh[UV_MAPPING_SPEC_KEY] = _canonical(mapping)
     return layer
 
 
@@ -290,21 +302,105 @@ def _texture_pixels(spec):
     return pixels
 
 
+def _file_identity(path):
+    stat = path.stat()
+    return (int(stat.st_dev), int(stat.st_ino), int(stat.st_size))
+
+
+def _file_sha256(path):
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _cleanup_created_files(created_files):
+    for record in reversed(created_files):
+        path = Path(record["path"])
+        if not path.is_file() or path.is_symlink():
+            continue
+        if record["kind"] == "published":
+            if (_file_identity(path) != tuple(record["identity"])
+                    or _file_sha256(path) != record["sha256"]):
+                continue
+        if record["kind"] == "staged" and record["token"] not in path.name:
+            continue
+        path.unlink()
+
+
+def _save_texture_image(image):
+    image.save()
+
+
+def _publish_staged_file(staged, output):
+    os.link(staged, output)
+
+
+def _pack_texture_image(image):
+    image.pack()
+
+
 def _make_texture_image(spec, output_directory, token, created_files):
     output = output_directory / spec["file_name"]
     if output.exists() or output.is_symlink():
         raise ValueError(f"texture output already exists: {output}")
+    staged = output.with_name(f".{output.stem}.{token}.staged.png")
+    if staged.exists() or staged.is_symlink():
+        raise ValueError(f"texture staging path already exists: {staged}")
     image = _tag(bpy.data.images.new(spec["image_name"], width=spec["resolution"],
                                      height=spec["resolution"], alpha=True), token)
     image[TEXTURE_SPEC_KEY] = _canonical(spec)
     image.colorspace_settings.name = "sRGB"
     image.pixels.foreach_set(_texture_pixels(spec))
-    image.filepath_raw = str(output)
+    image.filepath_raw = str(staged)
     image.file_format = "PNG"
-    image.save()
-    created_files.append(output)
-    image.pack()
+    created_files.append({"path": str(staged), "kind": "staged", "token": token})
+    _save_texture_image(image)
+    if (not staged.is_file() or staged.is_symlink()
+            or staged.stat().st_size < 8 or staged.read_bytes()[:8] != b"\x89PNG\r\n\x1a\n"):
+        raise RuntimeError(f"staged texture is not a valid PNG: {staged}")
+    try:
+        _publish_staged_file(staged, output)
+    except FileExistsError as exc:
+        raise ValueError(f"texture output became occupied during publication: {output}") from exc
+    created_files.append({"path": str(output), "kind": "published",
+                          "identity": _file_identity(output), "sha256": _file_sha256(output)})
+    staged.unlink()
+    image.filepath_raw = str(output)
+    _pack_texture_image(image)
     return image
+
+
+def _art_direction_application(request, facts):
+    if "art_direction" not in request:
+        return None
+    declared = {tuple(round(float(value), 6) for value in color)
+                for color in request["art_direction"]["palette"]}
+    used = []
+    for material in request["materials"]:
+        used.append({"source": f"material:{material['material_role']}",
+                     "color": material["base_color"]})
+        if material["texture"] is not None:
+            used.extend({"source": f"texture:{material['texture']['image_name']}", "color": color}
+                        for color in material["texture"]["palette"])
+    unmatched = [item for item in used
+                 if tuple(round(float(value), 6) for value in item["color"]) not in declared]
+    return {
+        "source": "EXPLICIT_REQUEST_GEOMETRY_MATERIAL_SPECIFICATION",
+        "descriptive_fields_interpreted_by_blender": False,
+        "surface_style": request["art_direction"]["surface_style"],
+        "shape_language": request["style"]["shape_language"],
+        "actual_parts": [{"semantic_role": item["semantic_role"],
+                          "geometry_kind": item["geometry_kind"],
+                          "dimensions": item["dimensions"]} for item in facts],
+        "material_roles": [material["material_role"] for material in request["materials"]],
+        "texture_kinds": [material["texture"]["kind"] for material in request["materials"]
+                          if material["texture"] is not None],
+        "palette_exact_match": not unmatched,
+        "unmatched_palette_colors": unmatched,
+        "unsupported": request["art_direction"]["unsupported"],
+    }
 
 
 def _make_material(spec, token, *, output_directory=None, created_files=None):
@@ -402,7 +498,7 @@ def create_asset(request, *, authorized=False):
         for part in normalized["parts"]:
             mesh = _make_mesh(part, token)
             if normalized["schema"].endswith(".v5"):
-                _assign_local_box_uv(mesh)
+                _assign_local_box_uv(mesh, part["uv_mapping"])
             obj = _tag(bpy.data.objects.new(part["name"], mesh), token)
             if "semantic_role" in part:
                 obj[ROLE_KEY] = part["semantic_role"]
@@ -427,6 +523,7 @@ def create_asset(request, *, authorized=False):
                 "triangles": len(obj.data.loop_triangles),
                 "material": obj.data.materials[0].name,
                 "location": [float(v) for v in obj.location],
+                "dimensions": [float(value) for value in _mesh_dimensions(obj.data)],
                 "semantic_role": obj.get(ROLE_KEY),
                 "geometry_kind": json.loads(obj.data[GEOMETRY_SPEC_KEY])["kind"],
                 "mesh_quality": (
@@ -434,6 +531,10 @@ def create_asset(request, *, authorized=False):
                     if obj.data.get("gameassetai_profile_mesh_quality") is not None else None
                 ),
                 "uv_layers": [layer.name for layer in obj.data.uv_layers],
+                "uv_mapping": (
+                    json.loads(obj.data[UV_MAPPING_SPEC_KEY])
+                    if obj.data.get(UV_MAPPING_SPEC_KEY) is not None else None
+                ),
             })
         triangle_count = sum(item["triangles"] for item in facts)
         if "style" in normalized and triangle_count > normalized["style"]["triangle_budget"]:
@@ -454,6 +555,9 @@ def create_asset(request, *, authorized=False):
             })
         if normalized["schema"].endswith(".v5") and sum(item["bytes"] for item in texture_facts) > normalized["appearance"]["max_texture_bytes"]:
             raise ValueError("generated textures exceed appearance.max_texture_bytes")
+        art_direction_application = _art_direction_application(normalized, facts)
+        if art_direction_application is not None:
+            collection[ART_DIRECTION_APPLICATION_KEY] = _canonical(art_direction_application)
         receipt = {
             "status": "created",
             "asset_name": normalized["asset_name"],
@@ -462,6 +566,7 @@ def create_asset(request, *, authorized=False):
             "parts": facts,
             "style": normalized.get("style"),
             "art_direction": normalized.get("art_direction"),
+            "art_direction_application": art_direction_application,
             "appearance": normalized.get("appearance"),
             "textures": texture_facts,
             "triangle_count": triangle_count,
@@ -471,9 +576,7 @@ def create_asset(request, *, authorized=False):
         return receipt
     except Exception:
         _rollback(token)
-        for path in reversed(created_files):
-            if path.is_file() and not path.is_symlink():
-                path.unlink()
+        _cleanup_created_files(created_files)
         raise
 
 
@@ -495,10 +598,15 @@ def _duplicate_part(source, object_name, mesh_name, token):
     return obj
 
 
-def _replacement_part(source, object_name, mesh_name, geometry, token):
+def _replacement_part(source, object_name, mesh_name, geometry, token, *, regenerate_uv=False):
     part = {"name": object_name, "geometry": geometry}
     mesh = _make_mesh(part, token)
     mesh.name = mesh_name
+    if regenerate_uv:
+        raw_mapping = source.data.get(UV_MAPPING_SPEC_KEY)
+        if raw_mapping is None:
+            raise ValueError(f"v5 source part has no UV mapping metadata: {source[ROLE_KEY]}")
+        _assign_local_box_uv(mesh, json.loads(raw_mapping))
     for material in source.data.materials:
         mesh.materials.append(material)
     obj = source.copy()
@@ -522,10 +630,11 @@ def revise_asset_copy(request, *, authorized=False):
     if not source.objects:
         raise ValueError("source collection is empty")
     source_token = source.get(OWNER_KEY)
-    geometry_revision = normalized["schema"].endswith((".v2", ".v3"))
+    geometry_revision = normalized["schema"].endswith((".v2", ".v3", ".v4"))
     required_source_schema = {
         "gameassetai.static-asset-revision-request.v2": "gameassetai.static-asset-assembly-request.v3",
         "gameassetai.static-asset-revision-request.v3": "gameassetai.static-asset-assembly-request.v4",
+        "gameassetai.static-asset-revision-request.v4": "gameassetai.static-asset-assembly-request.v5",
     }.get(normalized["schema"])
     if required_source_schema and source.get(ASSEMBLY_SCHEMA_KEY) != required_source_schema:
         raise ValueError(
@@ -538,6 +647,9 @@ def revise_asset_copy(request, *, authorized=False):
             raise ValueError("source must contain only owned semantic Mesh parts created by schema v2")
         if geometry_revision and obj.data.get(GEOMETRY_SPEC_KEY) is None:
             raise ValueError("geometry revision requires complete source geometry metadata")
+        if normalized["schema"].endswith(".v4"):
+            if len(obj.data.uv_layers) != 1 or obj.data.get(UV_MAPPING_SPEC_KEY) is None:
+                raise ValueError("revision v4 requires one complete source UV mapping")
         folded = role.casefold()
         if folded in role_objects:
             raise ValueError("source semantic roles are ambiguous")
@@ -568,13 +680,20 @@ def revise_asset_copy(request, *, authorized=False):
         collection[ASSEMBLY_SCHEMA_KEY] = source.get(ASSEMBLY_SCHEMA_KEY, "gameassetai.static-asset-assembly-request.v2")
         if source.get(STYLE_SPEC_KEY) is not None:
             collection[STYLE_SPEC_KEY] = source[STYLE_SPEC_KEY]
+        if source.get(ART_DIRECTION_SPEC_KEY) is not None:
+            collection[ART_DIRECTION_SPEC_KEY] = source[ART_DIRECTION_SPEC_KEY]
+        if source.get(APPEARANCE_SPEC_KEY) is not None:
+            collection[APPEARANCE_SPEC_KEY] = source[APPEARANCE_SPEC_KEY]
         scene.collection.children.link(collection)
         facts = []
         for source_obj, (object_name, mesh_name) in zip(source.objects, names):
             revision = revisions.get(source_obj[ROLE_KEY].casefold())
             replacement_geometry = revision.get("geometry") if revision is not None else None
             obj = (
-                _replacement_part(source_obj, object_name, mesh_name, replacement_geometry, token)
+                _replacement_part(
+                    source_obj, object_name, mesh_name, replacement_geometry, token,
+                    regenerate_uv=normalized["schema"].endswith(".v4"),
+                )
                 if replacement_geometry is not None
                 else _duplicate_part(source_obj, object_name, mesh_name, token)
             )
@@ -605,12 +724,46 @@ def revise_asset_copy(request, *, authorized=False):
                 "source_object": source_obj.name,
                 "geometry_kind": json.loads(obj.data[GEOMETRY_SPEC_KEY])["kind"],
                 "geometry_replaced": replacement_geometry is not None,
+                "uv_layers": [layer.name for layer in obj.data.uv_layers],
+                "uv_mapping": (
+                    json.loads(obj.data[UV_MAPPING_SPEC_KEY])
+                    if obj.data.get(UV_MAPPING_SPEC_KEY) is not None else None
+                ),
                 "mesh_quality": (
                     json.loads(obj.data["gameassetai_profile_mesh_quality"])
                     if obj.data.get("gameassetai_profile_mesh_quality") is not None else None
                 ),
             })
         style = json.loads(source[STYLE_SPEC_KEY]) if source.get(STYLE_SPEC_KEY) is not None else None
+        art_direction = (
+            json.loads(source[ART_DIRECTION_SPEC_KEY])
+            if source.get(ART_DIRECTION_SPEC_KEY) is not None else None
+        )
+        appearance = (
+            json.loads(source[APPEARANCE_SPEC_KEY])
+            if source.get(APPEARANCE_SPEC_KEY) is not None else None
+        )
+        art_direction_application = None
+        if art_direction is not None:
+            source_application = (
+                json.loads(source[ART_DIRECTION_APPLICATION_KEY])
+                if source.get(ART_DIRECTION_APPLICATION_KEY) is not None else None
+            )
+            art_direction_application = {
+                "source": "EXPLICIT_REVISION_GEOMETRY_SPECIFICATION",
+                "descriptive_fields_interpreted_by_blender": False,
+                "surface_style": art_direction["surface_style"],
+                "actual_parts": [{"semantic_role": item["semantic_role"],
+                                  "geometry_kind": item["geometry_kind"],
+                                  "dimensions": item["dimensions"]} for item in facts],
+                "materials_and_images": "SHARED_READ_ONLY_FROM_SOURCE",
+                "source_palette_exact_match": (
+                    source_application.get("palette_exact_match")
+                    if source_application is not None else None
+                ),
+                "unsupported": art_direction["unsupported"],
+            }
+            collection[ART_DIRECTION_APPLICATION_KEY] = _canonical(art_direction_application)
         triangle_count = sum(item["triangles"] for item in facts)
         if style is not None and triangle_count > style["triangle_budget"]:
             raise ValueError(
@@ -627,9 +780,17 @@ def revise_asset_copy(request, *, authorized=False):
             "revised_roles": [item["semantic_role"] for item in normalized["revisions"]],
             "parts": facts,
             "style": style,
+            "art_direction": art_direction,
+            "art_direction_application": art_direction_application,
+            "appearance": appearance,
             "triangle_count": triangle_count,
             "source_preserved": True,
             "shared_materials": True,
+            "shared_images": normalized["schema"].endswith(".v4"),
+            "replaced_geometry_uv_regenerated": (
+                normalized["schema"].endswith(".v4")
+                and any(item["geometry_replaced"] for item in facts)
+            ),
         }
         receipt["receipt_sha256"] = hashlib.sha256(_canonical(receipt).encode("utf-8")).hexdigest()
         return receipt
