@@ -42,6 +42,10 @@ head/arm/hand/foot proportion change, route through Character revision v1 so the
 unchanged. Do not describe these controls as a general character generator: hair, clothing,
 equipment, arbitrary faces/topology and creatures remain B6.2/B6.3 work. Apply the M2 rig only
 after separate landmark and deformation acceptance.
+Character v5 technical success is not art approval. The prior SD template result was explicitly
+rejected by the user and must not be selected as a default. When character style is unresolved,
+present real multi-view alternatives or use supplied references, record the selection, and stop
+before B6.2 hair/clothing/equipment work. Do not infer approval from agent visual review.
 
 For an existing asset, inspect before choosing a modification Skill. Use the animation
 copy/range/retarget/bake Skills only for their documented narrow inputs; do not treat them as a

@@ -1,10 +1,10 @@
 ---
 name: blender-create-character-base
-description: Create or copy-revise a bounded stylized humanoid base Mesh from explicit proportions, art direction and semantic body-region controls. Use native blockout modes, experimental v4 DEFORMATION_TEMPLATE, or accepted bounded v5 template creation/revision with a hash-pinned CC0 Blender Studio source. The rejected VOXEL_CONNECTED path remains suspended.
+description: Create or copy-revise a bounded humanoid base Mesh from explicit proportions, art direction and semantic body-region controls. Use native blockout modes or hash-pinned CC0 template v4/v5 paths for technical bases. Require separate user art-direction approval before treating a result as a character style or continuing to hair/clothing work.
 metadata:
   contract: gameassetai.skill-contract.v1
   requirements: REQ-CHAR, REQ-STYLE, REQ-COST, REQ-SAFE
-  evidence: accepted
+  evidence: representative
   external-dependencies: none
 ---
 
@@ -53,6 +53,9 @@ applies actual coordinate changes, checks a declared triangle budget, and record
 actually applied separately from unsupported style requests. Revision v1 accepts only an unrigged
 owned v5 source and creates a new Collection/Object/Mesh. It shares Materials read-only while
 preserving topology, active UV coordinates and vertices outside the adjusted semantic regions.
+These controls do not redesign the inherited face/head topology or create actual hair/clothing.
+The 2026-11-04 SD representative passed technical checks but was explicitly rejected by the user
+as a character-art direction; never use it as a default or as B6.2 visual approval.
 
 ## Workflow
 
@@ -64,7 +67,9 @@ preserving topology, active UV coordinates and vertices outside the adjusted sem
 4. Validate with `scripts/validate_character_base_request.py`.
 5. After explicit creation authorization, run `scripts/create_character_base.py` in Blender.
 6. Make the Workbench Scene active and show front, three-quarter and side views.
-7. Keep only the current review candidate visible. Modify or replace that candidate after review;
+7. Record technical validation separately from the user's art-direction decision. If style is not
+   approved, stop before hair/clothing production, rig/animation/export or default-preset claims.
+8. Keep only the current review candidate visible. Modify or replace that candidate after review;
    do not accumulate every iteration and do not delete the candidate immediately after showing it.
 
 For a later request such as “make the head slightly larger, shorten the arms and enlarge hands and
@@ -100,12 +105,13 @@ modifiers, vertex groups, Shape Keys, arbitrary imported topology and material/t
   Armature probe. Visual review found usable topology continuity but severe local compression in
   the lanky knee and limitations in the blockout-oriented rig/weights. V4 therefore remains an
   explicit experimental provider, not accepted `deformation-ready` product output.
-- V5 was exercised on an SD/stylized low-poly A-pose base and an independent larger-head,
+- V5 was exercised on an SD-proportioned A-pose base and an independent larger-head,
   shorter-arm, larger-hand/foot revision. Both retained the 12,502-vertex/12,500-quad topology,
   complete UVs and source hash; injected creation/revision failures rolled back; six common-camera
   views and fresh-process reopen passed. The revised base also passed the bounded M2 v3 explicit-
-  landmark shoulder/elbow/hip/knee gate. This is accepted only for the tested template and bounded
-  regional controls, not arbitrary character generation.
+  landmark shoulder/elbow/hip/knee gate. This is representative technical evidence only. User
+  review rejected the resulting face, empty-looking eye area, painted-on clothing, missing hair
+  and inconsistent body style, so no Character v5 output is an approved default art direction.
 
 ## Boundary
 

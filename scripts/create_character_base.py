@@ -489,7 +489,8 @@ def _apply_region_controls(mesh, controls):
     foot_x = maximum_x * 0.18
 
     changed = set()
-    untouched = set()
+    unchanged = set()
+    influenced = set()
     for index, (vertex, source) in enumerate(zip(mesh.vertices, original)):
         point = source.copy()
         total_weight = 0.0
@@ -498,6 +499,7 @@ def _apply_region_controls(mesh, controls):
             nonlocal point, total_weight
             if abs(factor - 1.0) <= 1.0e-12 or weight <= 0.0:
                 return
+            influenced.add(index)
             point[axis] = pivot + (point[axis] - pivot) * (1.0 + (factor - 1.0) * weight)
             total_weight = max(total_weight, weight)
 
@@ -530,16 +532,25 @@ def _apply_region_controls(mesh, controls):
         vertex.co = point
         if total_weight > 0.0 and (point - source).length > 1.0e-10:
             changed.add(index)
-        elif total_weight <= 0.0:
-            untouched.add(index)
+        else:
+            unchanged.add(index)
     mesh.update()
+    unaffected = set(range(len(mesh.vertices))) - influenced
     return {
         "operation": "SEMANTIC_REGION_WARP_V1",
         "controls": factors,
         "changed_vertices": len(changed),
-        "untouched_vertices": len(untouched),
+        "unchanged_vertices": len(unchanged),
+        "influenced_vertices": len(influenced),
+        "influenced_without_displacement": len(influenced - changed),
+        "unaffected_vertices": len(unaffected),
+        # Retain the v5 receipt field as a compatibility alias. In v5 it meant
+        # vertices outside any active regional control, not every unmoved vertex.
+        "untouched_vertices": len(unaffected),
         "changed_indices": sorted(changed),
-        "untouched_indices": sorted(untouched),
+        "unchanged_indices": sorted(unchanged),
+        "unaffected_indices": sorted(unaffected),
+        "untouched_indices": sorted(unaffected),
     }
 
 
@@ -760,7 +771,7 @@ def create_character(request, *, authorized=False):
                 receipt["semantic_region_vertices"] = region_counts
                 receipt["regional_application"] = {
                     key: value for key, value in regional_application.items()
-                    if key not in {"changed_indices", "untouched_indices"}
+                    if key not in {"changed_indices", "unchanged_indices", "unaffected_indices", "untouched_indices"}
                 }
                 receipt["triangles"] = sum(max(0, len(polygon.vertices) - 2) for polygon in mesh.polygons)
                 receipt["polygon_budget"] = data["art_direction"]["polygon_budget"]
@@ -839,7 +850,7 @@ def revise_character_copy(request, *, authorized=False):
             raise RuntimeError("character revision changed Material references")
         if any((vertex.co - original).length > 1.0e-12 for vertex, original in zip(source_mesh.vertices, source_coordinates)):
             raise RuntimeError("character revision modified source Mesh coordinates")
-        for index in application["untouched_indices"]:
+        for index in application["unaffected_indices"]:
             if (mesh.vertices[index].co - source_coordinates[index]).length > 1.0e-12:
                 raise RuntimeError("character revision changed an untouched vertex")
 
@@ -869,7 +880,7 @@ def revise_character_copy(request, *, authorized=False):
             "material_names": [material.name for material in mesh.materials],
             "regional_application": {
                 key: value for key, value in application.items()
-                if key not in {"changed_indices", "untouched_indices"}
+                if key not in {"changed_indices", "unchanged_indices", "unaffected_indices", "untouched_indices"}
             },
             "source_preserved": True,
             "uv_preserved": True,

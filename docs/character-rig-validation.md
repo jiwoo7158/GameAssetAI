@@ -25,12 +25,16 @@ This evidence accepts M2 only for the explicit-landmark, single-body, local A-po
 not certify automatic landmark discovery, arbitrary production topology, layered clothing/hair,
 existing-rig replacement, facial/twist/corrective rigs, Mixamo or Unity.
 
-B6.1 reused that unchanged contract on the accepted SD/stylized template revision. Geometry/UV
+B6.1 reused that unchanged contract on the technically validated SD/stylized template revision. Geometry/UV
 remained exact, weights had maximum normalization error `3.33e-16` and zero cross-side influence;
 minimum sampled face-area ratios were shoulder/elbow `0.2410`, hip `0.8184` and knee `0.4810`.
-Six rest/pose images received explicit hash-bound acceptance with no severe collapse or crossing.
+Six rest/pose images received explicit hash-bound technical review with no severe collapse or crossing.
 Large hands are still controlled by one hand bone, so finger articulation and detailed hand
-deformation are not supported. This is bounded compatibility evidence, not a general SD rig claim.
+deformation are not supported. The user later rejected the character art direction; that does not
+invalidate the bounded deformation measurement, but it prevents treating the model as an approved
+visual target. The Angular/Toon/Sprite-Friendly comparison prototypes are separate unrigged studies
+and have no M2/M3/M4 compatibility claim. This is bounded compatibility evidence, not a general SD
+rig claim.
 
 The rig mechanics remain tested, but the later connected live candidate is rejected because its
 input topology visibly fused/bridged leg or foot geometry. Do not treat successful binding, full

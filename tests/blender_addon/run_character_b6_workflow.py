@@ -226,6 +226,11 @@ def main():
     source_uv = [[float(value) for value in loop.uv] for loop in source_mesh.uv_layers.active.data]
     source_topology = topology(source_mesh)
     source_materials = tuple(source_mesh.materials)
+    creation_application = created["regional_application"]
+    if creation_application["changed_vertices"] + creation_application["unchanged_vertices"] != len(source_mesh.vertices):
+        raise AssertionError("creation movement accounting does not cover every vertex")
+    if creation_application["influenced_vertices"] + creation_application["unaffected_vertices"] != len(source_mesh.vertices):
+        raise AssertionError("creation influence accounting does not cover every vertex")
 
     injected = revision_request()
     injected["character_name"] += " Failure"; injected["collection_name"] += " Failure"
@@ -255,6 +260,11 @@ def main():
                      for index in range(len(source_coords))]
     unchanged = sum(value <= 1e-12 for value in displacements)
     failures = []
+    revision_application = revised["regional_application"]
+    if revision_application["changed_vertices"] + revision_application["unchanged_vertices"] != len(revised_mesh.vertices):
+        failures.append("revision movement accounting does not cover every vertex")
+    if revision_application["influenced_vertices"] + revision_application["unaffected_vertices"] != len(revised_mesh.vertices):
+        failures.append("revision influence accounting does not cover every vertex")
     if source_topology != revised_topology:
         failures.append("revision topology differs")
     if source_uv != revised_uv:

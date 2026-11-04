@@ -118,13 +118,29 @@ Six point-domain weight attributes drive real coordinate changes without changin
 UV loops. Revision v1 accepts only an unrigged owned v5 source and creates a new Collection,
 Object and Mesh; Materials are shared read-only and vertices outside adjusted regions remain exact.
 
-The accepted SD/stylized representative and its larger-head, shorter-arm, larger-hand/foot copy
+The technically validated SD/stylized representative and its larger-head, shorter-arm,
+larger-hand/foot copy
 retain 12,502 vertices, 12,500 quads, 25,000 triangles, complete UVs and zero bilateral symmetry
-error. The revision changed 8,988 vertices and preserved 3,510 exactly. Bad source hash and an
+error. The original report counted 8,988 displaced and 3,510 region-unaffected vertices, leaving
+four influenced vertices with zero net displacement unaccounted for. The corrected receipt now
+classifies every vertex by actual displacement (`changed_vertices` + `unchanged_vertices`) and
+records intended influence separately (`influenced_vertices` + `unaffected_vertices`). Bad source hash and an
 injected post-copy failure restored exact Blender baselines. Six common-camera views were directly
-accepted and the saved Blend reopened in Blender 5.0.1. Evidence is under
+reviewed by the implementing agent and the saved Blend reopened in Blender 5.0.1. Evidence is under
 `D:/Blender/MCP_Test/GameAssetAI/runs/B6.1/20261104T023823Z-stylized-sd-humanoid-e69798bc`.
 
 This is a style-aware base from one known topology, not arbitrary character generation. It does
 not generate hair, clothing, equipment, new facial topology, Shape Keys or creatures. Empty eye
 sockets/basic facial forms remain inherited from the source template.
+
+The user explicitly rejected that visual direction after technical validation. It remains valid
+evidence for v5 copy-only regional deformation and the bounded M2 gate, but is not an accepted
+character style, default asset or B6.2 continuation body. The 25,000-triangle source topology is
+also not a Low-Poly topology merely because its proportions or materials are stylized.
+
+The follow-up art-direction run at
+`D:/Blender/MCP_Test/GameAssetAI/runs/B6.1-art-direction/20261104T032627Z-character-style-comparison-04f2fc2a`
+contains three unrigged comparison prototypes: Angular Low-Poly (612 vertices/1,116 triangles),
+Stylized Toon (1,686/3,260) and 2.5D/Sprite-Friendly (1,578/3,044). Each has real face, hair and
+clothing/accessory meshes and common front/side/three-quarter renders. These are deliberately
+bounded direction studies; user selection or replacement references are required before B6.2.

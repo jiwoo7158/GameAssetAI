@@ -30,6 +30,19 @@ Existing projects remain where they already are.
 The source `workspace-template/` creates this personal workspace; it is not an asset
 output folder. The concrete initial contract is in `docs/workspace-contract.md`.
 
+### C. GameAssetAI_UnityWorkbench (future review environment)
+
+`GameAssetAI_UnityWorkbench` is reserved for an isolated Unity asset-review project, not a
+user's game project and not an automatic deployment target. Its intended responsibility is to
+inspect imported Models, Rigs, Materials, Animation clips, character/equipment placement and
+optional 2D outputs under repeatable camera, lighting and playback conditions.
+
+No current workflow may assume that this project exists, copy assets into an unrelated Unity
+project, or modify a user's game. Its path, Unity version, Scenes and installed review code must
+be inspected before B6.4 work begins. Creation of the review project is a separate authorized
+work item. B8 engine validation should use this isolated review boundary by default unless the
+user explicitly selects another safe test project.
+
 ## Runtime relationship
 
 ```text

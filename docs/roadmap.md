@@ -310,14 +310,48 @@ B6 sub-stages are: B6.0 current-code technical review; B6.1 styled humanoid crea
 B6.2 hair/clothing/equipment; B6.3 non-humanoids/creatures; B6.4 bounded rig/animation/engine
 integration. This work package implements only B6.0 and B6.1; it cannot close B6 as a whole.
 
-Creation v5 and revision v1 now provide the bounded template-derived path above. The accepted
-representative retained 12,502 vertices, 12,500 quads, 25,000 triangles, complete UVs and exact
-bilateral symmetry; its revision changed 8,988 vertices while preserving 3,510 vertices exactly.
-Six shared-camera character views and six M2 rest/pose views have hash-bound visual acceptance,
+Creation v5 and revision v1 now provide the bounded template-derived path above. The technically
+validated representative retained 12,502 vertices, 12,500 quads, 25,000 triangles, complete UVs
+and exact bilateral symmetry. Its original receipt reported 8,988 displaced and 3,510 region-
+unaffected vertices; movement accounting now partitions all vertices by displacement and records
+region influence separately. Six shared-camera character views and six M2 rest/pose views have
+hash-bound technical review,
 the Blend reopened, and the explicit-landmark shoulder/elbow/hip/knee gate passed. Evidence:
 `D:/Blender/MCP_Test/GameAssetAI/runs/B6.1/`
-`20261104T023823Z-stylized-sd-humanoid-e69798bc`. The next B6 work is B6.2
-hair/clothing/equipment. B6 overall remains open through B6.4.
+`20261104T023823Z-stylized-sd-humanoid-e69798bc`. B6 overall remains open through B6.4.
+
+User review on 2026-11-04 rejected that representative as a character-art direction. Its
+topology/UV/revision/rollback and bounded M2 evidence remain valid engineering evidence, but the
+model is not an approved visual reference, default style or B6.2 body. Empty-looking eyes,
+template-dependent face/head, painted-on clothing and missing hair made it read as an anatomical
+mannequin rather than a game character.
+
+#### Completed comparison work package: B6.1 art-direction comparison and B6.2 foundation decision -- 2026-11-04
+
+- Requirements: `REQ-CHAR`, `REQ-STYLE`, `REQ-SAFE`, bounded `REQ-WORKFLOW` and `REQ-COST`.
+- Reuse: current v5 technical contracts, semantic-region revision, Blender-native mesh/material
+  operations, Artifact Lifecycle and hash-bound visual review. Preserve M2-M4 unchanged.
+- Gap: v5 inherits the template face/head and has no actual hair/clothing components; its six
+  coarse regions cannot establish a coherent character-art direction. The previous agent visual
+  acceptance was superseded by explicit user rejection.
+- Implementation boundary: correct complete vertex movement accounting; build three clearly
+  different non-final Blender comparison prototypes (angular low-poly, stylized toon and
+  sprite-friendly 2.5D) with real face/hair/clothing silhouette Meshes; record polygon cost,
+  construction method, likely rig boundary and unsupported work. Do not promote any candidate
+  until the user selects one or supplies references.
+- Validation: common camera/light/background front, side and three-quarter views, fresh reopen,
+  distinct geometry/silhouette/material facts, source preservation and no-overwrite output.
+- Non-goals: production hair/clothing/equipment generation or refit, final topology, skinning,
+  M3/M4 changes, external dependencies, Unity project creation, or B6.2 completion.
+- Unity policy: `GameAssetAI_UnityWorkbench` is a future isolated review environment only. Do not
+  infer it exists or deliver into a user's real game project; confirm its path/version/state at B6.4.
+
+Angular Low-Poly, Stylized Toon and 2.5D/Sprite-Friendly prototypes were generated as real Blender
+Meshes with distinct face, hair, clothing/accessory silhouettes and common front/side/three-quarter
+views. They reopened successfully and remain direction studies, not rig-ready or approved defaults.
+Evidence is under `D:/Blender/MCP_Test/GameAssetAI/runs/B6.1-art-direction/`
+`20261104T032627Z-character-style-comparison-04f2fc2a`. The active gate is user selection or new
+reference material; B6.2 implementation has not started.
 
 ### B7 -- Natural-language integrated production and Blender Add-on
 

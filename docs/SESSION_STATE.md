@@ -29,14 +29,19 @@ The official active sequence is now B1 (complete), B1.1 (complete), B2 bounded s
 UV/texture production (complete), B5 bounded static-domain breadth (complete), then B6 character,
 clothing and creature production redesign. B7-B8 are recorded in `docs/roadmap.md`.
 
-B6.0/B6.1 are now complete in a bounded template-derived scope. Character creation v5 adds
-explicit art provenance and semantic head/torso/arm/leg/hand/foot controls; revision v1 creates an
-independent owned Mesh while preserving topology, UVs, shared Materials and untouched vertices.
-The accepted SD/stylized A-pose base and revision retained 12,502 vertices/12,500 quads/25,000
-triangles and passed shared-camera review, failure rollback and fresh reopen. The revision also
-passed the existing M2 v3 explicit-landmark shoulder/elbow/hip/knee gate. This is not arbitrary
-character creation, hair/clothing/equipment, facial rigging or creature support. B6.2 is next;
-B6 overall remains in progress.
+B6.0 and the bounded Character v5 mechanics of B6.1 are complete as technical foundations.
+Character creation v5 records art provenance and applies semantic head/torso/arm/leg/hand/foot
+controls; revision v1 creates an independent owned Mesh while preserving topology, UVs, shared
+Materials and every vertex not displaced by the requested controls. The template-derived base
+and revision retained 12,502 vertices/12,500 quads/25,000 triangles, survived rollback/reopen and
+passed the existing M2 v3 explicit-landmark shoulder/elbow/hip/knee gate.
+
+The user explicitly rejected that representative's visual art direction. It is technical
+creation/revision/rig evidence only: it is not an accepted SD style, a default character or the
+body on which B6.2 may proceed. Angular Low-Poly, Stylized Toon and 2.5D/Sprite-Friendly Blender
+comparison prototypes now provide real face, hair and clothing silhouettes under common views;
+they are unrigged direction studies and require user selection or new references. B6.1 art
+direction and B6 overall remain in progress. B6.2 is gated on that selection.
 
 Proven foundations to retain:
 
@@ -59,6 +64,8 @@ Do not overstate:
 - hair, clothing, equipment, creatures, broad existing-mesh editing and facial rigging are not implemented;
 - Add-on 0.1.5 is persistently installable but primarily covers 2D preview/setup/export;
 - Unity `engine-proven` evidence is Generic, not Humanoid Avatar;
+- `GameAssetAI_UnityWorkbench` is a future isolated review project, not a real game project or an
+  automatic delivery target; its actual path/version/Scenes remain unverified until B6.4;
 - 2D pipeline evidence proves deterministic conversion, not autonomous pixel-art direction.
 
 ## Audit outputs

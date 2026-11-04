@@ -45,6 +45,12 @@ def main():
                    "rigging": "NOT_INCLUDED"},
     }
     source = create_character(creation, authorized=True)
+    source_application = source["regional_application"]
+    source_vertex_count = len(bpy.data.objects[source["object_name"]].data.vertices)
+    if source_application["changed_vertices"] + source_application["unchanged_vertices"] != source_vertex_count:
+        raise AssertionError("installed Character v5 creation movement accounting is incomplete")
+    if source_application["influenced_vertices"] + source_application["unaffected_vertices"] != source_vertex_count:
+        raise AssertionError("installed Character v5 creation influence accounting is incomplete")
     revision = {
         "schema": "gameassetai.character-base-revision-request.v1", "scene_name": bpy.context.scene.name,
         "source_collection_name": source["collection_name"], "source_object_name": source["object_name"],
@@ -56,6 +62,12 @@ def main():
                    "failure": "ROLL_BACK_OWNED_DATA", "rigging": "NOT_INCLUDED"},
     }
     revised = revise_character_copy(revision, authorized=True)
+    revision_application = revised["regional_application"]
+    revision_vertex_count = len(bpy.data.objects[revised["object_name"]].data.vertices)
+    if revision_application["changed_vertices"] + revision_application["unchanged_vertices"] != revision_vertex_count:
+        raise AssertionError("installed Character v5 revision movement accounting is incomplete")
+    if revision_application["influenced_vertices"] + revision_application["unaffected_vertices"] != revision_vertex_count:
+        raise AssertionError("installed Character v5 revision influence accounting is incomplete")
     remove_created_character(revised)
     remove_created_character(source)
     after = {name: sorted(item.name for item in getattr(bpy.data, name)) for name in before}
