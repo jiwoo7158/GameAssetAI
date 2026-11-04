@@ -16,8 +16,9 @@ Current product facts:
 - static creation retains four legacy primitives, bounded v3 profile extrusion, accepted v4
   matched-profile beveled solids and v5 explicit art-direction/UV/generated-image material
   production plus copy-only owned semantic geometry replacement;
-- character creation is blockout or a hash-pinned CC0 human-template proportion workflow, not a
-  general character/style generator;
+- character creation is blockout or a hash-pinned CC0 human-template proportion workflow. V5 adds
+  bounded semantic regional controls and copy-only revision with accepted SD/stylized evidence,
+  but it is not a general character/style generator;
 - M2/M3/M3.4/M4 evidence is valid only for its documented A-pose, 17-role `IN_PLACE`, single-Action
   and Unity Generic scopes;
 - the Add-on is persistently installable, but its implemented UI is primarily 2D
@@ -171,8 +172,8 @@ integrated into the Add-on; advanced passes remain explicit opt-in tools.
 
 ## Active product gaps, in order
 
-1. Execute B6 character/clothing/creature production redesign while reusing eligible M2-M4
-   rig/animation/export foundations.
+1. Continue B6.2 hair/clothing/equipment after the accepted bounded B6.1 styled humanoid base;
+   then B6.3 creatures and B6.4 downstream integration.
 2. Continue B7-B8 in the official roadmap order unless a concrete user request justifies a
    documented bounded dependency.
 
@@ -297,3 +298,19 @@ Blender process reopened the Blend and verified semantic roles, independent Mesh
 Materials, packed Images and external texture hashes. This closes B5 only for these representative
 static domains. It is not evidence of arbitrary noun-to-mesh generation, general unwrap, texture
 painting, material revision or character/creature production.
+
+## B6.0/B6.1 bounded styled humanoid foundation -- 2026-11-04
+
+Existing v4 template loading/topology/UV preservation and M2 explicit landmarks/18-bone weights
+remain reusable. M3.3 bounded retarget, M3.4 Action preparation and M4 Generic export remain
+downstream unchanged. Primitive/Boolean blockouts, automatic landmarks, layered garments and
+arbitrary topology are not suitable foundations for this gate.
+
+Character creation v5 adds explicit art provenance and bounded semantic body-region controls;
+revision v1 independently copies an owned unrigged v5 Mesh and preserves topology, UVs, Materials
+and untouched vertices. Accepted evidence is
+`D:/Blender/MCP_Test/GameAssetAI/runs/B6.1/20261104T023823Z-stylized-sd-humanoid-e69798bc`:
+12,502 vertices, 12,500 quads, 25,000 triangles, six base/revision views, six M2 rest/pose views,
+injected failure rollback and fresh reopen. The M2 gate passed shoulder/elbow/hip/knee deformation,
+but one hand bone cannot provide finger articulation. Hair, clothing, equipment, facial generation/
+rigging and creatures remain B6.2/B6.3; Mixamo and Unity were not revalidated.

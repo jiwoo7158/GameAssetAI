@@ -9,9 +9,22 @@ SCHEMAS = {
     "gameassetai.character-base-request.v2",
     "gameassetai.character-base-request.v3",
     "gameassetai.character-base-request.v4",
+    "gameassetai.character-base-request.v5",
 }
+REVISION_SCHEMAS = {"gameassetai.character-base-revision-request.v1"}
 POSES = {"A_POSE", "T_POSE"}
 MATERIAL_KEYS = ("skin", "primary", "secondary", "boots")
+REGION_LIMITS = {
+    "head_scale": (0.85, 1.35),
+    "head_width_scale": (0.8, 1.35),
+    "head_depth_scale": (0.8, 1.3),
+    "torso_width_scale": (0.8, 1.25),
+    "arm_length_scale": (0.75, 1.15),
+    "arm_thickness_scale": (0.75, 1.25),
+    "leg_length_scale": (0.85, 1.15),
+    "hand_scale": (0.8, 1.4),
+    "foot_scale": (0.8, 1.4),
+}
 
 
 def _canonical(value):
@@ -32,10 +45,12 @@ def validate_request(request):
         raise ValueError("request must be an object")
     schema = request.get("schema")
     expected = {"schema", "scene_name", "character_name", "collection_name", "object_name", "mesh_name", "pose", "proportions", "colors", "policy"}
-    if schema in {"gameassetai.character-base-request.v2", "gameassetai.character-base-request.v3", "gameassetai.character-base-request.v4"}:
+    if schema in {"gameassetai.character-base-request.v2", "gameassetai.character-base-request.v3", "gameassetai.character-base-request.v4", "gameassetai.character-base-request.v5"}:
         expected.add("topology_mode")
-    if schema == "gameassetai.character-base-request.v4":
+    if schema in {"gameassetai.character-base-request.v4", "gameassetai.character-base-request.v5"}:
         expected.add("template")
+    if schema == "gameassetai.character-base-request.v5":
+        expected.update({"art_direction", "regions"})
     if set(request) != expected:
         raise ValueError(f"request fields must be exactly {sorted(expected)}")
     if schema not in SCHEMAS:
@@ -46,8 +61,8 @@ def validate_request(request):
         raise ValueError("VOXEL_CONNECTED is suspended after unintended humanoid limb/foot fusion")
     if schema.endswith(".v3") and request["topology_mode"] != "BOOLEAN_CONNECTED":
         raise ValueError("v3 topology_mode must be BOOLEAN_CONNECTED")
-    if schema.endswith(".v4") and request["topology_mode"] != "DEFORMATION_TEMPLATE":
-        raise ValueError("v4 topology_mode must be DEFORMATION_TEMPLATE")
+    if schema in {"gameassetai.character-base-request.v4", "gameassetai.character-base-request.v5"} and request["topology_mode"] != "DEFORMATION_TEMPLATE":
+        raise ValueError("v4/v5 topology_mode must be DEFORMATION_TEMPLATE")
     for key in ("scene_name", "character_name", "collection_name", "object_name", "mesh_name"):
         if not isinstance(request[key], str) or not request[key].strip() or len(request[key]) > 128:
             raise ValueError(f"{key} must be a non-empty string up to 128 characters")
@@ -55,10 +70,10 @@ def validate_request(request):
         raise ValueError("collection_name, object_name and mesh_name must be distinct")
     if request["pose"] not in POSES:
         raise ValueError(f"pose must be one of {sorted(POSES)}")
-    if schema.endswith(".v4") and request["pose"] != "A_POSE":
-        raise ValueError("v4 template creation currently requires A_POSE")
+    if schema in {"gameassetai.character-base-request.v4", "gameassetai.character-base-request.v5"} and request["pose"] != "A_POSE":
+        raise ValueError("v4/v5 template creation currently requires A_POSE")
 
-    if schema.endswith(".v4"):
+    if schema in {"gameassetai.character-base-request.v4", "gameassetai.character-base-request.v5"}:
         template = request["template"]
         template_fields = {
             "source_file", "source_sha256", "mesh_name", "source_name",
@@ -81,6 +96,45 @@ def validate_request(request):
             raise ValueError("v4 currently accepts only an explicitly identified CC0-1.0 template")
         if template["front_axis"] != "-Y":
             raise ValueError("template.front_axis must be -Y")
+
+    if schema == "gameassetai.character-base-request.v5":
+        regions = request["regions"]
+        if not isinstance(regions, dict) or set(regions) != set(REGION_LIMITS):
+            raise ValueError(f"regions fields must be exactly {sorted(REGION_LIMITS)}")
+        for key, limits in REGION_LIMITS.items():
+            regions[key] = _number(regions[key], f"regions.{key}", *limits)
+
+        art = request["art_direction"]
+        art_fields = {"style_family", "silhouette", "shape_language", "palette", "polygon_budget", "provenance", "unsupported"}
+        if not isinstance(art, dict) or set(art) != art_fields:
+            raise ValueError(f"art_direction fields must be exactly {sorted(art_fields)}")
+        if art["style_family"] not in {"STYLIZED_LOW_POLY_SD", "CUSTOM"}:
+            raise ValueError("art_direction.style_family must be STYLIZED_LOW_POLY_SD or CUSTOM")
+        for key in ("silhouette", "shape_language"):
+            if not isinstance(art[key], str) or not art[key].strip() or len(art[key]) > 256:
+                raise ValueError(f"art_direction.{key} must be a non-empty string up to 256 characters")
+        palette = art["palette"]
+        if not isinstance(palette, list) or not 2 <= len(palette) <= 8:
+            raise ValueError("art_direction.palette must contain 2 to 8 RGBA colors")
+        for index, color in enumerate(palette):
+            if not isinstance(color, list) or len(color) != 4:
+                raise ValueError(f"art_direction.palette[{index}] must be RGBA")
+            palette[index] = [_number(value, f"art_direction.palette[{index}]", 0.0, 1.0) for value in color]
+            if palette[index][3] != 1.0:
+                raise ValueError("art_direction palette must be opaque")
+        art["polygon_budget"] = int(_number(art["polygon_budget"], "art_direction.polygon_budget", 10000, 100000))
+        provenance = art["provenance"]
+        if not isinstance(provenance, dict) or set(provenance) != {"source", "source_ref", "profile_sha256"}:
+            raise ValueError("art_direction.provenance fields must be source, source_ref and profile_sha256")
+        if provenance["source"] not in {"USER_REQUEST", "WORKSPACE_PROFILE", "USER_AND_PROFILE"}:
+            raise ValueError("art_direction.provenance.source is unsupported")
+        if not isinstance(provenance["source_ref"], str) or not provenance["source_ref"].strip():
+            raise ValueError("art_direction.provenance.source_ref must be non-empty")
+        digest = provenance["profile_sha256"]
+        if digest is not None and (not isinstance(digest, str) or len(digest) != 64 or any(c not in "0123456789abcdef" for c in digest)):
+            raise ValueError("art_direction.provenance.profile_sha256 must be null or lowercase SHA-256")
+        if not isinstance(art["unsupported"], list) or any(not isinstance(item, str) or not item.strip() for item in art["unsupported"]):
+            raise ValueError("art_direction.unsupported must be a list of non-empty strings")
 
     proportions = request["proportions"]
     fields = {"height", "shoulder_width_ratio", "hip_width_ratio", "body_depth_ratio", "limb_thickness_ratio", "head_height_ratio"}
@@ -114,6 +168,47 @@ def validate_request(request):
     if request["policy"] != required_policy:
         raise ValueError(f"policy must be exactly {required_policy}")
 
+    normalized = json.loads(_canonical(request))
+    return {
+        "status": "ready",
+        "request": normalized,
+        "request_sha256": hashlib.sha256(_canonical(normalized).encode("utf-8")).hexdigest(),
+    }
+
+
+def validate_revision_request(request):
+    if not isinstance(request, dict):
+        raise ValueError("request must be an object")
+    expected = {
+        "schema", "scene_name", "source_collection_name", "source_object_name",
+        "character_name", "collection_name", "object_name", "mesh_name",
+        "regional_adjustments", "policy",
+    }
+    if set(request) != expected:
+        raise ValueError(f"revision request fields must be exactly {sorted(expected)}")
+    if request["schema"] not in REVISION_SCHEMAS:
+        raise ValueError(f"revision schema must be one of {sorted(REVISION_SCHEMAS)}")
+    for key in expected - {"schema", "regional_adjustments", "policy"}:
+        if not isinstance(request[key], str) or not request[key].strip() or len(request[key]) > 128:
+            raise ValueError(f"{key} must be a non-empty string up to 128 characters")
+    adjustments = request["regional_adjustments"]
+    if not isinstance(adjustments, dict) or not adjustments or not set(adjustments) <= set(REGION_LIMITS):
+        raise ValueError(f"regional_adjustments must contain supported keys from {sorted(REGION_LIMITS)}")
+    changed = False
+    for key in list(adjustments):
+        adjustments[key] = _number(adjustments[key], f"regional_adjustments.{key}", *REGION_LIMITS[key])
+        changed = changed or abs(adjustments[key] - 1.0) > 1.0e-8
+    if not changed:
+        raise ValueError("regional_adjustments must include at least one non-identity value")
+    required_policy = {
+        "existing_names": "REFUSE",
+        "source": "PRESERVE",
+        "revision": "NEW_COLLECTION_OBJECT_MESH_SHARED_MATERIALS_PRESERVE_UV_TOPOLOGY",
+        "failure": "ROLL_BACK_OWNED_DATA",
+        "rigging": "NOT_INCLUDED",
+    }
+    if request["policy"] != required_policy:
+        raise ValueError(f"policy must be exactly {required_policy}")
     normalized = json.loads(_canonical(request))
     return {
         "status": "ready",

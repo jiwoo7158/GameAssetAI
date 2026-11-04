@@ -1,10 +1,10 @@
 ---
 name: blender-create-character-base
-description: Create a stylized humanoid base Mesh from explicit proportions and colors. Use native VOLUME_ISLANDS or guarded v3 BOOLEAN_CONNECTED for blockouts, or explicitly opt into experimental v4 DEFORMATION_TEMPLATE with a hash-pinned CC0 Blender Studio Human Base Mesh source. The rejected VOXEL_CONNECTED path remains suspended.
+description: Create or copy-revise a bounded stylized humanoid base Mesh from explicit proportions, art direction and semantic body-region controls. Use native blockout modes, experimental v4 DEFORMATION_TEMPLATE, or accepted bounded v5 template creation/revision with a hash-pinned CC0 Blender Studio source. The rejected VOXEL_CONNECTED path remains suspended.
 metadata:
   contract: gameassetai.skill-contract.v1
   requirements: REQ-CHAR, REQ-STYLE, REQ-COST, REQ-SAFE
-  evidence: representative
+  evidence: accepted
   external-dependencies: none
 ---
 
@@ -47,11 +47,18 @@ V3 `BOOLEAN_CONNECTED` creates a single closed surface while preserving bilatera
 proportion warp without changing connectivity or UV loops, assigns the requested material roles
 and records source/version/license/hash provenance.
 
+V5 keeps the same explicit CC0 template boundary and adds art-direction provenance plus bounded
+head/torso/arm/leg/hand/foot controls. It stores six point-domain semantic weight attributes,
+applies actual coordinate changes, checks a declared triangle budget, and records what Blender
+actually applied separately from unsupported style requests. Revision v1 accepts only an unrigged
+owned v5 source and creates a new Collection/Object/Mesh. It shares Materials read-only while
+preserving topology, active UV coordinates and vertices outside the adjusted semantic regions.
+
 ## Workflow
 
 1. Inspect the target Scene and requested output names.
 2. Translate the character brief into one complete
-   `gameassetai.character-base-request.v1`, `.v3` or `.v4` request. Use v4 only with a reviewed
+   `gameassetai.character-base-request.v1`, `.v3`, `.v4` or `.v5` request. Use v4/v5 only with a reviewed
    local CC0 template path, exact Mesh name and SHA-256.
 3. Review height, body ratios, A/T pose and colors before persistent creation.
 4. Validate with `scripts/validate_character_base_request.py`.
@@ -59,6 +66,11 @@ and records source/version/license/hash provenance.
 6. Make the Workbench Scene active and show front, three-quarter and side views.
 7. Keep only the current review candidate visible. Modify or replace that candidate after review;
    do not accumulate every iteration and do not delete the candidate immediately after showing it.
+
+For a later request such as “make the head slightly larger, shorten the arms and enlarge hands and
+feet”, use `gameassetai.character-base-revision-request.v1`. Require the exact owned v5 Collection
+and Object, unused result names and explicit regional multipliers. Refuse a rigged source,
+modifiers, vertex groups, Shape Keys, arbitrary imported topology and material/texture revision.
 
 ## Preservation
 
@@ -70,6 +82,8 @@ and records source/version/license/hash provenance.
   animation must use the same convention.
 - V4 refuses a symlink, missing/wrong hash, missing Mesh, Shape Keys or external Material
   dependencies and rolls back only data appended or created by that request.
+- V5 uses the same source rules. Revision copies mutable Mesh data before editing, never changes the
+  source, and refuses occupied result names. Materials remain shared read-only.
 - Test fixtures are disposable; user-review candidates remain until accepted, replaced or
   explicitly discarded.
 
@@ -86,10 +100,17 @@ and records source/version/license/hash provenance.
   Armature probe. Visual review found usable topology continuity but severe local compression in
   the lanky knee and limitations in the blockout-oriented rig/weights. V4 therefore remains an
   explicit experimental provider, not accepted `deformation-ready` product output.
+- V5 was exercised on an SD/stylized low-poly A-pose base and an independent larger-head,
+  shorter-arm, larger-hand/foot revision. Both retained the 12,502-vertex/12,500-quad topology,
+  complete UVs and source hash; injected creation/revision failures rolled back; six common-camera
+  views and fresh-process reopen passed. The revised base also passed the bounded M2 v3 explicit-
+  landmark shoulder/elbow/hip/knee gate. This is accepted only for the tested template and bounded
+  regional controls, not arbitrary character generation.
 
 ## Boundary
 
 This Skill creates either a proportioned low-poly blockout or an explicit template-derived base.
-It does not create an Armature or weights. V4 preserves template UVs and edge flow but does not
-certify arbitrary proportions, production skinning, Mixamo compatibility or deformation quality.
+It does not create an Armature or weights. V4/v5 preserve template UVs and edge flow but do not
+certify arbitrary proportions, layered clothing/hair, facial features/rigging, creatures, Mixamo
+compatibility or production deformation quality.
 The generated-fixture rig must not be treated as a general template-rig adapter.

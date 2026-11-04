@@ -337,6 +337,12 @@ def _publish_staged_file(staged, output):
     os.link(staged, output)
 
 
+def _verify_published_file(output, expected_identity, expected_sha256):
+    if (_file_identity(output) != tuple(expected_identity)
+            or _file_sha256(output) != expected_sha256):
+        raise RuntimeError(f"published texture identity/hash changed unexpectedly: {output}")
+
+
 def _pack_texture_image(image):
     image.pack()
 
@@ -360,12 +366,17 @@ def _make_texture_image(spec, output_directory, token, created_files):
     if (not staged.is_file() or staged.is_symlink()
             or staged.stat().st_size < 8 or staged.read_bytes()[:8] != b"\x89PNG\r\n\x1a\n"):
         raise RuntimeError(f"staged texture is not a valid PNG: {staged}")
+    staged_identity = _file_identity(staged)
+    staged_sha256 = _file_sha256(staged)
     try:
         _publish_staged_file(staged, output)
     except FileExistsError as exc:
         raise ValueError(f"texture output became occupied during publication: {output}") from exc
+    # A successful hard link has the staged file's identity/content. Register those precomputed
+    # facts immediately so any later verification/packing exception can remove the owned output.
     created_files.append({"path": str(output), "kind": "published",
-                          "identity": _file_identity(output), "sha256": _file_sha256(output)})
+                          "identity": staged_identity, "sha256": staged_sha256})
+    _verify_published_file(output, staged_identity, staged_sha256)
     staged.unlink()
     image.filepath_raw = str(output)
     _pack_texture_image(image)

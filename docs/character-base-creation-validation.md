@@ -101,3 +101,30 @@ UV layout. Material
 boundaries are reconstructed from the nearest source surface, and the current rig still uses
 rigid per-region v1 weights. Production topology, joint blending, UVs, semantic revision controls,
 Mixamo compatibility and animation-ready export therefore remain later stages.
+
+## B6.1 bounded styled template creation and revision — 2026-11-04
+
+B6.0 code review classified the existing layers as follows: v4 hash/source/topology/UV loading,
+owner-token rollback and material roles are reused; proportion controls are extended; primitive/
+Boolean character generation remains blockout-only; voxel connection remains rejected. M2 v3 is
+reused only behind explicit landmarks and visible deformation review. M3.3/M3.4/M4 remain usable
+only after that gate and were not changed or rerun. No external runtime was needed. Hair/clothing/
+equipment fitting needs a new bounded component-production and refit strategy in B6.2; creatures
+need a different topology/rig path in B6.3.
+
+Creation v5 retains the explicit hash-pinned CC0 v1.4.1 source boundary and adds recorded art-
+direction provenance plus bounded semantic controls for head, torso, arms, legs, hands and feet.
+Six point-domain weight attributes drive real coordinate changes without changing connectivity or
+UV loops. Revision v1 accepts only an unrigged owned v5 source and creates a new Collection,
+Object and Mesh; Materials are shared read-only and vertices outside adjusted regions remain exact.
+
+The accepted SD/stylized representative and its larger-head, shorter-arm, larger-hand/foot copy
+retain 12,502 vertices, 12,500 quads, 25,000 triangles, complete UVs and zero bilateral symmetry
+error. The revision changed 8,988 vertices and preserved 3,510 exactly. Bad source hash and an
+injected post-copy failure restored exact Blender baselines. Six common-camera views were directly
+accepted and the saved Blend reopened in Blender 5.0.1. Evidence is under
+`D:/Blender/MCP_Test/GameAssetAI/runs/B6.1/20261104T023823Z-stylized-sd-humanoid-e69798bc`.
+
+This is a style-aware base from one known topology, not arbitrary character generation. It does
+not generate hair, clothing, equipment, new facial topology, Shape Keys or creatures. Empty eye
+sockets/basic facial forms remain inherited from the source template.

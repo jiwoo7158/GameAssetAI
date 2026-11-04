@@ -9,7 +9,9 @@ import bpy
 from mathutils import Matrix, Vector
 from mathutils.bvhtree import BVHTree
 
-from validate_character_base_request import MATERIAL_KEYS, validate_request
+from validate_character_base_request import (
+    MATERIAL_KEYS, REGION_LIMITS, validate_request, validate_revision_request,
+)
 
 
 OWNER_KEY = "gameassetai_character_owner"
@@ -18,6 +20,10 @@ SOURCE_SHA_KEY = "gameassetai_character_source_sha256"
 SOURCE_NAME_KEY = "gameassetai_character_source_name"
 SOURCE_VERSION_KEY = "gameassetai_character_source_version"
 SOURCE_LICENSE_KEY = "gameassetai_character_source_license"
+SCHEMA_KEY = "gameassetai_character_schema"
+ART_DIRECTION_KEY = "gameassetai_character_art_direction"
+REGION_PREFIX = "gameassetai_region_"
+REGION_NAMES = ("head", "torso", "arm", "hand", "leg", "foot")
 
 
 def _canonical(value):
@@ -402,6 +408,141 @@ def _assign_template_materials(mesh, materials, height):
             polygon.material_index = 1
 
 
+def _mesh_topology_sha256(mesh):
+    payload = {
+        "vertices": len(mesh.vertices),
+        "edges": [tuple(edge.vertices) for edge in mesh.edges],
+        "polygons": [tuple(polygon.vertices) for polygon in mesh.polygons],
+    }
+    return hashlib.sha256(_canonical(payload).encode("utf-8")).hexdigest()
+
+
+def _mesh_uv_sha256(mesh):
+    if not mesh.uv_layers or mesh.uv_layers.active is None:
+        return None
+    payload = [[round(item.uv.x, 9), round(item.uv.y, 9)] for item in mesh.uv_layers.active.data]
+    return hashlib.sha256(_canonical(payload).encode("utf-8")).hexdigest()
+
+
+def _region_attribute(mesh, name):
+    attribute = mesh.attributes.get(REGION_PREFIX + name)
+    if attribute is None or attribute.domain != "POINT" or attribute.data_type != "FLOAT":
+        raise ValueError(f"required character semantic region attribute is missing: {name}")
+    return attribute
+
+
+def _write_semantic_regions(mesh):
+    points = [vertex.co.copy() for vertex in mesh.vertices]
+    minimum_z = min(point.z for point in points)
+    maximum_z = max(point.z for point in points)
+    height = maximum_z - minimum_z
+    maximum_x = max(abs(point.x) for point in points)
+    if height <= 0.0 or maximum_x <= 0.0:
+        raise ValueError("character Mesh bounds are invalid for semantic regions")
+
+    def ramp(value, low, high):
+        if high <= low:
+            return float(value >= high)
+        return _smoothstep((value - low) / (high - low))
+
+    values = {name: [] for name in REGION_NAMES}
+    for point in points:
+        z = (point.z - minimum_z) / height
+        x = abs(point.x) / maximum_x
+        head = ramp(z, 0.78, 0.84)
+        hand = ramp(x, 0.76, 0.90) * (1.0 - ramp(z, 0.86, 0.94)) * ramp(z, 0.47, 0.58)
+        arm = ramp(x, 0.30, 0.48) * ramp(z, 0.47, 0.58) * (1.0 - ramp(z, 0.84, 0.91))
+        foot = (1.0 - ramp(z, 0.10, 0.145))
+        leg = (1.0 - ramp(z, 0.48, 0.57)) * (1.0 - foot * 0.55)
+        torso = ramp(z, 0.46, 0.57) * (1.0 - ramp(z, 0.78, 0.85)) * (1.0 - ramp(x, 0.28, 0.48))
+        for name, value in (("head", head), ("torso", torso), ("arm", arm),
+                            ("hand", hand), ("leg", leg), ("foot", foot)):
+            values[name].append(max(0.0, min(1.0, value)))
+    for name in REGION_NAMES:
+        old = mesh.attributes.get(REGION_PREFIX + name)
+        if old is not None:
+            mesh.attributes.remove(old)
+        attribute = mesh.attributes.new(REGION_PREFIX + name, "FLOAT", "POINT")
+        for item, value in zip(attribute.data, values[name]):
+            item.value = value
+    mesh.update()
+    return {name: sum(1 for value in values[name] if value > 1.0e-6) for name in REGION_NAMES}
+
+
+def _apply_region_controls(mesh, controls):
+    """Apply bounded semantic-region deformations while preserving indices and UV loops."""
+    factors = {key: float(controls.get(key, 1.0)) for key in REGION_LIMITS}
+    weights = {
+        name: [item.value for item in _region_attribute(mesh, name).data]
+        for name in REGION_NAMES
+    }
+    original = [vertex.co.copy() for vertex in mesh.vertices]
+    minimum_z = min(point.z for point in original)
+    maximum_z = max(point.z for point in original)
+    height = maximum_z - minimum_z
+    maximum_x = max(abs(point.x) for point in original)
+    hip_z = minimum_z + height * 0.53
+    shoulder_z = minimum_z + height * 0.78
+    head_pivot_z = minimum_z + height * 0.81
+    shoulder_x = maximum_x * 0.30
+    wrist_x = maximum_x * 0.76
+    foot_x = maximum_x * 0.18
+
+    changed = set()
+    untouched = set()
+    for index, (vertex, source) in enumerate(zip(mesh.vertices, original)):
+        point = source.copy()
+        total_weight = 0.0
+
+        def scale_axis(axis, pivot, factor, weight):
+            nonlocal point, total_weight
+            if abs(factor - 1.0) <= 1.0e-12 or weight <= 0.0:
+                return
+            point[axis] = pivot + (point[axis] - pivot) * (1.0 + (factor - 1.0) * weight)
+            total_weight = max(total_weight, weight)
+
+        scale_axis(0, 0.0, factors["torso_width_scale"], weights["torso"][index])
+        scale_axis(2, hip_z, factors["leg_length_scale"], weights["leg"][index])
+
+        side = -1.0 if source.x < 0.0 else 1.0
+        arm_weight = weights["arm"][index]
+        scale_axis(0, side * shoulder_x, factors["arm_length_scale"], arm_weight)
+        scale_axis(2, shoulder_z, factors["arm_length_scale"], arm_weight * 0.45)
+        scale_axis(1, 0.0, factors["arm_thickness_scale"], arm_weight)
+
+        head_weight = weights["head"][index]
+        scale_axis(0, 0.0, factors["head_scale"] * factors["head_width_scale"], head_weight)
+        scale_axis(1, 0.0, factors["head_scale"] * factors["head_depth_scale"], head_weight)
+        scale_axis(2, head_pivot_z, factors["head_scale"], head_weight)
+
+        hand_weight = weights["hand"][index]
+        hand_factor = factors["hand_scale"]
+        scale_axis(0, side * wrist_x, hand_factor, hand_weight)
+        scale_axis(1, 0.0, hand_factor, hand_weight)
+        scale_axis(2, minimum_z + height * 0.61, hand_factor, hand_weight)
+
+        foot_weight = weights["foot"][index]
+        foot_factor = factors["foot_scale"]
+        scale_axis(0, side * foot_x, foot_factor, foot_weight)
+        scale_axis(1, 0.0, foot_factor, foot_weight)
+        scale_axis(2, minimum_z + height * 0.055, foot_factor, foot_weight * 0.45)
+
+        vertex.co = point
+        if total_weight > 0.0 and (point - source).length > 1.0e-10:
+            changed.add(index)
+        elif total_weight <= 0.0:
+            untouched.add(index)
+    mesh.update()
+    return {
+        "operation": "SEMANTIC_REGION_WARP_V1",
+        "controls": factors,
+        "changed_vertices": len(changed),
+        "untouched_vertices": len(untouched),
+        "changed_indices": sorted(changed),
+        "untouched_indices": sorted(untouched),
+    }
+
+
 def _rollback(token):
     for obj in list(bpy.data.objects):
         if obj.get(OWNER_KEY) == token:
@@ -461,9 +602,14 @@ def create_character(request, *, authorized=False):
         topology_mode = data.get("topology_mode", "VOLUME_ISLANDS")
         source_sha = None
         adaptation = None
+        region_counts = None
+        regional_application = None
         if topology_mode == "DEFORMATION_TEMPLATE":
             mesh, source_sha = _load_template_mesh(data, token)
             adaptation = _adapt_template_mesh(mesh, p)
+            if data["schema"] == "gameassetai.character-base-request.v5":
+                region_counts = _write_semantic_regions(mesh)
+                regional_application = _apply_region_controls(mesh, data["regions"])
             _assign_template_materials(mesh, materials, h)
         else:
             bm = bmesh.new()
@@ -505,6 +651,14 @@ def create_character(request, *, authorized=False):
         obj = _tag(bpy.data.objects.new(data["object_name"], mesh), token)
         obj["gameassetai_character_request"] = _canonical(data)
         obj["gameassetai_character_front_axis"] = "-Y"
+        obj[SCHEMA_KEY] = data["schema"]
+        mesh[SCHEMA_KEY] = data["schema"]
+        collection[SCHEMA_KEY] = data["schema"]
+        if data["schema"] == "gameassetai.character-base-request.v5":
+            art_json = _canonical(data["art_direction"])
+            obj[ART_DIRECTION_KEY] = art_json
+            mesh[ART_DIRECTION_KEY] = art_json
+            collection[ART_DIRECTION_KEY] = art_json
         if topology_mode == "DEFORMATION_TEMPLATE":
             template = data["template"]
             obj[SOURCE_KIND_KEY] = "CC0_TEMPLATE"
@@ -556,6 +710,13 @@ def create_character(request, *, authorized=False):
                 raise RuntimeError("template topology must remain all-quad")
             if not mesh.uv_layers or len(mesh.uv_layers.active.data) != len(mesh.loops):
                 raise RuntimeError("template topology must retain one complete active UV layer")
+            if data["schema"] == "gameassetai.character-base-request.v5":
+                triangles = sum(max(0, len(polygon.vertices) - 2) for polygon in mesh.polygons)
+                if triangles > data["art_direction"]["polygon_budget"]:
+                    raise RuntimeError(
+                        f"character triangle budget exceeded: {triangles} > "
+                        f"{data['art_direction']['polygon_budget']}"
+                    )
 
         world_corners = [obj.matrix_world @ Vector(corner) for corner in obj.bound_box]
         minimum = [min(point[i] for point in world_corners) for i in range(3)]
@@ -592,6 +753,17 @@ def create_character(request, *, authorized=False):
             receipt["adaptation"] = adaptation
             receipt["uv_layers"] = [layer.name for layer in mesh.uv_layers]
             receipt["all_quad"] = all(len(polygon.vertices) == 4 for polygon in mesh.polygons)
+            receipt["topology_sha256"] = _mesh_topology_sha256(mesh)
+            receipt["uv_sha256"] = _mesh_uv_sha256(mesh)
+            if data["schema"] == "gameassetai.character-base-request.v5":
+                receipt["art_direction"] = data["art_direction"]
+                receipt["semantic_region_vertices"] = region_counts
+                receipt["regional_application"] = {
+                    key: value for key, value in regional_application.items()
+                    if key not in {"changed_indices", "untouched_indices"}
+                }
+                receipt["triangles"] = sum(max(0, len(polygon.vertices) - 2) for polygon in mesh.polygons)
+                receipt["polygon_budget"] = data["art_direction"]["polygon_budget"]
         receipt["receipt_sha256"] = hashlib.sha256(_canonical(receipt).encode("utf-8")).hexdigest()
         return receipt
     except Exception:
@@ -608,4 +780,106 @@ def remove_created_character(receipt):
     if not token or collection.get(OWNER_KEY) != token:
         raise RuntimeError("character ownership cannot be verified; refusing cleanup")
     _rollback(token)
+
+
+def revise_character_copy(request, *, authorized=False):
+    if not authorized:
+        raise ValueError("authorized=true is required for persistent character revision")
+    validated = validate_revision_request(request)
+    data = validated["request"]
+    scene = bpy.data.scenes.get(data["scene_name"])
+    source_collection = bpy.data.collections.get(data["source_collection_name"])
+    source_object = bpy.data.objects.get(data["source_object_name"])
+    if scene is None or source_collection is None or source_object is None:
+        raise ValueError("scene, source collection and source object must exist")
+    if (source_object.type != "MESH"
+            or source_collection.objects.get(source_object.name) is not source_object):
+        raise ValueError("source object must be a Mesh directly contained in source collection")
+    source_mesh = source_object.data
+    source_token = source_object.get(OWNER_KEY)
+    if (not source_token or source_collection.get(OWNER_KEY) != source_token
+            or source_mesh.get(OWNER_KEY) != source_token):
+        raise ValueError("source must be a GameAssetAI-owned character")
+    if source_object.get(SCHEMA_KEY) != "gameassetai.character-base-request.v5":
+        raise ValueError("revision v1 requires a Creation v5 character")
+    if source_object.modifiers or source_object.vertex_groups or source_mesh.shape_keys is not None:
+        raise ValueError("revision v1 requires an unrigged source without modifiers, vertex groups or Shape Keys")
+    for database, name, label in (
+        (bpy.data.collections, data["collection_name"], "collection_name"),
+        (bpy.data.objects, data["object_name"], "object_name"),
+        (bpy.data.meshes, data["mesh_name"], "mesh_name"),
+    ):
+        if database.get(name):
+            raise ValueError(f"{label} is already in use: {name}")
+
+    source_topology = _mesh_topology_sha256(source_mesh)
+    source_uv = _mesh_uv_sha256(source_mesh)
+    source_coordinates = [vertex.co.copy() for vertex in source_mesh.vertices]
+    source_materials = tuple(source_mesh.materials)
+    token = uuid.uuid4().hex
+    try:
+        collection = _tag(bpy.data.collections.new(data["collection_name"]), token)
+        scene.collection.children.link(collection)
+        mesh = source_mesh.copy()
+        _tag(mesh, token)
+        mesh.name = data["mesh_name"]
+        obj = source_object.copy()
+        _tag(obj, token)
+        obj.data = mesh
+        obj.name = data["object_name"]
+        obj.animation_data_clear()
+        collection.objects.link(obj)
+        application = _apply_region_controls(mesh, data["regional_adjustments"])
+
+        if _mesh_topology_sha256(mesh) != source_topology:
+            raise RuntimeError("character revision changed topology")
+        if _mesh_uv_sha256(mesh) != source_uv:
+            raise RuntimeError("character revision changed UV coordinates")
+        if tuple(mesh.materials) != source_materials:
+            raise RuntimeError("character revision changed Material references")
+        if any((vertex.co - original).length > 1.0e-12 for vertex, original in zip(source_mesh.vertices, source_coordinates)):
+            raise RuntimeError("character revision modified source Mesh coordinates")
+        for index in application["untouched_indices"]:
+            if (mesh.vertices[index].co - source_coordinates[index]).length > 1.0e-12:
+                raise RuntimeError("character revision changed an untouched vertex")
+
+        request_json = _canonical(data)
+        obj["gameassetai_character_revision_request"] = request_json
+        obj[SCHEMA_KEY] = data["schema"]
+        mesh[SCHEMA_KEY] = data["schema"]
+        collection[SCHEMA_KEY] = data["schema"]
+        for datablock in (obj, mesh, collection):
+            datablock[ART_DIRECTION_KEY] = source_object.get(ART_DIRECTION_KEY, "{}")
+            datablock["gameassetai_character_revision_source"] = source_object.name
+        triangles = sum(max(0, len(polygon.vertices) - 2) for polygon in mesh.polygons)
+        receipt = {
+            "status": "revised",
+            "character_name": data["character_name"],
+            "collection_name": collection.name,
+            "object_name": obj.name,
+            "mesh_name": mesh.name,
+            "source_collection_name": source_collection.name,
+            "source_object_name": source_object.name,
+            "request_sha256": validated["request_sha256"],
+            "topology_sha256": source_topology,
+            "uv_sha256": source_uv,
+            "vertices": len(mesh.vertices),
+            "polygons": len(mesh.polygons),
+            "triangles": triangles,
+            "material_names": [material.name for material in mesh.materials],
+            "regional_application": {
+                key: value for key, value in application.items()
+                if key not in {"changed_indices", "untouched_indices"}
+            },
+            "source_preserved": True,
+            "uv_preserved": True,
+            "topology_preserved": True,
+            "materials_shared_read_only": True,
+            "rigged": False,
+        }
+        receipt["receipt_sha256"] = hashlib.sha256(_canonical(receipt).encode("utf-8")).hexdigest()
+        return receipt
+    except Exception:
+        _rollback(token)
+        raise
 

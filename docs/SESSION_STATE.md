@@ -1,4 +1,4 @@
-# Current Session State — 2026-11-02
+# Current Session State — 2026-11-04
 
 This is the concise active continuation checkpoint. Durable capability decisions belong in
 `docs/IMPLEMENTATION_MEMORY.md`; the code-based Repository audit is
@@ -29,6 +29,15 @@ The official active sequence is now B1 (complete), B1.1 (complete), B2 bounded s
 UV/texture production (complete), B5 bounded static-domain breadth (complete), then B6 character,
 clothing and creature production redesign. B7-B8 are recorded in `docs/roadmap.md`.
 
+B6.0/B6.1 are now complete in a bounded template-derived scope. Character creation v5 adds
+explicit art provenance and semantic head/torso/arm/leg/hand/foot controls; revision v1 creates an
+independent owned Mesh while preserving topology, UVs, shared Materials and untouched vertices.
+The accepted SD/stylized A-pose base and revision retained 12,502 vertices/12,500 quads/25,000
+triangles and passed shared-camera review, failure rollback and fresh reopen. The revision also
+passed the existing M2 v3 explicit-landmark shoulder/elbow/hip/knee gate. This is not arbitrary
+character creation, hair/clothing/equipment, facial rigging or creature support. B6.2 is next;
+B6 overall remains in progress.
+
 Proven foundations to retain:
 
 - Skill packaging, hash-checked Workspace deployment and Blender Background execution;
@@ -46,9 +55,8 @@ Do not overstate:
   local-box UVs and two generated base-color texture patterns, and B3 supports only explicit-map
   static-GLB local-axis end edits; none implies arbitrary prompt-to-mesh, general UV/texturing or
   arbitrary imported-Mesh editing;
-- character v4 is a CC0 human-template proportion workflow, not general character generation;
-- hair, clothing, creatures, broad existing-mesh editing, texture authoring and practical
-  multi-style generation are not implemented;
+- character v4/v5 are CC0 human-template proportion workflows, not general character generation;
+- hair, clothing, equipment, creatures, broad existing-mesh editing and facial rigging are not implemented;
 - Add-on 0.1.5 is persistently installable but primarily covers 2D preview/setup/export;
 - Unity `engine-proven` evidence is Generic, not Humanoid Avatar;
 - 2D pipeline evidence proves deterministic conversion, not autonomous pixel-art direction.

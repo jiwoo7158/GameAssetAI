@@ -283,6 +283,42 @@ M2-M4 rig/animation/export path where eligible; do not equate the CC0 human temp
 character generation. Completion requires an accepted styled character and components with a
 real downstream handoff where supported.
 
+#### Completed work package: B5 publication edge hardening and B6.0/B6.1 styled humanoid foundation -- 2026-11-04
+
+- Requirements: `REQ-CHAR`, `REQ-STYLE`, `REQ-SAFE`, `REQ-COST`, bounded `REQ-WORKFLOW`.
+- Reuse: hash-pinned CC0 `DEFORMATION_TEMPLATE` topology/UV loading, owner-token rollback,
+  explicit A-pose M2 landmarks and 18-bone envelope weights, Artifact Lifecycle and hash-bound
+  visual review. M3.3/M3.4/M4 remain downstream unchanged.
+- Gaps: a texture hard-link can be published before final-file identity/hash registration; v4
+  character proportions cannot independently control head, arm/leg length, hands or feet and have
+  no owned semantic revision; its descriptive style is only implicit colors/proportions.
+- Implementation boundary: close the post-publication registration failure without deleting an
+  unrelated collision winner; add one explicit template-based character creation contract with
+  art-direction provenance and bounded regional controls; add one copy-only revision contract for
+  owned results that changes declared regions while preserving topology, UV and untouched vertices.
+- Representative evidence: a Stylized Low-Poly/SD A-pose base and an independent revision with a
+  larger head/hands/feet and shorter arms. Use the existing local CC0 v1.4.1 bundle as explicit
+  `EXTERNAL_INPUT`; do not vendor it or hard-code its private path.
+- Acceptance: source hash and topology/UV remain exact, regional change/preservation facts are
+  measured, bilateral clearance/symmetry and visible silhouette pass, failure rolls back, the saved
+  Blend reopens, and installed-Skill execution is hash-aligned. Apply M2 only if explicit landmarks
+  and deformation review pass; report character acceptance separately from rig compatibility.
+- Non-goals: hair/clothing/equipment generation, facial rigging, arbitrary topology creation,
+  automatic landmarks, Mixamo/Unity revalidation, creatures, external packages or new user Skills.
+
+B6 sub-stages are: B6.0 current-code technical review; B6.1 styled humanoid creation/revision;
+B6.2 hair/clothing/equipment; B6.3 non-humanoids/creatures; B6.4 bounded rig/animation/engine
+integration. This work package implements only B6.0 and B6.1; it cannot close B6 as a whole.
+
+Creation v5 and revision v1 now provide the bounded template-derived path above. The accepted
+representative retained 12,502 vertices, 12,500 quads, 25,000 triangles, complete UVs and exact
+bilateral symmetry; its revision changed 8,988 vertices while preserving 3,510 vertices exactly.
+Six shared-camera character views and six M2 rest/pose views have hash-bound visual acceptance,
+the Blend reopened, and the explicit-landmark shoulder/elbow/hip/knee gate passed. Evidence:
+`D:/Blender/MCP_Test/GameAssetAI/runs/B6.1/`
+`20261104T023823Z-stylized-sd-humanoid-e69798bc`. The next B6 work is B6.2
+hair/clothing/equipment. B6 overall remains open through B6.4.
+
 ### B7 -- Natural-language integrated production and Blender Add-on
 
 Turn requests into explicit creation specifications, route internal production modules, present

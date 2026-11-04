@@ -47,6 +47,9 @@ hands and feet move toward the same front hemisphere instead of relying on local
 V3 supports reviewed single-body A-pose humanoids whose joints can be expressed by the exact
 landmark contract. It preserves vertex coordinates and the active UV layer, refuses existing rigs
 instead of replacing them, and rolls back its Armature, modifier and groups after a failure.
+The accepted B6.1 SD template revision passed this same explicit-landmark shoulder/elbow/hip/knee
+gate while preserving geometry and UV. Its large hands remain rigid under the single hand bone;
+finger deformation was not added. This does not broaden the contract beyond the tested topology.
 It is not landmark detection, automatic weighting for arbitrary clothing/hair, twist-bone or
 corrective-shape support, facial rigging, or Mixamo certification. Compact and lanky v4 template
 characters passed saved/reopened shoulder, elbow, hip and knee probes; the next gate is a real

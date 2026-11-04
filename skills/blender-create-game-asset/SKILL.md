@@ -18,7 +18,8 @@ Use these creation entries:
   an explicit profile-authored silhouette, a bounded matched-profile beveled solid, and owned
   semantic geometry revision, bounded v5 UV/image-textured style production, plus bounded revision of an explicitly mapped static external GLB:
   `blender-create-static-asset`;
-- new low-poly humanoid blockout: `blender-create-character-base`;
+- new low-poly humanoid blockout, or explicit hash-pinned v5 template-derived styled humanoid
+  creation/copy revision: `blender-create-character-base`;
 - reviewed owned character base that needs its first rig: `blender-rig-character-base`;
 - explicit hash-pinned Mixamo-style FBX Action for an empty compatible Humanoid rig:
   `blender-import-humanoid-animation`;
@@ -33,6 +34,14 @@ For characters, use `VOLUME_ISLANDS` for separated blockouts or guarded v3
 `VOXEL_CONNECTED` mode. Do not route from structural or visual success directly to product
 rigging: v3 is still Boolean blockout topology and must pass an explicit deformation-topology,
 UV and pose-deformation gate first.
+
+For a bounded request such as “make an SD/stylized low-poly humanoid base” use Character creation
+v5 only when the caller provides an explicit reviewed CC0 `.blend` path/hash and complete
+proportions, regional controls, palette, polygon budget and user/Profile provenance. For a later
+head/arm/hand/foot proportion change, route through Character revision v1 so the source remains
+unchanged. Do not describe these controls as a general character generator: hair, clothing,
+equipment, arbitrary faces/topology and creatures remain B6.2/B6.3 work. Apply the M2 rig only
+after separate landmark and deformation acceptance.
 
 For an existing asset, inspect before choosing a modification Skill. Use the animation
 copy/range/retarget/bake Skills only for their documented narrow inputs; do not treat them as a

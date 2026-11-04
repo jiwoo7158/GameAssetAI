@@ -218,6 +218,11 @@ output, pack failure, failure on the second texture, a final-path collision race
 failure after Material creation. Every probe restored the exact data/file baseline and the
 simulated user collision winner was preserved.
 
+A B6.1 follow-up injected failure immediately after hard-link publication. The final PNG was
+already present, but its staged identity/hash had been registered before post-publication
+verification; cleanup removed both owned paths and Blender Image data while an unrelated user
+file remained byte-identical. This closes the narrow publish-before-ledger gap.
+
 Revision v4 accepts only owned creation-v5 Collections. It creates independent Object/Mesh copies,
 regenerates the replacement Mesh UV layer from recorded bounded quarter-turn/mirror mapping,
 shares source Materials/Packed Images read-only, preserves style/art-direction/application facts
@@ -241,6 +246,10 @@ Fresh-process reopen verified all semantic roles, UVs, texture hashes and packed
 installed Workspace package directly executed creation v5 plus revision v4 and cleaned back to the
 factory baseline. This is accepted B5 evidence for three bounded static domains, not general
 asset-noun generation or production-quality art across all games.
+
+The representatives remain bounded: Lantern `glow_core` is a bright Material role, not verified
+Emission lighting; the shield was not fitted to a character; and the doorway does not establish a
+general pivot/grid-snapping system.
 
 ## Kiln review — 2026-10-27
 
