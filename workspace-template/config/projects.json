@@ -1,4 +1,4 @@
 {
-  "_comment": "Optional mappings to existing projects. Keep paths exactly where your projects already live.",
-  "projects": {}
+  "schema": "gameassetai.projects.v1",
+  "games": {}
 }

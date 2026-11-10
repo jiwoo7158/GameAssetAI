@@ -1,271 +1,74 @@
 # GameAssetAI
 
-GameAssetAI is a development repository for building reusable AI skills that let Codex work with Blender as a game-asset technical artist / modeling assistant.
+GameAssetAI는 Codex Desktop 또는 VS Code + Codex에서 설치하여 사용하는 스타일 기반 게임
+에셋 제작 기반입니다. Blender를 중심으로 신규 제작, 기존 에셋 수정, Rig/Animation 작업,
+3D/2D 출력 과정을 연결하며, 생성 기술은 교체 가능한 provider로 분리합니다.
 
-## Audited status — 2026-11-02
+현재 릴리스는 **제품 기반 단계**입니다. 카탈로그, 스타일 명세, Asset Specification,
+Workspace/Profile, 결과물 run, 설치형 Skill 패키징은 동작합니다. 범용 prompt-to-3D,
+네 가지 3D 스타일의 자동 생성, 비인간형 생성, 자유형 의미 수정, 완전한 8방향 제작은 아직
+지원 완료가 아닙니다. 정확한 상태는 [capabilities](docs/capabilities.md)를 기준으로 합니다.
 
-The repository has strong safety, animation-processing, deterministic 2D, installation and
-bounded Unity-export foundations. It does **not** yet provide broad natural-language 3D modeling,
-general imported-mesh revision, texture authoring or practical multi-style asset generation.
-Static creation now supports explicit primitive assembly plus bounded profile-extruded silhouettes
-and owned semantic geometry replacement; character creation remains blockout or a
-licensed-template proportion workflow. The Blender Add-on is persistently installable, but its
-actual product surface remains primarily 2D preview/setup/export rather than the full creation
-workflow.
-
-Profile extrusion now validates outward winding, closed manifold geometry, positive signed volume,
-triangle/spec consistency and self-contacting input rejection. Original/revision review uses shared
-camera framing. These checks improve B1 correctness; broader shape operations remain B2 work.
-
-See `docs/audits/2026-11-02-repository-review.md` for the code-based assessment and
-`docs/IMPLEMENTATION_MEMORY.md` for the current durable direction. Older recovery and validation
-documents remain evidence, not current product-completeness claims.
-
-The repository itself is **not** a game project and does not require existing Unity or Unreal projects to be moved or reorganized.
-
-## Core idea
-
-There are two separate environments:
-
-1. **GameAssetAI repository**
-   - Used when developing and testing skills.
-   - May be versioned in Git, but public distribution is not in the current scope.
-
-2. **GameAssetAI-Workspace**
-   - Used during normal Blender asset work.
-   - Holds personal game profiles and project paths.
-   - The user's existing Unity / Unreal / Blender folder structure stays unchanged.
-
-Normal asset work is intended to look like:
+## 구조
 
 ```text
-Codex Desktop
-  + installed GameAssetAI skills
-  + GameAssetAI-Workspace
-  + Blender MCP
-        ↓
-      Blender
+catalog/                 asset type, style, generation-provider data
+src/gameassetai/         shared product runtime and retained Blender helpers
+skills/                  four task-oriented source Skills
+packaging/               generated bundle entrypoint
+workspace-template/      safe persistent user Workspace template
+blender_addon/           retained Blender-native UI/execution layer
+scripts/                 development checkout entrypoints
+tests/                   focused offline product and retained-contract tests
+docs/                    current product and engineering authority
 ```
 
-## Implemented capability overview
+Repository는 개발·배포 원본이고, 설치된 Skill은 실행 사본이며, Workspace는 사용자 설정과
+결과물을 보관하는 별도 공간입니다. 기존 Unity/Blender 프로젝트는 Workspace 안으로 옮기지
+않습니다.
 
-The Repository contains both user-facing production Skills and narrow internal/specialist modules;
-the number of Skill folders is not the product feature count.
+## 개발 checkout에서 확인
 
-It contains:
+Python 3.10+ 표준 라이브러리만으로 기반 기능을 검사할 수 있습니다.
 
-- architecture and requirements documentation
-- a routing-only natural-language asset entry that selects the tested static, character, rig,
-  Action, inspection and downstream output Skills without duplicating their implementations
-- rules for Codex to develop GameAssetAI itself
-- a reusable workspace template
-- a skill authoring template
-- repository validation tooling
-- executable offline repository/workspace regression tests
-- test planning scaffolding
-- one direct Blender-native static asset creation Skill for explicit low-poly multi-part props,
-  with legacy primitives, validated profile extrusion, owned semantic geometry replacement and
-  accepted axe/shield evidence
-- a Blender 5 Add-on foundation with owned Scene and Compositor preset builders and a sidebar
-  panel
-- two narrow Blender-tested read-only source skills for asset inventory and static mesh diagnostics
-- one narrowly Blender-tested copy-only loose-geometry cleanup skill with preview guards
-- one narrowly Blender-tested planar structural-simplification Skill with affine UV,
-  preview fingerprint and independent-copy apply/rollback (not triangle decimation)
-- one positive-scale preparation Skill and one explicit-pivot relocation Skill,
-  each operating on guarded independent copies
-- one request-bound, texture-free static FBX export Skill with staged no-overwrite
-  publication; synthetic Unity import evidence, not a general production exporter
-- read-only humanoid, exact-signature Mixamo-preflight and animation-inventory Skills
-- one guarded Action-copy Skill that creates an explicitly named unbound persistent copy
-  while preserving the source and all existing references
-- one strict exact-key linear Action-range extraction Skill that preserves the source,
-  references and optionally keeps frames or rebases the copy to frame 0 or 1 without
-  synthesizing boundary keys
-- one read-only stored F-Curve endpoint loop-candidate Skill with explicit range and
-  tolerance; not evaluated-pose or visual loop certification
-- one read-only explicit Object/Bone root-translation evidence Skill; no root guessing,
-  in-place decision, evaluated motion or engine policy
-- one isolated evaluated-root-motion Skill reporting local-basis, Armature and world-space
-  sampled paths; no motion transfer, in-place decision or Unity policy
-- one isolated evaluated-pose loop Skill comparing explicit endpoint poses and bounded
-  finite-difference seam velocities; no deformation, visual-loop or engine certification
-- one guarded root-translation-only bake Skill with explicit TRANSFER/IN_PLACE policy,
-  Armature-space XYZ mask and scalar; no inferred proportions or Action composition
-- one guarded composition Skill combining strict rotation-only and root-location-only
-  bake outputs into a new unbound Action; no automatic binding or arbitrary merging
-- one guarded empty-target Action-binding Skill with an exact rollback receipt; no
-  existing Action replacement, Action deletion or NLA editing
-- one guarded exact-current Action replacement Skill with a rollback receipt; both
-  Actions are preserved and NLA/drivers are refused
-- one read-only explicit source/target humanoid retarget-readiness Skill; it inventories
-  mappings, source Action coverage and rest-bone differences but does not retarget
-- one guarded name-only Action remap-copy Skill for already aligned humanoid rigs; the
-  result remains unbound and differing rest poses/axes still require a future workflow
-- one guarded rotation-only local-basis bake Skill for differing-rest mapped rigs; it
-  creates an unbound quaternion Action and excludes translation, scale and root motion
-- one isolated static Pixel PNG Skill for a single simple Mesh, with hash-bound blend/job
-  staging, explicit value-step shading, RGBA8 palette processing, optional explicit one-pixel outer silhouette,
-  receipt evidence and no-overwrite publication
-
-The downstream 3D-to-2D Pixel/Cel/Toon pipeline is incremental and does not replace or
-duplicate these 3D Skills. Its first narrow static Pixel/RGBA8 output is implemented;
-AUTO palette, value-step shading and one-pixel outer silhouette are implemented. A narrow
-single-Action PNG-sequence Skill is implemented and host-tested. Explicit equal-cell sprite
-sheet assembly and Profile-backed settings are host-tested. An explicit multi-direction/
-multi-Action batch coordinator now passes synthetic Blender rollback tests and a refreshed-
-client natural-language mixed batch. A file-level Unity Sprite import/slicing check contract
-is offline-tested and passed one live Unity 6000.3.9f1 equal-cell fixture. CEL/Toon and
-irregular packing remain planned. An explicit alpha-derived PNG silhouette-mask Skill is
-host-tested. Separate static base-Mesh material-slot and explicit target-Object visibility
-masks and an explicit multi-Object color-ID pass are implemented and Blender-tested;
-all three pass types are now host-tested. Impostors remain a separate shared-framing
-orchestration concern and will reuse the existing renderers rather than duplicate them.
-Its explicit COLOR/NORMAL/DEPTH bundle request now has an offline validation gate; shared
-Blender framing and the result manifest have read-only validation gates. Atomic child
-staging/render rollback and manifest-last publication are implemented in the packaged
-`blender-render-impostor-bundle` Skill. Its refreshed-client discovery and atomic
-COLOR/NORMAL/DEPTH host render both pass.
-Narrow camera-basis normal and object-relative camera-linear
-depth Skills are implemented through deterministic float-EXR/CPU encoding. Normal and
-depth are host-tested. The Object-ID refreshed-client discovery/render gate also passes.
-See `docs/2d-pixel-pipeline-plan.md`, `docs/2d-static-pixel-skill-validation.md` and
-`docs/2d-action-sequence-skill-validation.md`, `docs/2d-render-batch-contract.md` and
-`docs/2d-impostor-bundle-decision.md`.
-
-It does **not** pretend that general modeling, character generation, production rigging,
-animation authoring or Mixamo have been solved broadly. Static creation is bounded to explicit
-primitive/profile assemblies and owned semantic replacement; B2 shape-production expansion is
-the next official production stage.
-Inspection/diagnostics have source-workflow test evidence under `docs/`. The user confirmed
-session exposure, explicit calls, three natural-language read-only outcomes and synthetic
-copy-apply/restore for all three installed Skills. Raw selected-Skill/call traces were not
-supplied; fresh Workspace Profile A/B/null behavior passed by user report;
-raw routing traces and production game-asset import workflows remain unverified.
-Ambiguous Cube cleanup inspection-only triage also passed by user report, with declared
-inspection/diagnostic Skill selection. A development-only read-only transform snapshot
-has native evidence in `docs/transform-preflight.md`. That workflow now also has one
-narrow positive-scale independent-copy Skill with preview/freshness/output validation and
-rollback, not general Apply Transforms. Source/ZIP/installed helper checks pass; the user
-also confirmed fifth-Skill actual preview/verify/copy-apply and exact synthetic restoration.
-Raw client routing/build and engine certification remain separate evidence gaps.
-
-Existing static-collider work now has a separate read-only Skill that inspects only explicitly
-named base-Mesh candidates and reports topology, world bounds, dependencies and bounded
-convexity evidence. It does not generate colliders, create LODs or configure Unity. Source and
-installed Blender regressions pass; the refreshed client exposes the Skill and safely refuses
-the current one-Mesh Scene. A separate temporary-scene host inspection also passes with exact
-cleanup and context restoration.
-Existing LOD-chain inspection is also separate and read-only: it accepts only an explicit
-ordered set of base Meshes, checks exact world-transform alignment and decreasing base
-triangulation, and reports bounds/material relationships. It does not generate or decimate.
-The refreshed client exposes this Skill and safely refuses the current single-Mesh Scene;
-its separate temporary-scene 12/8/4-chain host inspection and exact teardown also pass.
-Development-only FBX exporter/Blender-importer synthetic roundtrip evidence is in
-`docs/static-export-preflight.md`. One synthetic FBX import and non-saved prefab
-instantiation passed in Unity 6000.3.9f1 (`docs/unity-import-validation.md`);
-the new texture-free staged path and one synthetic game-asset import are verified,
-while textured/rigged/animated production export and real production assets remain
-unverified. See `docs/static-fbx-skill-validation.md`.
-Explicit local-point pivot preview and independent-copy apply now have source/ZIP/installed
-native evidence as a sixth narrow Skill; the user also confirmed actual synthetic client
-preview/verify/independent-copy apply and exact restore. Raw routing/build remains unknown.
-No automatic pivot policy. See `docs/pivot-copy-validation.md`.
-See `docs/skill-session-validation.md` for the evidence boundary and next client checks.
-The user also confirmed fourth-Skill exposure, synthetic preview/copy-apply and exact
-restoration. Separate geometry/UV tolerances now have source/bundle regression evidence;
-legacy calls remain supported. See `docs/coplanar-apply.md` for provenance and limits.
-Explicit current-session Profile switching to Blender diagnostics passed; see
-`docs/profile-workflow-validation.md`. See `skills/README.md`
-and `docs/skill-packaging.md` for current capabilities and reproducible regression/bundles.
-
-Further Skills or modeling operations are added only through bounded roadmap work packages and
-representative Blender evidence.
-
-## Recommended first steps
-
-1. Put this repository under Git.
-2. Open the repository root in Codex when developing GameAssetAI.
-3. Read `docs/requirements.md` and follow `docs/development-workflow.md`.
-4. Run the offline foundation checks:
-
-```bash
+```powershell
+python -B scripts/gameassetai.py catalog validate --root catalog
+python -B scripts/gameassetai.py workspace create D:\AI\GameAssetAI-Workspace --template workspace-template
+python -B scripts/gameassetai.py profile create D:\AI\GameAssetAI-Workspace my-game --name "My Game" --description "Persistent game art profile"
+python -B scripts/gameassetai.py profile select D:\AI\GameAssetAI-Workspace my-game
+python -B -m unittest discover -s tests -p "test_*.py" -v
 python -B scripts/validate_repo.py
-python -B -m unittest discover -s tests/workspace -p "test_*.py" -v
 ```
 
-5. Create the personal workspace in a new/empty folder outside this repository using:
+실제 개인 Workspace 대신 임시 경로에서 먼저 시험하십시오. `workspace create`는 이미 유효한
+Workspace를 변경 없이 연결하고, 인식된 구형 Workspace는 migration 필요 상태로 보고할 뿐
+자동 덮어쓰지 않습니다. 과거의 파괴적인 `--force` 동작은 제거되었습니다.
 
-```bash
-python scripts/create_workspace.py "D:/AI/GameAssetAI-Workspace"
+## Skill bundle 만들기와 설치
+
+```powershell
+python -B scripts/gameassetai.py package build . .local\gameassetai-skill-bundle
+python -B scripts/gameassetai.py package validate .local\gameassetai-skill-bundle
+python -B scripts/gameassetai.py package install .local\gameassetai-skill-bundle D:\AI\GameAssetAI-Workspace\.agents\skills
 ```
 
-6. Validate it with `python -B scripts/validate_workspace.py "D:/AI/GameAssetAI-Workspace"`.
-   See `docs/workspace-contract.md` to create/switch profiles. Do not use `--force` as
-   an update command: it overwrites personal instructions and configuration.
-7. Configure the chosen Blender MCP externally and verify it using
-   `docs/blender-verification.md`. GameAssetAI skills do not install MCP.
-8. During normal asset work, open the generated `GameAssetAI-Workspace` in Codex instead of this repository.
+생성된 네 Skill은 각각 공유 runtime, catalog, Workspace template을 포함하므로 개발 Repository
+절대 경로가 필요하지 않습니다. 기존 설치 갱신은 명시적인 새 backup 경로를 요구하며 이전
+설치를 보존합니다. 자세한 내용은 [distribution](docs/distribution.md)을 참조하십시오.
 
-## Repository map
+## Blender
 
-```text
-GameAssetAI/
-├─ AGENTS.md
-├─ README.md
-├─ LICENSE
-├─ .gitignore
-├─ docs/
-├─ skills/
-├─ scripts/
-├─ tests/
-├─ templates/
-└─ workspace-template/
-```
+Blender MCP 설치·설정은 외부 사용자 환경입니다. GameAssetAI 설치가 이를 자동 변경하지
+않습니다. `blender_addon/`은 보존된 UI/실행 계층이지만 현재 주로 2D preview/output 보조에
+한정됩니다. 실제 Blender 기능을 사용할 때는 현재 Scene과 MCP 기능을 먼저 확인하십시오.
 
-See `docs/architecture.md` for the intended responsibilities of each area.
+## 제품 문서
 
-## Scope
-
-Primary target:
-
-- Blender game asset creation and modification
-- Unity-focused workflows; Unreal-specific support is out of current scope
-- static meshes
-- characters
-- armatures / bones
-- imported rigs
-- Mixamo-compatible humanoid workflows
-- imported animation cleanup and editing
-- game-engine export preparation
-
-Not a primary target:
-
-- AI video generation
-- cinematic video pipelines
-- forcing every asset to be generated from scratch
-- forcing a specific game directory layout
-- replacing all human review
-- Unreal-specific export or import workflows
-- external/public Skill distribution
-
-Local installation and validation of Skills in the personal Workspace remain part of
-normal development; they are not a public release workflow.
-
-## Design principle
-
-GameAssetAI skills should answer **how to perform reusable work**.
-
-Game-specific decisions belong in the user's workspace profile.
-
-Example:
-
-```text
-Skill:
-"Inspect the active profile for poly budget before optimizing a mesh."
-
-Profile:
-"Environment props should normally stay below 5k triangles."
-```
-
-This keeps the same installed skills useful across many games and art styles.
+- [Product definition](docs/product-definition.md)
+- [Requirements](docs/requirements.md)
+- [Architecture](docs/architecture.md)
+- [Capabilities](docs/capabilities.md)
+- [Workspace](docs/workspace.md)
+- [Distribution](docs/distribution.md)
+- [Quality and testing](docs/quality.md)
+- [Roadmap](docs/roadmap.md)
