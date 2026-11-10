@@ -8,9 +8,10 @@ Blender contract exists; `planned` means catalog/design only. Evidence labels fo
 | Catalog and style registry | available | tested | JSON registration and validation; no generator implied. |
 | Asset Specification | available | tested | Provider-neutral validation; no automatic production orchestration yet. |
 | Workspace create/connect/update | available | tested | Current v2 plus non-mutating legacy recognition; no automatic legacy migration. |
-| Profile persistence/switching | available | tested | JSON Profiles and exact active selection. |
-| Disposable output runs | available | tested | Unique path and manifest only; no artifact lifecycle deletion API. |
-| Product Skill bundle/install/update | available | tested | Self-contained local bundle; client discovery not yet verified. |
+| Profile persistence/switching | available | tested | JSON Profiles, exact active selection, and explicit atomic field get/set; no automatic legacy conversion or inferred rule persistence. |
+| Disposable output runs | available | tested | Unique link-safe path and manifest; no artifact lifecycle deletion API. |
+| Product Skill bundle/install/update | available | tested | Four tracked self-contained Skills with link-safe destinations; Codex client discovery not yet verified. |
+| Foundation CI | available | tested | Linux and Windows GitHub Actions definitions run repository and complete offline tests; Blender/visual gates are excluded. |
 | Static Blender creation/revision | bounded | accepted | Explicit primitive/profile/profile-beveled assemblies, generated texture patterns, owned semantic copy revision, and one narrow external GLB region edit. Not general modeling. |
 | Humanoid base creation/revision | bounded | tested | Template proportion/region workflow; its prior visual candidate was rejected and is not a target style. |
 | Nonhumanoid/creature generation | planned | none | Catalog only. |

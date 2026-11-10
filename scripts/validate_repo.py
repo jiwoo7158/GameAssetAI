@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from pathlib import Path
 import py_compile
+import subprocess
 import sys
 
 
@@ -23,7 +24,7 @@ REQUIRED = (
     "catalog/styles/core.json", "catalog/generation-providers/core.json",
     "src/gameassetai/cli.py", "src/gameassetai/workspace.py", "src/gameassetai/outputs.py",
     "src/gameassetai/distribution.py", "packaging/skill-entrypoint.py",
-    "workspace-template/config/workspace.json",
+    "workspace-template/config/workspace.json", ".github/workflows/ci.yml",
 )
 FORBIDDEN_ACTIVE_DOCS = {
     "SESSION_STATE.md", "IMPLEMENTATION_MEMORY.md", "PROJECT_AUDIT.md",
@@ -31,8 +32,34 @@ FORBIDDEN_ACTIVE_DOCS = {
 }
 
 
-def validate_repository(root: Path = ROOT) -> list[str]:
+def _git_tracked_files(root: Path) -> tuple[set[str] | None, str | None]:
+    if not (root / ".git").exists():
+        return None, None
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(root), "ls-files", "-z"],
+            capture_output=True,
+            check=False,
+        )
+    except OSError as exc:
+        return None, f"Cannot inspect Git tracked files: {exc}"
+    if result.returncode != 0:
+        message = result.stderr.decode("utf-8", errors="replace").strip()
+        return None, f"Cannot inspect Git tracked files: {message or result.returncode}"
+    return {
+        item.decode("utf-8", errors="surrogateescape")
+        for item in result.stdout.split(b"\0") if item
+    }, None
+
+
+def validate_repository(
+    root: Path = ROOT, *, tracked_files: set[str] | None = None,
+) -> list[str]:
     errors: list[str] = []
+    if tracked_files is None:
+        tracked_files, git_error = _git_tracked_files(root)
+        if git_error:
+            errors.append(git_error)
     for relative in REQUIRED:
         path = root / relative
         if is_link(path) or not path.is_file():
@@ -45,6 +72,12 @@ def validate_repository(root: Path = ROOT) -> list[str]:
         errors.append(f"Product Skill set mismatch: {skill_dirs}")
     for name in PRODUCT_SKILLS:
         entry = root / "skills" / name / "SKILL.md"
+        relative_entry = entry.relative_to(root).as_posix()
+        if tracked_files is not None and relative_entry not in tracked_files:
+            errors.append(f"Required Skill source is not tracked by Git: {relative_entry}")
+        if is_link(entry) or not entry.is_file():
+            errors.append(f"Missing or linked Skill entrypoint: {relative_entry}")
+            continue
         text = entry.read_text(encoding="utf-8-sig")
         if f"name: {name}" not in text or "description:" not in text:
             errors.append(f"Invalid Skill frontmatter: {name}")

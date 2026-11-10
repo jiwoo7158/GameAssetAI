@@ -40,11 +40,54 @@ recoverable from Git history and are not active work-order authority.
 - User decisions still open after this package: first production asset family, first generation
   provider/engine, and the first representative visual acceptance target. No choice is made here.
 
-Closeout: the repository now has 141 tracked files, 110 Python files, four product Skills, and
-nine current documents. Repository validation and 46 offline tests pass, including installed
-runtime execution, output-tree deletion/recreation, and retained static/character/2D/FBX contract
-regressions. Live Blender/MCP, Codex client discovery, the retained Add-on, and engine import were
-not rerun in this foundation package and remain labeled accordingly in `docs/capabilities.md`.
+Closeout recorded on 2026-11-10: the foundation commit reported 141 tracked files, 110 Python
+files, four intended product Skills, and nine current documents. Its then-current repository
+validation and 46 offline tests passed, including installed Runtime execution, output-tree
+deletion/recreation, and retained static/character/2D/FBX contract regressions. This is historical
+closeout evidence rather than a claim about the current checkout. Live Blender/MCP, Codex client
+discovery, the retained Add-on, and engine import were not rerun in that package.
+
+## Active foundation-hardening work package (2026-11-11)
+
+- Requirements advanced: `REQ-SPEC`, `REQ-WORKSPACE`, `REQ-DISTRIBUTION`, `REQ-OUTPUT`, and
+  `REQ-SAFE`.
+- Existing implementation to reuse: the four-Skill bundle contract, JSON Profile persistence,
+  atomic JSON publication, link/reparse-point detection, no-overwrite output allocation, and the
+  focused offline test suite.
+- Concrete gaps: the Workspace Skill is present locally but excluded by an over-broad ignore
+  pattern and absent from Git; Profiles lack a validated field-level update path; output and Skill
+  installation paths do not consistently reject linked intermediate components; onboarding and
+  reference-image guidance are incomplete; and no GitHub Actions workflow verifies the foundation.
+- Non-goals: changing the product architecture or catalog, implementing a new asset generator,
+  introducing an AI provider, running long Blender art experiments, creating UnityWorkbench, or
+  modifying a real user Workspace or game project.
+- Affected files: `.gitignore`; existing Workspace, output, distribution, and CLI modules; the four
+  existing Skill instructions; Workspace template instructions; focused tests; current user and
+  engineering documentation; and one CI workflow.
+- Validation assets: repository-tracked source plus isolated temporary Workspaces, output trees,
+  bundles, installed Skill directories, collision cases, and supported link/junction fixtures.
+- Acceptance criteria:
+  1. All four Skill sources are tracked, frontmatter-valid, packaged, installed, and executable
+     without a development-checkout path.
+  2. Profile fields can be read and explicitly updated with schema validation, preservation of
+     untouched fields, atomic publication, and no implicit legacy conversion.
+  3. Output and distribution operations reject linked path components, escape attempts, and
+     collisions without damaging existing data; deleting `outputs/` remains safe.
+  4. Workspace and Skill guidance consistently distinguishes durable Profile rules, per-asset
+     requests, user-provided AI references, Blender previews, and final 2D outputs.
+  5. Linux and Windows CI run repository validation and the complete offline test suite, including
+     a regression that fails when any required Skill source is absent from Git.
+- Unresolved user decisions: none for this bounded hardening package. Live Codex client discovery,
+  Blender/MCP execution, Windows junction creation where the runner lacks permission, and engine
+  behavior remain separate environment gates and must be reported rather than inferred.
+
+Local validation on 2026-11-11: repository validation passed; 54 offline tests passed with two
+Windows symlink cases skipped because the current process lacks symlink privilege; equivalent
+Windows Junction refusal tests for both output allocation and Skill installation passed. An
+isolated CLI run built and validated the four-Skill bundle, installed it under a temporary
+`.codex/skills` root, and executed the installed catalog validator without a development-checkout
+dependency. Remote GitHub Actions status is reported from the actual branch run after publication,
+not inferred from this local result.
 
 ## Candidate development areas after the foundation
 

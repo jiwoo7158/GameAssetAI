@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+from copy import deepcopy
 from datetime import datetime, timezone
 from pathlib import Path
+import re
 import shutil
 from typing import Any
 import uuid
@@ -31,6 +33,11 @@ REQUIRED_FILES = (
 )
 REQUIRED_DIRS = ("config", "profiles")
 SAFE_ADDITIVE_TEMPLATE_FILES = ("README.md", "profiles/README.md", "notes/README.md")
+PROFILE_SETTING_SEGMENT = re.compile(r"[a-z][a-z0-9_-]*\Z")
+PROFILE_MUTABLE_OBJECTS = {
+    "styles", "art_direction", "asset_defaults", "rig_animation", "output_defaults",
+}
+PROFILE_MUTABLE_SCALARS = {"name", "description"}
 
 
 def default_template_root() -> Path:
@@ -78,6 +85,7 @@ def _validate_profile_document(profile: dict[str, Any], expected_id: str | None 
 
 def validate_workspace(root: Path, *, require_profile: bool = False) -> dict[str, Any]:
     root = root.expanduser().absolute()
+    reject_linked_components(root)
     if is_link(root) or not root.is_dir():
         raise ValidationError(f"Workspace must be a real directory: {root}")
     for relative in REQUIRED_DIRS:
@@ -229,7 +237,9 @@ def update_workspace(template: Path | None, target: Path) -> dict[str, Any]:
         destination = target / relative
         if destination.exists() or is_link(destination):
             continue
+        reject_linked_components(destination.parent, stop=target)
         destination.parent.mkdir(parents=True, exist_ok=True)
+        reject_linked_components(destination.parent, stop=target)
         with destination.open("xb") as output:
             output.write(source.read_bytes())
         added.append(relative)
@@ -240,6 +250,7 @@ def create_profile(
     workspace: Path, profile_id: str, name: str, description: str,
     *, three_d_style: str | None = None, two_d_styles: list[str] | None = None,
 ) -> dict[str, Any]:
+    workspace = workspace.expanduser().absolute()
     validate_workspace(workspace)
     profile_id = validate_identifier(profile_id, "profile id")
     if not name.strip() or not description.strip():
@@ -262,7 +273,100 @@ def create_profile(
     return {"status": "created", "profile": profile_id, "path": str(path)}
 
 
+def _profile_path(workspace: Path, profile_id: str | None) -> tuple[str, Path]:
+    workspace = workspace.expanduser().absolute()
+    report = validate_workspace(workspace)
+    identifier = profile_id if profile_id is not None else report["active_profile"]
+    if identifier is None:
+        raise ValidationError("No active Profile is selected; pass an explicit profile id")
+    identifier = validate_identifier(identifier, "profile id")
+    path = workspace / "profiles" / f"{identifier}.json"
+    if is_link(path) or not path.is_file():
+        raise ValidationError(f"Profile does not exist or is linked: {identifier}")
+    return identifier, path
+
+
+def read_profile(workspace: Path, profile_id: str | None = None) -> dict[str, Any]:
+    identifier, path = _profile_path(workspace, profile_id)
+    document = read_json_object(path)
+    _validate_profile_document(document, identifier)
+    return document
+
+
+def _profile_setting_parts(setting: str, *, for_update: bool) -> list[str]:
+    if not isinstance(setting, str) or not setting.strip() or setting != setting.strip():
+        raise ValidationError("Profile setting must be a nonempty dot-separated path")
+    parts = setting.split(".")
+    if any(not PROFILE_SETTING_SEGMENT.fullmatch(part) for part in parts):
+        raise ValidationError(f"Invalid Profile setting path: {setting!r}")
+    if for_update:
+        root = parts[0]
+        if root in PROFILE_MUTABLE_SCALARS:
+            if len(parts) != 1:
+                raise ValidationError(f"Profile scalar {root} does not have child settings")
+        elif root in PROFILE_MUTABLE_OBJECTS:
+            if len(parts) < 2:
+                raise ValidationError(f"Update a specific child setting under {root}")
+        else:
+            raise ValidationError(f"Profile setting is read-only or unknown: {root}")
+    return parts
+
+
+def read_profile_setting(
+    workspace: Path, setting: str, *, profile_id: str | None = None,
+) -> dict[str, Any]:
+    identifier, _ = _profile_path(workspace, profile_id)
+    value: Any = read_profile(workspace, identifier)
+    for part in _profile_setting_parts(setting, for_update=False):
+        if not isinstance(value, dict) or part not in value:
+            raise ValidationError(f"Profile setting does not exist: {setting}")
+        value = value[part]
+    return {"profile": identifier, "setting": setting, "value": deepcopy(value)}
+
+
+def update_profile_setting(
+    workspace: Path,
+    setting: str,
+    value: Any,
+    *,
+    profile_id: str | None = None,
+) -> dict[str, Any]:
+    identifier, path = _profile_path(workspace, profile_id)
+    current = read_profile(workspace, identifier)
+    candidate = deepcopy(current)
+    parts = _profile_setting_parts(setting, for_update=True)
+    parent: dict[str, Any] = candidate
+    for part in parts[:-1]:
+        child = parent.get(part)
+        if child is None:
+            child = {}
+            parent[part] = child
+        if not isinstance(child, dict):
+            raise ValidationError(f"Profile setting parent is not an object: {part}")
+        parent = child
+    leaf = parts[-1]
+    previous = deepcopy(parent.get(leaf)) if leaf in parent else None
+    existed = leaf in parent
+    parent[leaf] = deepcopy(value)
+    candidate["metadata"]["updated_utc"] = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+    _validate_profile_document(candidate, identifier)
+    if is_link(path):
+        raise SafetyError(f"Refusing to replace linked Profile: {path}")
+    atomic_write_json(path, candidate, replace=True)
+    persisted = read_json_object(path)
+    _validate_profile_document(persisted, identifier)
+    return {
+        "status": "updated",
+        "profile": identifier,
+        "setting": setting,
+        "previous_exists": existed,
+        "previous": previous,
+        "value": deepcopy(value),
+    }
+
+
 def select_profile(workspace: Path, profile_id: str | None) -> dict[str, Any]:
+    workspace = workspace.expanduser().absolute()
     validate_workspace(workspace)
     if profile_id is not None:
         profile_id = validate_identifier(profile_id, "profile id")
@@ -277,6 +381,7 @@ def select_profile(workspace: Path, profile_id: str | None) -> dict[str, Any]:
 
 
 def list_profiles(workspace: Path) -> list[dict[str, Any]]:
+    workspace = workspace.expanduser().absolute()
     report = validate_workspace(workspace)
     result = []
     for path in sorted((workspace / "profiles").glob("*.json")):
@@ -289,6 +394,7 @@ def list_profiles(workspace: Path) -> list[dict[str, Any]]:
 
 
 def read_active_profile(workspace: Path) -> dict[str, Any] | None:
+    workspace = workspace.expanduser().absolute()
     report = validate_workspace(workspace)
     identifier = report["active_profile"]
     if identifier is None:

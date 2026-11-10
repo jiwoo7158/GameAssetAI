@@ -6,7 +6,13 @@ import uuid
 from typing import Any
 
 from .errors import SafetyError, ValidationError
-from .filesystem import atomic_write_json, is_link, read_json_object, validate_identifier
+from .filesystem import (
+    atomic_write_json,
+    is_link,
+    read_json_object,
+    reject_linked_components,
+    validate_identifier,
+)
 from .workspace import validate_workspace
 
 
@@ -27,18 +33,39 @@ def begin_output_run(
     run_id: str | None = None,
     request_summary: str = "",
 ) -> dict[str, Any]:
+    workspace = workspace.expanduser().absolute()
     validate_workspace(workspace)
+    reject_linked_components(workspace)
     game = validate_identifier(game, "game")
     asset_category = validate_identifier(asset_category, "asset category")
     asset_id = validate_identifier(asset_id, "asset id")
     run_id = validate_identifier(run_id, "run id") if run_id else new_run_id().lower()
     output_root = workspace / "outputs"
-    if is_link(output_root):
-        raise SafetyError("Workspace outputs must not be a link or junction")
     run = output_root / game / asset_category / run_id
+    try:
+        run.resolve(strict=False).relative_to(workspace.resolve(strict=True))
+    except (OSError, ValueError) as exc:
+        raise SafetyError(f"Output run escapes the Workspace: {run}") from exc
+    for directory in (output_root, output_root / game, output_root / game / asset_category):
+        reject_linked_components(directory, stop=workspace)
+        if directory.exists() or is_link(directory):
+            if is_link(directory) or not directory.is_dir():
+                raise SafetyError(f"Output path component must be a real directory: {directory}")
+        else:
+            try:
+                directory.mkdir()
+            except FileExistsError:
+                pass
+            if is_link(directory) or not directory.is_dir():
+                raise SafetyError(f"Output path component was replaced during creation: {directory}")
     if run.exists() or is_link(run):
         raise SafetyError(f"Output run already exists: {run}")
-    run.mkdir(parents=True)
+    try:
+        run.mkdir()
+    except FileExistsError as exc:
+        raise SafetyError(f"Output run was claimed concurrently: {run}") from exc
+    if is_link(run) or not run.is_dir():
+        raise SafetyError(f"Output run is not a real directory: {run}")
     manifest = {
         "schema": RUN_SCHEMA,
         "run_id": run_id,
@@ -53,7 +80,8 @@ def begin_output_run(
     try:
         atomic_write_json(run / "manifest.json", manifest, replace=False)
     except BaseException:
-        run.rmdir()
+        if run.is_dir() and not is_link(run):
+            run.rmdir()
         raise
     return {"status": "created", "run": str(run), "manifest": manifest}
 

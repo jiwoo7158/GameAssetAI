@@ -25,5 +25,7 @@ validation-runs/
 *.blend@
 *.blend@*
 
-# Personal workspace should not be committed into this repository
-GameAssetAI-Workspace/
+# A personal Workspace created beside this checkout must not be committed here.
+# Root anchoring is required: an unanchored, case-insensitive Windows match also
+# hides the product source directory skills/gameassetai-workspace/.
+/GameAssetAI-Workspace/

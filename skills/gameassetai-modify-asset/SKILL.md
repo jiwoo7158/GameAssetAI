@@ -1,21 +1,31 @@
 ---
 name: gameassetai-modify-asset
-description: Inspect and revise an explicitly selected existing game asset with copy-first preservation, including bounded mesh, rig, Mixamo, and Action workflows.
+description: Inspect and revise an explicitly selected existing game asset with copy-first preservation, including bounded mesh, material, rig, Mixamo, and Action workflows.
 ---
 
 # GameAssetAI Modify Asset
 
-Use this Skill for natural-language revisions such as proportion, silhouette, part, color,
-material, Rig, or animation changes. First resolve the exact source and inspect the current Blender
-Scene. Create a copy or verified checkpoint before a material change, and validate preservation
-afterward.
+Use this Skill for an explicitly selected existing asset and a requested proportion, silhouette,
+part, color, material, Rig, or animation change. Route Profile administration to
+`gameassetai-workspace`, new-source creation to `gameassetai-create-asset`, and final publication to
+`gameassetai-output-asset`.
 
-The bundled runtime retains tested narrow helpers for static semantic replacement, transform and
-mesh cleanup, humanoid inspection, Mixamo-oriented import/retarget preparation, Action copying and
-editing, and a bounded template-character revision. These helpers are internal building blocks.
-They do not implement arbitrary semantic mesh editing, clothing/hair fitting, facial work, or
-non-humanoid Rig generation.
+1. Validate the Workspace, load the active Profile, and resolve the exact source path/object.
+2. Read the text request, selected style, and user references. Label each image's role; do not
+   confuse a pre-production AI reference with a Blender preview or final 2D output.
+3. Decide whether the request is asset-local or an explicit durable game rule. Do not update the
+   Profile for a one-off edit.
+4. Inspect the current Blender Scene and create a copy or verified checkpoint before material
+   changes. Preserve the original unless replacement was explicitly requested.
+5. Use only a bounded helper whose contract matches the asset, then validate preservation,
+   structure, and visible/semantic invariants from relevant views.
 
-Reject a request or narrow its scope when the selected asset is outside an implemented contract.
-Never delete existing Armatures, Actions, meshes, materials, or external source files merely to
-simplify the operation.
+The Runtime retains narrow helpers for static semantic replacement, transform and mesh cleanup,
+humanoid inspection, Mixamo-oriented preparation, Action copying/editing, and template-character
+revision. It does not provide arbitrary semantic mesh editing, automatic clothing/hair fitting,
+facial work, or general nonhumanoid Rig generation. Existing suitable Rigs and Actions are
+first-class inputs; never delete or replace them merely to simplify the task.
+
+If the request exceeds an implemented contract, narrow it with the user or report the capability
+gap. On failure, preserve the checkpoint and source, state what changed before failure, and do not
+continue to output as though the asset were accepted.

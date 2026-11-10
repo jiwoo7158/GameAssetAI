@@ -17,8 +17,13 @@ Read current authority in this order:
 7. the active work package in `docs/roadmap.md`
 8. implementation and focused tests
 
-Git history and the `backup/pre-foundation-20261110` branch preserve the earlier implementation
-and evidence record; they are not active work instructions.
+For Skill installation or user-Workspace operations, also read `docs/distribution.md` and
+`docs/workspace.md` before acting; they provide the current host-path and Profile procedures but do
+not override the authority order above.
+
+Git history and the local-only `backup/pre-foundation-20261110` branch preserve the earlier
+implementation and evidence record; the branch is not asserted to exist on GitHub and neither is
+an active work instruction.
 
 ## Product boundaries
 
