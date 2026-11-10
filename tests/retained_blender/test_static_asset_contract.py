@@ -1,12 +1,18 @@
 import copy
 from pathlib import Path
 import sys
+import tempfile
 import unittest
 
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src" / "gameassetai" / "blender"))
 from validate_static_asset_assembly_request import validate_request, validate_revision_request  # noqa: E402
+
+
+ABSOLUTE_TEXTURE_DIRECTORY = str(
+    (Path(tempfile.gettempdir()) / "gameassetai-contract-textures").resolve()
+)
 
 
 def request():
@@ -30,7 +36,7 @@ def request():
         },
         "appearance": {
             "uv_policy": "LOCAL_BOX_PROJECT", "texture_policy": "OPTIONAL_GENERATED_PNG",
-            "texture_output_directory": "D:/output/textures", "max_texture_resolution": 128,
+            "texture_output_directory": ABSOLUTE_TEXTURE_DIRECTORY, "max_texture_resolution": 128,
             "max_texture_bytes": 262144, "pack_images": True,
         },
         "materials": [
@@ -123,7 +129,7 @@ class StaticAssetV5RequestTests(unittest.TestCase):
     def test_workspace_profile_provenance_requires_hash(self):
         payload = request()
         payload["art_direction"]["provenance"] = {
-            "source": "WORKSPACE_PROFILE", "source_ref": "profiles/game.md", "profile_sha256": None,
+            "source": "WORKSPACE_PROFILE", "source_ref": "profiles/game.json", "profile_sha256": None,
         }
         with self.assertRaisesRegex(ValueError, "profile_sha256"):
             validate_request(payload)

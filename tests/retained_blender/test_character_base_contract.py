@@ -1,12 +1,18 @@
 import copy
 from pathlib import Path
 import sys
+import tempfile
 import unittest
 
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src" / "gameassetai" / "blender"))
 from validate_character_base_request import validate_request, validate_revision_request  # noqa: E402
+
+
+ABSOLUTE_TEMPLATE = str(
+    (Path(tempfile.gettempdir()) / "gameassetai-contract-human.blend").resolve()
+)
 
 
 def request():
@@ -17,7 +23,7 @@ def request():
         "mesh_name": "GAA SD Hero Mesh", "pose": "A_POSE",
         "topology_mode": "DEFORMATION_TEMPLATE",
         "template": {
-            "source_file": "D:/external/human.blend", "source_sha256": "a" * 64,
+            "source_file": ABSOLUTE_TEMPLATE, "source_sha256": "a" * 64,
             "mesh_name": "GEO-body_male_stylized", "source_name": "Blender Studio Human Base Meshes",
             "source_version": "1.4.1", "license": "CC0-1.0", "front_axis": "-Y",
         },
