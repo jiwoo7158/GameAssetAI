@@ -17,6 +17,18 @@ template. Run commands from that installed Skill directory; do not import a deve
 The development repository uses the same command through its root `scripts/gameassetai.py` and
 requires `--template workspace-template` when creating or connecting.
 
+For a fresh project-scoped install, do not install into an unrecognized folder first. From the
+development/distribution environment run the integrated sequence:
+
+```text
+python scripts/gameassetai.py package install-project <bundle> <workspace> --template workspace-template
+python scripts/gameassetai.py package validate-install <workspace>/.codex/skills
+```
+
+This creates or connects and validates the Workspace before installing and validating all four
+Skills. Create and select the Profile only after those steps. User-scoped installation into the
+user's `.codex/skills` may happen before a Workspace exists.
+
 Typical installed commands:
 
 ```text
@@ -46,7 +58,15 @@ python scripts/gameassetai.py catalog list styles
 
 Valid durable areas include `styles.three_d`, `styles.two_d`, `art_direction.palette`,
 `art_direction.rules`, nested `asset_defaults`, `rig_animation`, and `output_defaults`. Do not
-invent missing rules. A request such as changing one sword's handle is not a game-wide rule.
+invent missing rules. Official `styles.three_d` accepts only a registered 3D id or null, and
+`styles.two_d` accepts only registered 2D ids. Put user-specific descriptive style rules under art
+direction instead of inventing catalog ids. A request such as changing one sword's handle is not a
+game-wide rule.
+
+Workspace results are allocated by the output Skill and shared Runtime under
+`outputs/<active-profile>/<catalog-category>/<asset-id>/<number>-<purpose>/`. Do not create a
+test-game folder, date/UUID run id, or extra hierarchy. Moving or deleting results is normal user
+management and must not change Workspace validity or Profile state.
 
 `config/projects.json` contains optional absolute-path bookmarks. The current CLI validates this
 file but does not provide a project-mapping write command; explain the schema and validate after a

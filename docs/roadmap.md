@@ -47,7 +47,7 @@ deletion/recreation, and retained static/character/2D/FBX contract regressions. 
 closeout evidence rather than a claim about the current checkout. Live Blender/MCP, Codex client
 discovery, the retained Add-on, and engine import were not rerun in that package.
 
-## Active foundation-hardening work package (2026-11-11)
+## Completed foundation-hardening work package (2026-11-11)
 
 - Requirements advanced: `REQ-SPEC`, `REQ-WORKSPACE`, `REQ-DISTRIBUTION`, `REQ-OUTPUT`, and
   `REQ-SAFE`.
@@ -81,13 +81,67 @@ discovery, the retained Add-on, and engine import were not rerun in that package
   Blender/MCP execution, Windows junction creation where the runner lacks permission, and engine
   behavior remain separate environment gates and must be reported rather than inferred.
 
-Local validation on 2026-11-11: repository validation passed; 54 offline tests passed with two
-Windows symlink cases skipped because the current process lacks symlink privilege; equivalent
-Windows Junction refusal tests for both output allocation and Skill installation passed. An
-isolated CLI run built and validated the four-Skill bundle, installed it under a temporary
-`.codex/skills` root, and executed the installed catalog validator without a development-checkout
-dependency. Remote GitHub Actions status is reported from the actual branch run after publication,
-not inferred from this local result.
+Closeout recorded on 2026-11-11: pull request #2 was merged to `master` as `b8ee12c`. Repository
+validation and 54 offline tests passed locally, with two Windows symlink cases skipped because the
+process lacked symlink privilege; equivalent Windows Junction refusal tests passed. The actual
+GitHub Actions run passed on Linux and Windows. The package was also built, validated, installed
+under an isolated temporary `.codex/skills` root, and its installed catalog command ran without a
+development-checkout dependency. Live Codex host discovery, Blender/MCP execution, visual asset
+quality, and engine behavior were not validated and remain incomplete environment/product gates.
+
+## Completed output-management foundation work package (2026-11-11)
+
+- Requirements advanced: `REQ-STYLE`, `REQ-WORKSPACE`, `REQ-DISTRIBUTION`, `REQ-OUTPUT`, and
+  `REQ-SAFE`.
+- Existing implementation to reuse: the v2 Workspace marker and active JSON Profile, canonical
+  catalog loader, atomic JSON publication, link/reparse-point checks, four-Skill bundle builder,
+  installed Runtime entrypoint, and Linux/Windows offline CI.
+- Concrete gaps: project-scoped onboarding can install `.codex/skills` before a Workspace is
+  recognized; Profile style fields do not verify registered ids or 3D/2D dimensions; output runs
+  use date/UUID ids and omit the asset-id level; development experiments have no official
+  path/metadata contract; and current Skills do not require an explicit new-versus-existing
+  experiment decision.
+- Non-goals: Blender execution, asset or sprite generation, visual-quality experiments, a new
+  generation provider, output migration/backup, UnityWorkbench work, dynamic prompt management,
+  or changes to the product catalog and overall provider architecture.
+- Affected files: existing catalog, Workspace, output, distribution, filesystem, and CLI modules;
+  focused tests; `.gitignore`; root and Workspace instructions; the four existing Skills; current
+  architecture, requirements, Workspace, distribution, quality, capability, and user guidance.
+- Validation assets: only isolated temporary repository-shaped roots, Workspaces, experiment and
+  user task trees, bundles, project-scoped installations, deletion/collision cases, and supported
+  link/Junction fixtures. No Blender asset, real user Workspace, repository `output/`, or external
+  project is a test target.
+- Representative asset: none. This package establishes storage and onboarding contracts and is
+  not evidence for asset generation or visual quality.
+- Acceptance criteria:
+  1. Fresh project-scoped onboarding creates or connects and validates a Workspace before it
+     installs and validates all four Skills; Profile creation and selection remain a later step.
+  2. Profile create, load, update, select, and Workspace validation reject unknown or
+     dimension-mismatched official style ids without changing the existing Profile.
+  3. Development work uses
+     `output/experiments/<experiment>/<category>/<asset>/<number>-<purpose>/`; user work uses
+     `outputs/<game>/<category>/<asset>/<number>-<purpose>/`, with catalog categories and no
+     date/UUID folder names.
+  4. Experiment creation and reuse are explicit, experiment metadata records the validation goal,
+     and the Runtime never guesses reuse from a similar name or creates a default experiment.
+  5. Task allocation uses atomic directory creation, the current maximum local number, no
+     overwrite, no unnecessary artifact subdirectories, and exact-path validation for continuing
+     in-progress work.
+  6. Moving or deleting any or all result trees cannot break Repository validation, package
+     building, Profiles, or allocation of a new independent task.
+  7. Documentation, Skills, Runtime, CLI, tests, and CI describe and enforce the same policy.
+- Unresolved user decisions: the Runtime cannot decide whether two natural-language validation
+  goals are semantically identical. It lists and validates experiment metadata; when the request
+  does not establish new versus existing work, the agent must ask for the minimum clarification.
+
+Closeout recorded on 2026-11-11: repository validation and 68 offline tests passed. Two Windows
+symlink cases were skipped because the local process lacks symlink privilege; equivalent Junction
+refusal tests for output allocation and Skill installation passed. The suite exercised the actual
+CLI for ordered project installation, installed-Runtime Profile and output commands, bundle
+build/validation, experiment/task deletion and recreation, concurrent numbering, style-dimension
+rejection, and legacy output read-only validation. No Repository `output/`, Blender asset, user
+Workspace, or external project was created or modified. Live Codex host discovery, Blender/MCP,
+visual quality, and engine behavior were outside this package and remain unverified.
 
 ## Candidate development areas after the foundation
 

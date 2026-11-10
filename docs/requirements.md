@@ -13,7 +13,7 @@ These stable ids express product obligations; they do not imply implementation.
 | `REQ-CHARACTER` | Humanoid and nonhumanoid character paths without a universal anatomy or skeleton assumption. |
 | `REQ-ANIMATION` | Existing Rig/Action, Mixamo-eligible, cleanup, editing, and asset-specific animation paths. |
 | `REQ-2D` | Optional preview, pixel/cel/toon, direction, action-frame, and sprite outputs from accepted 3D. |
-| `REQ-OUTPUT` | No-overwrite editable outputs with disposable run directories and descriptive manifests. |
+| `REQ-OUTPUT` | Separate disposable development experiments and user game outputs, with catalog categories, concrete asset ids, atomic local task numbers, purpose names, no overwrite, and local manifests. |
 | `REQ-WORKSPACE` | User-selected persistent Workspace with Profiles, project bookmarks, settings, notes, and outputs. |
 | `REQ-DISTRIBUTION` | Self-contained installed Skills with declared runtime, catalog, template, safe install, update, and backup. |
 | `REQ-INTEGRATION` | Optional UnityWorkbench and external projects only through explicit paths and authorization. |
@@ -28,10 +28,19 @@ These stable ids express product obligations; they do not imply implementation.
 - Workspace creation accepts a custom path, reconnects safely, refuses unknown nonempty folders,
   recognizes legacy Workspaces without mutation, and never provides a force-overwrite path.
 - Profile create/select/clear/list/get/set persists through validated files independently of chat
-  sessions; an explicit field update preserves all unnamed settings.
-- Output allocation uses unique game/category/run paths, and deleting `outputs/` leaves Workspace
-  validation, Profiles, catalog, installed Skills, and future run creation intact.
+  sessions; an explicit field update preserves all unnamed settings. Official style fields accept
+  only catalog ids of the correct 3D/2D dimension, while freeform game direction remains separate.
+- Development results allocate under
+  `output/experiments/<experiment>/<category>/<asset>/<number>-<purpose>/`; user results allocate
+  under `outputs/<game>/<category>/<asset>/<number>-<purpose>/`. Experiment reuse is explicit and
+  based on validation-goal metadata, not folder-name similarity.
+- Moving or deleting any or all result directories leaves Repository validation, Workspace
+  validation, Profiles, catalog, installed Skills, package building, and independent new task
+  allocation intact. Continuing a missing task fails only that exact continuation.
 - Four product Skills build with a vendored runtime and no development checkout dependency.
+- Fresh project-scoped onboarding creates/connects and validates the Workspace before installing
+  and validating its four Skills; Profile creation and selection occur afterward. User-scoped
+  installation remains independent of Workspace creation.
 - Existing installed Skills are never overwritten during install; update requires an explicit
   unused backup path and retains the previous installation.
 - Current code contains no active B/M stage authority or hard-coded personal output path.

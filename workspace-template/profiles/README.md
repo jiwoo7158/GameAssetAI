@@ -6,7 +6,9 @@ Workspace Skill so the schema and portable id are validated. Selecting a Profile
 
 Use `profile get` and `profile set` for an explicit field-level change. The setter accepts a JSON
 value, preserves all unnamed fields, validates the complete candidate, and publishes it atomically.
-Do not replace a personal Profile with `_template.json`.
+Official `styles.three_d` and `styles.two_d` values must be registered catalog ids of the correct
+dimension. Put user-specific prose in art-direction rules instead of inventing a style id. Do not
+replace a personal Profile with `_template.json`.
 
 Older Workspaces may contain Markdown Profiles. The current Runtime detects the Workspace as
 legacy and does not convert it automatically. Back up the legacy Workspace, review every durable

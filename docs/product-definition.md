@@ -89,7 +89,7 @@ request + active Profile + references
   -> visible/semantic review and revision
   -> optional asset-appropriate Rig/animation
   -> optional 2D direction/action render
-  -> explicit no-overwrite output run
+  -> explicit no-overwrite numbered output task
   -> optional engine review
 ```
 
@@ -120,6 +120,12 @@ mandatory.
 Planned formats are `.blend`, `.fbx`, `.png`, PNG sequences, 8-direction sprites, and sprite sheets.
 Files should remain editable in Blender where practical. Support and evidence are tracked by
 format and asset scope; successful Generic FBX does not imply Unity Humanoid support.
+
+Development experiments and user game results are separate disposable domains. Development paths
+start with a validation-goal experiment id; user paths start with the active game Profile id. Both
+then use a catalog category, concrete asset id, and local numbered purpose. Dates, UUIDs, and a
+global result registry are not part of user-facing folder names. Result manifests describe only
+their local task and may disappear with it; no independent work depends on prior results.
 
 ## Explicitly deferred in this foundation
 

@@ -16,6 +16,9 @@ rules live in JSON Profiles, not in chat memory.
    silently ignoring either source.
 5. Distinguish an asset-local request from a durable game-wide rule before changing the Profile.
 6. Inspect the current Blender Scene and exact targets before modifying existing data.
+7. Before allocating output, decide whether this is a new asset, a new preserved result for an
+   existing asset, or an exact continuation of an in-progress task. Use the active Profile id as
+   the game id and the catalog top-level category; do not invent a test game or category.
 
 ## Durable Profile information
 
@@ -60,10 +63,23 @@ meshes, Armatures, Actions, materials, images, source references, and game proje
 anywhere; preserve them and prefer a copy or checkpoint. `unity-workbench` is optional and may be
 used only when the user explicitly requests it.
 
-Store generated deliverables under `outputs/<game>/<asset-category>/<run-id>/` unless the user
-chooses another destination. `outputs/` is disposable product state: deleting it removes those
-deliverable copies but must not affect Profiles, settings, installed Skills, catalogs, or future
-work. A previous run is input only when the user explicitly selects it.
+Allocate generated deliverables through the installed Runtime under
+`outputs/<game-id>/<asset-category>/<asset-id>/<number>-<purpose>/`. The only category ids are
+`character`, `equipment-prop`, `environment`, and `vfx-mesh`. The asset id names the concrete
+target; a revision of the same target keeps that id. A new comparable result receives the next
+number in that asset directory, while an exact in-progress continuation must validate the exact
+existing task path. Completed work is never reopened for overwrite.
+
+Task folder names use a three-or-more-digit local number and descriptive purpose, for example
+`001-initial-model` or `002-silhouette-refinement`. Do not use dates, times, UUIDs, generic
+`test`/`final` names, or extra classification levels. Create artifact subfolders only when that
+task needs them. The local `manifest.json` describes the task; it is not global state.
+
+`outputs/` is disposable user output: deleting or moving all or part of it removes those copies but
+must not affect Profiles, settings, installed Skills, catalogs, or an independent new task. Do not
+restore moved results automatically. A prior result is input only when the user explicitly selects
+it; if an exact in-progress task is missing, report that continuation error without blocking new
+work.
 
 Catalog registration is not proof that a generator exists. Stop downstream Rig, animation, 2D,
 and export work when a source fails visible or semantic review, and report unsupported work

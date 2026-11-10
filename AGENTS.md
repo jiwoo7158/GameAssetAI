@@ -76,6 +76,34 @@ an active work instruction.
 - Do not require `input/` or `references/` folders. A user may provide direct paths or attachments.
 - Never write generated user assets to Git. Development tests use isolated temporary directories.
 
+## Output classification and allocation
+
+- Development experiments belong only under
+  `output/experiments/<experiment-id>/<asset-category>/<asset-id>/<number>-<purpose>/`; user game
+  work belongs only under
+  `<workspace>/outputs/<game-id>/<asset-category>/<asset-id>/<number>-<purpose>/`. General tests
+  use operating-system temporary directories.
+- An experiment id identifies one validation goal, an asset id identifies one concrete target, and
+  a numbered purpose identifies one preserved result for that target. Do not create an experiment
+  for every request, merge different validation goals because they share an asset, or create a new
+  asset id for a revision of the same target.
+- Before development work, inspect existing `experiment.json` metadata and explicitly choose an
+  existing experiment or create a descriptive new one. Never infer reuse from a similar folder
+  name. If the validation goal is ambiguous, obtain the minimum user clarification.
+- Asset categories are the catalog top-level ids `character`, `equipment-prop`, `environment`, and
+  `vfx-mesh`. Do not add arbitrary output hierarchy levels.
+- Allocate paths only through the shared Runtime. New task folders use the next existing local
+  number and a descriptive purpose; never use a date, time, UUID, generic `test`/`final` name, or
+  overwrite an existing task. Continue work only from an exact validated in-progress task path.
+- Repository `output/` and Workspace `outputs/` are disposable local results, not registries,
+  fixtures, package input, or hidden Runtime state. Partial or complete movement/deletion is valid;
+  report failure only for a specifically requested missing continuation and allow independent new
+  work.
+
+For a fresh project-scoped installation, create or connect and validate the Workspace before
+installing all four Skills into its `.codex/skills`. Validate that installation, then create and
+select a Profile. User-scoped installation is independent of Workspace creation.
+
 ## Blender and acceptance rules
 
 - Verify the current Blender/MCP environment before relying on a tool or behavior.
