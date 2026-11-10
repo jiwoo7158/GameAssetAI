@@ -1,4 +1,0 @@
-interface:
-  display_name: "Export Animated FBX"
-  short_description: "Export a protected skinned Action FBX for Unity"
-  default_prompt: "Export the selected character and Action as a new Unity animated FBX without changing the Blender sources."

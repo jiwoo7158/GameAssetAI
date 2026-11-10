@@ -1,4 +1,4 @@
 {
-  "_comment": "Set profile to the filename stem under profiles/, e.g. Sephiria for profiles/Sephiria.md.",
+  "schema": "gameassetai.active-profile.v1",
   "profile": null
 }
