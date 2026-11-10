@@ -84,6 +84,17 @@ def validate_repository(
         if (root / "skills" / name / "runtime").exists():
             errors.append(f"Generated runtime must not be committed in source Skill: {name}")
 
+    ignore_lines = {
+        line.strip() for line in (root / ".gitignore").read_text(encoding="utf-8-sig").splitlines()
+        if line.strip() and not line.lstrip().startswith("#")
+    }
+    if "/output/" not in ignore_lines:
+        errors.append("Development experiment root must be ignored with the anchored /output/ rule")
+    if tracked_files is not None:
+        tracked_output = sorted(path for path in tracked_files if path.startswith("output/"))
+        if tracked_output:
+            errors.append(f"Development experiment output is Git-tracked: {tracked_output}")
+
     for forbidden in FORBIDDEN_ACTIVE_DOCS:
         if any(path.name == forbidden for path in (root / "docs").rglob("*")):
             errors.append(f"Historical active-state document remains: {forbidden}")

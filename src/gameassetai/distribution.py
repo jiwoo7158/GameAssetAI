@@ -176,6 +176,28 @@ def validate_product_bundle(bundle: Path) -> dict[str, Any]:
     return {"status": "valid", "bundle": str(bundle), "skills": list(PRODUCT_SKILLS)}
 
 
+def validate_installed_product(skills_dir: Path) -> dict[str, Any]:
+    skills_dir = skills_dir.expanduser().absolute()
+    reject_linked_components(skills_dir)
+    if is_link(skills_dir) or not skills_dir.is_dir():
+        raise ValidationError(f"Installed Skills root must be a real directory: {skills_dir}")
+    for name in PRODUCT_SKILLS:
+        skill = skills_dir / name
+        _validate_skill_source(skill, name)
+        manifest_path = skill / "manifest.json"
+        try:
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8-sig"))
+        except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+            raise ValidationError(f"Cannot read installed Skill manifest for {name}: {exc}") from exc
+        if (
+            manifest.get("schema") != SKILL_SCHEMA
+            or manifest.get("skill") != name
+            or manifest.get("files") != _manifest(skill, exclude={"manifest.json"})
+        ):
+            raise ValidationError(f"Installed Skill manifest mismatch: {name}")
+    return {"status": "valid", "skills_dir": str(skills_dir), "skills": list(PRODUCT_SKILLS)}
+
+
 def install_product_bundle(bundle: Path, skills_dir: Path) -> dict[str, Any]:
     validate_product_bundle(bundle)
     skills_dir = skills_dir.expanduser().absolute()
@@ -209,6 +231,43 @@ def install_product_bundle(bundle: Path, skills_dir: Path) -> dict[str, Any]:
             shutil.rmtree(stage)
         raise
     return {"status": "installed", "skills_dir": str(skills_dir), "skills": list(PRODUCT_SKILLS)}
+
+
+def install_project_bundle(
+    bundle: Path,
+    workspace: Path,
+    *,
+    template: Path | None = None,
+) -> dict[str, Any]:
+    """Create/connect a Workspace before installing its project-scoped Skills."""
+    from .workspace import create_or_connect_workspace, validate_workspace
+
+    workspace = workspace.expanduser().absolute()
+    workspace_result = create_or_connect_workspace(template, workspace)
+    if workspace_result["status"] == "legacy-connected":
+        raise ValidationError(
+            "Project-scoped Skills require a current validated Workspace; migrate the legacy "
+            "Workspace only after user review"
+        )
+    validate_workspace(workspace)
+    skills_dir = workspace / ".codex" / "skills"
+    install_result = install_product_bundle(bundle, skills_dir)
+    installed_result = validate_installed_product(skills_dir)
+    return {
+        "status": "installed",
+        "workspace": str(workspace),
+        "workspace_status": workspace_result["status"],
+        "skills_dir": str(skills_dir),
+        "skills": list(PRODUCT_SKILLS),
+        "steps": [
+            "workspace-created-or-connected",
+            "workspace-validated",
+            "skills-installed",
+            "installation-validated",
+        ],
+        "install_status": install_result["status"],
+        "validation_status": installed_result["status"],
+    }
 
 
 def update_product_bundle(bundle: Path, skills_dir: Path, backup_root: Path) -> dict[str, Any]:

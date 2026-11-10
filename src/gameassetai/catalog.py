@@ -37,9 +37,12 @@ def default_catalog_root() -> Path:
         path = Path(str(packaged))
     except TypeError as exc:
         raise ValidationError("Packaged catalog is not filesystem-accessible") from exc
-    if not path.is_dir():
-        raise ValidationError("No packaged catalog is available; pass an explicit catalog root")
-    return path
+    if path.is_dir():
+        return path
+    checkout = Path(__file__).resolve().parents[2] / "catalog"
+    if checkout.is_dir():
+        return checkout
+    raise ValidationError("No packaged catalog is available; pass an explicit catalog root")
 
 
 def _documents(root: Path, kind: str) -> Iterable[Path]:
@@ -128,6 +131,33 @@ def load_registry(root: Path | None, kind: str) -> Registry:
 
 def load_catalogs(root: Path | None = None) -> dict[str, Registry]:
     return {kind: load_registry(root, kind) for kind in REGISTRY_SPECS}
+
+
+def asset_categories(root: Path | None = None) -> frozenset[str]:
+    registry = load_registry(root, "asset-types")
+    return frozenset(entry["category"] for entry in registry.entries.values())
+
+
+def validate_style_ids(
+    three_d: object,
+    two_d: object,
+    root: Path | None = None,
+    *,
+    label: str = "styles",
+) -> None:
+    registry = load_registry(root, "styles")
+    if three_d is not None:
+        if not isinstance(three_d, str):
+            raise ValidationError(f"{label}.three_d must be null or a registered 3D style id")
+        entry = registry.get(three_d)
+        if entry["dimension"] != "3d":
+            raise ValidationError(f"{label}.three_d must reference a 3D style")
+    if not isinstance(two_d, list) or not all(isinstance(value, str) for value in two_d):
+        raise ValidationError(f"{label}.two_d must be a list of registered 2D style ids")
+    for identifier in two_d:
+        entry = registry.get(identifier)
+        if entry["dimension"] != "2d":
+            raise ValidationError(f"{label}.two_d may only reference 2D styles")
 
 
 def validate_catalog(root: Path | None = None) -> dict[str, Any]:

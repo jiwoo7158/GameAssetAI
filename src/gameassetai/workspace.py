@@ -8,6 +8,7 @@ import shutil
 from typing import Any
 import uuid
 
+from .catalog import validate_style_ids
 from .errors import SafetyError, ValidationError
 from .filesystem import (
     atomic_write_json,
@@ -74,10 +75,7 @@ def _validate_profile_document(profile: dict[str, Any], expected_id: str | None 
     styles = profile["styles"]
     if not isinstance(styles, dict) or set(styles) != {"three_d", "two_d"}:
         raise ValidationError("Profile styles must contain three_d and two_d")
-    if styles["three_d"] is not None and not isinstance(styles["three_d"], str):
-        raise ValidationError("Profile styles.three_d must be null or a style id")
-    if not isinstance(styles["two_d"], list) or not all(isinstance(x, str) for x in styles["two_d"]):
-        raise ValidationError("Profile styles.two_d must be a string list")
+    validate_style_ids(styles["three_d"], styles["two_d"], label="Profile styles")
     for field in ("art_direction", "asset_defaults", "rig_animation", "output_defaults", "metadata"):
         if not isinstance(profile[field], dict):
             raise ValidationError(f"Profile {field} must be an object")
@@ -113,7 +111,11 @@ def validate_workspace(root: Path, *, require_profile: bool = False) -> dict[str
         profile_path = root / "profiles" / f"{profile_id}.json"
         if is_link(profile_path) or not profile_path.is_file():
             raise ValidationError(f"Active Profile is missing or linked: {profile_path.name}")
-        _validate_profile_document(read_json_object(profile_path), profile_id)
+    for profile_path in sorted((root / "profiles").glob("*.json")):
+        if is_link(profile_path) or not profile_path.is_file():
+            raise ValidationError(f"Profile must be a real JSON file: {profile_path.name}")
+        expected_id = None if profile_path.name.startswith("_") else profile_path.stem
+        _validate_profile_document(read_json_object(profile_path), expected_id)
 
     projects = read_json_object(root / "config" / "projects.json")
     if set(projects) != {"schema", "games"} or projects.get("schema") != PROJECTS_SCHEMA:
