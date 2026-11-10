@@ -11,7 +11,8 @@ sys.path.insert(0, str(ROOT / "src"))
 from gameassetai.errors import SafetyError, ValidationError  # noqa: E402
 from gameassetai.workspace import (  # noqa: E402
     create_or_connect_workspace, create_profile, list_profiles, read_active_profile,
-    select_profile, update_workspace, validate_workspace,
+    read_profile, read_profile_setting, select_profile, update_profile_setting,
+    update_workspace, validate_workspace,
 )
 
 
@@ -76,6 +77,50 @@ class WorkspaceTests(unittest.TestCase):
         active.write_text('{"schema":"gameassetai.active-profile.v1","profile":"missing"}', encoding="utf-8")
         with self.assertRaises(ValidationError):
             validate_workspace(self.workspace)
+
+    def test_profile_setting_update_is_explicit_atomic_and_preserves_other_fields(self):
+        self.create()
+        create_profile(
+            self.workspace, "forest-game", "Forest Game", "Persistent style context",
+            three_d_style="stylized-chibi-low-poly",
+        )
+        create_profile(self.workspace, "desert-game", "Desert Game", "Other game context")
+        select_profile(self.workspace, "forest-game")
+
+        update_profile_setting(
+            self.workspace, "art_direction.palette", ["moss", "bark"],
+        )
+        update_profile_setting(
+            self.workspace,
+            "asset_defaults.character.proportions",
+            {"head_ratio": "large", "silhouette": "compact"},
+        )
+        profile = read_profile(self.workspace)
+        self.assertEqual("Persistent style context", profile["description"])
+        self.assertEqual(["blend"], profile["output_defaults"]["formats"])
+        self.assertEqual(["moss", "bark"], profile["art_direction"]["palette"])
+        self.assertEqual(
+            {"head_ratio": "large", "silhouette": "compact"},
+            read_profile_setting(
+                self.workspace, "asset_defaults.character.proportions",
+            )["value"],
+        )
+        self.assertEqual({}, read_profile(self.workspace, "desert-game")["asset_defaults"])
+
+        profile_path = self.workspace / "profiles" / "forest-game.json"
+        before = profile_path.read_bytes()
+        with self.assertRaises(ValidationError):
+            update_profile_setting(self.workspace, "styles.two_d", "not-a-list")
+        self.assertEqual(before, profile_path.read_bytes())
+
+    def test_profile_update_requires_specific_mutable_setting(self):
+        self.create()
+        create_profile(self.workspace, "forest-game", "Forest Game", "Persistent context")
+        select_profile(self.workspace, "forest-game")
+        with self.assertRaisesRegex(ValidationError, "specific child"):
+            update_profile_setting(self.workspace, "art_direction", {})
+        with self.assertRaisesRegex(ValidationError, "read-only"):
+            update_profile_setting(self.workspace, "schema", "other")
 
 
 if __name__ == "__main__":

@@ -14,6 +14,18 @@ class RepositoryTests(unittest.TestCase):
     def test_current_repository_contract(self):
         self.assertEqual([], MODULE.validate_repository(ROOT))
 
+    def test_missing_tracked_workspace_skill_is_reported(self):
+        tracked, error = MODULE._git_tracked_files(ROOT)
+        self.assertIsNone(error)
+        self.assertIsNotNone(tracked)
+        tracked = set(tracked)
+        tracked.discard("skills/gameassetai-workspace/SKILL.md")
+        errors = MODULE.validate_repository(ROOT, tracked_files=tracked)
+        self.assertIn(
+            "Required Skill source is not tracked by Git: skills/gameassetai-workspace/SKILL.md",
+            errors,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

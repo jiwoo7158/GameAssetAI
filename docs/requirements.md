@@ -7,7 +7,7 @@ These stable ids express product obligations; they do not imply implementation.
 | `REQ-PRODUCT` | Installable, style-driven Codex workflow for usable game assets. |
 | `REQ-CATALOG` | Extensible data catalog with separate registration, implementation, and evidence state. |
 | `REQ-STYLE` | Independent extensible 3D and 2D styles plus game-specific Profile overrides. |
-| `REQ-SPEC` | Shared structured input for text, references, asset type, providers, revision, Rig/animation, and outputs. |
+| `REQ-SPEC` | Shared structured input whose normal flow is text plus a style preset plus user-provided reference images, with explicit reference roles, asset type, providers, revision, Rig/animation, and outputs. |
 | `REQ-GENERATION` | Replaceable Blender/local/external providers; asset type is not tied to one provider. |
 | `REQ-MODIFY` | Existing assets and natural-language revision are first-class, with preservation and explicit scope. |
 | `REQ-CHARACTER` | Humanoid and nonhumanoid character paths without a universal anatomy or skeleton assumption. |
@@ -27,7 +27,8 @@ These stable ids express product obligations; they do not imply implementation.
 - Asset Specifications validate against catalog and style ids without assuming humanoids.
 - Workspace creation accepts a custom path, reconnects safely, refuses unknown nonempty folders,
   recognizes legacy Workspaces without mutation, and never provides a force-overwrite path.
-- Profile create/select/clear/list persists through files independently of chat sessions.
+- Profile create/select/clear/list/get/set persists through validated files independently of chat
+  sessions; an explicit field update preserves all unnamed settings.
 - Output allocation uses unique game/category/run paths, and deleting `outputs/` leaves Workspace
   validation, Profiles, catalog, installed Skills, and future run creation intact.
 - Four product Skills build with a vendored runtime and no development checkout dependency.

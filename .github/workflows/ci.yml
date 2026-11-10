@@ -1,0 +1,32 @@
+name: Foundation CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  offline-foundation:
+    name: Python 3.10 / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+
+    steps:
+      - name: Check out tracked repository files
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Validate repository and tracked Skills
+        run: python -B scripts/validate_repo.py
+
+      - name: Run offline product and retained-contract tests
+        run: python -B -m unittest discover -s tests -p "test_*.py" -v

@@ -5,7 +5,9 @@
 - Repository: `jiwoo7158/GameAssetAI`
 - Protected HEAD: `1029f9630b072b8e183072e83834b95c87fab05c`
 - Baseline: 641 tracked files, 45 active Skill folders, 489 Python files.
-- Recovery branch: `backup/pre-foundation-20261110`
+- Local recovery branch: `backup/pre-foundation-20261110` at protected commit `1029f963`; it was
+  not found in the fetched GitHub branch list as of 2026-11-11. The commit remains reachable from
+  current history, while the named recovery ref is local unless explicitly pushed later.
 - Work branch: `refactor/gameassetai-foundation`
 
 ## Retained and integrated
@@ -39,5 +41,6 @@ offline restructure.
 - Final Python files: 110 (from 489).
 - Final user-facing Skill folders: 4 (from 45).
 - Current docs: 9 (from 80).
-- Validation: 46 offline tests passed; repository structure/catalog/template/Skill/Python
-  validation passed; staged diff whitespace check passed.
+- Validation at restructure closeout: 46 offline tests passed; repository
+  structure/catalog/template/Skill/Python validation passed; staged diff whitespace check passed.
+  This is a dated record, not the current hardening test result.

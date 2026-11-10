@@ -23,7 +23,10 @@ from .workspace import (
     default_template_root,
     list_profiles,
     read_active_profile,
+    read_profile,
+    read_profile_setting,
     select_profile,
+    update_profile_setting,
     update_workspace,
     validate_workspace,
 )
@@ -74,6 +77,16 @@ def build_parser() -> argparse.ArgumentParser:
     listing.add_argument("workspace", type=Path)
     show = profile_sub.add_parser("show")
     show.add_argument("workspace", type=Path)
+    show.add_argument("--profile")
+    get = profile_sub.add_parser("get")
+    get.add_argument("workspace", type=Path)
+    get.add_argument("setting")
+    get.add_argument("--profile")
+    set_value = profile_sub.add_parser("set")
+    set_value.add_argument("workspace", type=Path)
+    set_value.add_argument("setting")
+    set_value.add_argument("--value-json", required=True)
+    set_value.add_argument("--profile")
 
     spec = sub.add_parser("spec")
     spec_sub = spec.add_subparsers(dest="action", required=True)
@@ -141,8 +154,20 @@ def main(argv: list[str] | None = None) -> int:
                 result = select_profile(args.workspace, None)
             elif args.action == "list":
                 result = {"profiles": list_profiles(args.workspace)}
+            elif args.action == "show":
+                if args.profile:
+                    result = {"profile": read_profile(args.workspace, args.profile)}
+                else:
+                    result = {"profile": read_active_profile(args.workspace)}
+            elif args.action == "get":
+                result = read_profile_setting(
+                    args.workspace, args.setting, profile_id=args.profile,
+                )
             else:
-                result = {"profile": read_active_profile(args.workspace)}
+                value = json.loads(args.value_json)
+                result = update_profile_setting(
+                    args.workspace, args.setting, value, profile_id=args.profile,
+                )
         elif args.group == "spec":
             result = {"status": "valid", "specification": load_asset_specification(args.path, args.catalog_root)}
         elif args.group == "outputs":

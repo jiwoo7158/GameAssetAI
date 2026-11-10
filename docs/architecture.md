@@ -53,20 +53,23 @@ Source Skills contain only task instructions. The bundle builder copies the shar
 canonical data into each built Skill, writes content hashes, and validates Python syntax. This
 duplicates generated artifacts for portability while keeping source implementation single.
 
-Fresh install is no-overwrite. Product update requires all four existing Skills plus an unused
-backup directory. Old folders are moved to the backup and new staged folders are promoted; a
-promotion error restores the old paths. Client discovery/refresh and live Blender behavior remain
-separate manual gates.
+Fresh install is no-overwrite and rejects link/reparse-point components. Product update requires
+all four existing Skills plus an unused real backup directory. Old folders are moved to the backup
+and new staged folders are promoted; a promotion error restores the old paths. The supported Codex
+layouts are project-scoped `.codex/skills/<name>/` or user-scoped `~/.codex/skills/<name>/`;
+client discovery/refresh and live Blender behavior remain separate manual gates.
 
 ## Workspace and outputs
 
 Required Workspace state is only `AGENTS.md`, `config/`, and `profiles/`. `outputs/` and `notes/`
-are optional. Profile JSON stores durable game rules. Project paths are bookmarks and never grant
-write permission.
+are optional. Profile JSON stores durable game rules and supports explicit validated field-level
+updates; per-asset requests do not become Profile rules implicitly. Project paths are bookmarks
+and never grant write permission.
 
-An output run contains a descriptive manifest and only requested artifacts. No catalog, provider,
-Profile, Skill, or test reads prior runs as implicit state. A prior artifact becomes an input only
-when the user explicitly selects it.
+An output run contains a descriptive manifest and only requested artifacts. Allocation rejects
+linked intermediate directories, Workspace escape, and collisions. No catalog, provider, Profile,
+Skill, or test reads prior runs as implicit state. A prior artifact becomes an input only when the
+user explicitly selects it.
 
 ## Blender execution
 

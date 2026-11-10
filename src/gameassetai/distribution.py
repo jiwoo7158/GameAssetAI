@@ -80,11 +80,13 @@ def _validate_skill_source(path: Path, expected_name: str) -> None:
 
 
 def build_product_bundle(repo_root: Path, destination: Path) -> dict[str, Any]:
-    repo_root = repo_root.expanduser().resolve()
+    repo_root = repo_root.expanduser().absolute()
+    reject_linked_components(repo_root)
+    repo_root = repo_root.resolve()
     destination = destination.expanduser().absolute()
     if destination.exists() or is_link(destination):
         raise SafetyError(f"Bundle destination already exists: {destination}")
-    reject_linked_components(destination.parent)
+    reject_linked_components(destination)
     source_runtime = repo_root / "src" / "gameassetai"
     source_catalog = repo_root / "catalog"
     source_template = repo_root / "workspace-template"
@@ -95,6 +97,7 @@ def build_product_bundle(repo_root: Path, destination: Path) -> dict[str, Any]:
         _validate_skill_source(repo_root / "skills" / name, name)
 
     destination.parent.mkdir(parents=True, exist_ok=True)
+    reject_linked_components(destination.parent)
     stage = Path(tempfile.mkdtemp(prefix=".gameassetai-bundle-", dir=destination.parent))
     try:
         skills_root = stage / "skills"
@@ -142,6 +145,7 @@ def build_product_bundle(repo_root: Path, destination: Path) -> dict[str, Any]:
 
 def validate_product_bundle(bundle: Path) -> dict[str, Any]:
     bundle = bundle.expanduser().absolute()
+    reject_linked_components(bundle)
     if is_link(bundle) or not bundle.is_dir():
         raise ValidationError(f"Bundle must be a real directory: {bundle}")
     manifest_path = bundle / "manifest.json"
@@ -175,11 +179,16 @@ def validate_product_bundle(bundle: Path) -> dict[str, Any]:
 def install_product_bundle(bundle: Path, skills_dir: Path) -> dict[str, Any]:
     validate_product_bundle(bundle)
     skills_dir = skills_dir.expanduser().absolute()
-    reject_linked_components(skills_dir.parent)
+    reject_linked_components(skills_dir)
+    if skills_dir.exists() and not skills_dir.is_dir():
+        raise SafetyError(f"Skill installation target is not a directory: {skills_dir}")
     existing = [name for name in PRODUCT_SKILLS if (skills_dir / name).exists() or is_link(skills_dir / name)]
     if existing:
         raise SafetyError(f"Refusing to overwrite installed Skills: {', '.join(existing)}")
     skills_dir.mkdir(parents=True, exist_ok=True)
+    reject_linked_components(skills_dir)
+    if is_link(skills_dir) or not skills_dir.is_dir():
+        raise SafetyError(f"Skill installation target must be a real directory: {skills_dir}")
     stage = skills_dir / f".gameassetai-install-{uuid.uuid4().hex}"
     stage.mkdir()
     promoted: list[Path] = []
@@ -207,7 +216,9 @@ def update_product_bundle(bundle: Path, skills_dir: Path, backup_root: Path) -> 
     skills_dir = skills_dir.expanduser().absolute()
     backup_root = backup_root.expanduser().absolute()
     reject_linked_components(skills_dir)
-    reject_linked_components(backup_root.parent)
+    reject_linked_components(backup_root)
+    if not skills_dir.is_dir():
+        raise ValidationError(f"Installed Skills root must be a real directory: {skills_dir}")
     if backup_root.exists() or is_link(backup_root):
         raise SafetyError("Update backup path must not exist")
     resolved_skills = skills_dir.resolve()
@@ -229,11 +240,14 @@ def update_product_bundle(bundle: Path, skills_dir: Path, backup_root: Path) -> 
         return {"status": "already-aligned", "skills_dir": str(skills_dir), "backup": None}
 
     stage = skills_dir / f".gameassetai-update-{uuid.uuid4().hex}"
-    stage.mkdir()
-    backup_root.mkdir(parents=True)
     moved_old: list[str] = []
     promoted: list[str] = []
     try:
+        stage.mkdir()
+        backup_root.mkdir(parents=True)
+        reject_linked_components(backup_root)
+        if is_link(backup_root) or not backup_root.is_dir():
+            raise SafetyError(f"Update backup must be a real directory: {backup_root}")
         for name in PRODUCT_SKILLS:
             _copy_tree(bundle / "skills" / name, stage / name)
         for name in PRODUCT_SKILLS:
@@ -253,7 +267,7 @@ def update_product_bundle(bundle: Path, skills_dir: Path, backup_root: Path) -> 
                 old.rename(skills_dir / name)
         if stage.exists() and not is_link(stage):
             shutil.rmtree(stage)
-        if backup_root.exists() and not any(backup_root.iterdir()):
+        if backup_root.exists() and not is_link(backup_root) and not any(backup_root.iterdir()):
             backup_root.rmdir()
         raise
     return {
@@ -269,7 +283,9 @@ def write_bundle_zip(bundle: Path, target: Path) -> dict[str, Any]:
     target = target.expanduser().absolute()
     if target.exists() or is_link(target):
         raise SafetyError(f"Archive already exists: {target}")
+    reject_linked_components(target)
     target.parent.mkdir(parents=True, exist_ok=True)
+    reject_linked_components(target.parent)
     with tempfile.TemporaryFile(dir=target.parent) as staged:
         with zipfile.ZipFile(staged, "w", compression=zipfile.ZIP_DEFLATED) as archive:
             for path in _files(bundle):

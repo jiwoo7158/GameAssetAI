@@ -50,9 +50,20 @@ and design rules belong in its Workspace Profile, not the reusable style registr
 
 ## Inputs and Asset Specification
 
-Common user inputs are a text description, asset type, style presets, zero or more direct reference
-paths/attachments, required outputs, and task options. References may be front, side, back,
-three-quarter, concept, or source views and need not live in a forced folder.
+The normal creation flow combines a text description, a selected style preset, and reference
+images supplied by the user, commonly created with an external image-generation tool. The same
+flow applies to characters, props/equipment, environments, and VFX meshes. Each reference records
+an explicit role such as front, side, back, three-quarter, concept, or source; references need not
+live in a forced folder and more than one role may be provided.
+
+References remain optional in the data contract so bounded work is not rejected mechanically when
+an active Profile and the text request are sufficient. When visual information is required, the
+workflow explains the missing view or design decision instead of inventing a reference. It never
+claims an image was supplied when it was not, and it does not require GameAssetAI to install or
+call an image-generation API. Future concept-image providers may be added behind the provider
+boundary without changing this input contract.
+
+Other common inputs are asset type, required outputs, and task options.
 
 `gameassetai.asset-specification.v1` separates:
 
@@ -82,9 +93,10 @@ request + active Profile + references
   -> optional engine review
 ```
 
-Concept/reference image generation before 3D work and 2D rendering from an accepted 3D source are
-different stages. Future local or external AI concept/3D providers must sit behind the provider
-registry and must not become mandatory Workspace dependencies.
+User-supplied or future AI-generated concept/reference images before 3D work, Blender preview
+renders used to review the 3D source, and final game PNG/pixel/sprite outputs are three different
+stages. Future local or external AI concept/3D providers must sit behind the provider registry and
+must not become mandatory Workspace dependencies.
 
 ## Creation and modification providers
 
