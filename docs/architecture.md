@@ -6,21 +6,23 @@
 GameAssetAI repository
   catalog + shared runtime + Skill source + packaging + tests + docs
         |
-        | generated self-contained bundle
+        | verified build from an approved master commit
         v
-Installed task-oriented Skills
-  vendored runtime + catalog + Workspace template
+Generated dist/workspace product tree
+  product instructions + four self-contained Skills + initialization templates
         |
-        | natural-language work in a user-selected folder
+        | project clone, or copy the same Skills to user scope
         v
 GameAssetAI-Workspace
-  Profiles + active selection + project bookmarks + preferences + notes + outputs
+  tracked product files + ignored Profiles/settings/notes/results
         |
         +--> Blender/MCP and external source files (explicit targets)
         +--> optional UnityWorkbench (explicit request only)
 ```
 
-The tracked repository is never a user asset-output store. An ignored, optional `output/` tree may
+The development repository is never a user asset-output store. The generated `dist/workspace`
+branch is product output, not a development branch; it is updated only by the master-push
+publication workflow and keeps normal append-only Git history. An ignored, optional `output/` tree may
 hold disposable development experiments, but source, tests, catalogs, bundles, and independent
 work never depend on it. Installed copies never need the checkout's absolute path. The Workspace
 does not contain or relocate existing game projects.
@@ -31,7 +33,8 @@ does not contain or relocate existing game projects.
 - `src/gameassetai/specification.py`: provider-neutral Asset Specification contract.
 - `src/gameassetai/workspace.py`: create/connect/update and Profile persistence.
 - `src/gameassetai/outputs.py`: experiment metadata plus collision-safe disposable numbered tasks.
-- `src/gameassetai/distribution.py`: self-contained build, install, backup update, and ZIP.
+- `src/gameassetai/distribution.py`: self-contained Skill and Workspace-distribution build,
+  validation, install, backup update, and ZIP.
 - `src/gameassetai/blender/`: retained bounded Blender execution modules. These are internal
   capabilities, not separate product Skills.
 - `catalog/`: canonical asset/style/provider data.
@@ -55,30 +58,46 @@ Source Skills contain only task instructions. The bundle builder copies the shar
 canonical data into each built Skill, writes content hashes, and validates Python syntax. This
 duplicates generated artifacts for portability while keeping source implementation single.
 
-Fresh install is no-overwrite and rejects link/reparse-point components. Product update requires
+The Workspace-distribution builder allowlists product files into one generated tree: root product
+instructions, four Skills under `.agents/skills/`, initialization templates under
+`templates/workspace/`, Git ownership rules, and source/version/hash metadata. Development tests,
+roadmaps, source layout, local experiments, Profiles, settings, notes, and results are not product
+branch inputs. Text hashes are line-ending neutral and the generated `.gitattributes` fixes LF so
+normal Windows and Linux clones validate identically.
+
+Fresh standalone Skill install is no-overwrite and rejects link/reparse-point components. Product update requires
 all four existing Skills plus an unused real backup directory. Old folders are moved to the backup
 and new staged folders are promoted; a promotion error restores the old paths. The supported Codex
-layouts are project-scoped `.codex/skills/<name>/` or user-scoped `~/.codex/skills/<name>/`;
-client discovery/refresh and live Blender behavior remain separate manual gates.
+layouts are project-scoped `.agents/skills/<name>/` and user-scoped
+`$HOME/.agents/skills/<name>/`. Existing legacy `.codex/skills` copies are neither moved nor
+deleted automatically. Client discovery/refresh and live Blender behavior remain separate manual
+gates.
 
-Project-scoped onboarding is transactional in order rather than in ownership: create or connect
-the user-selected Workspace, validate it, install all four Skills into its `.codex/skills`, validate
-the installed manifests, and then create/select a Profile. This prevents a premature `.codex`
-directory from making a new target look like an unknown nonempty Workspace. User-scoped install
-does not require a Workspace.
+Normal project-scoped onboarding clones `dist/workspace`, verifies its metadata and four installed
+Skills, then initializes only missing ignored personal state. Initialization requires a real Git
+clone, preflights the complete candidate Workspace, and never replaces a Profile or setting. The
+older bundle installation route remains transactional in order: create/connect and validate the
+Workspace, install into `.agents/skills`, validate, then create/select a Profile. User-scoped
+installation is a copy of those same four Skill directories and does not require a Workspace.
 
 ## Workspace and outputs
 
-Required Workspace state is only `AGENTS.md`, `config/`, and `profiles/`. `outputs/` and `notes/`
-are optional. Profile JSON stores durable game rules and supports explicit validated field-level
-updates; per-asset requests do not become Profile rules implicitly. Project paths are bookmarks
-and never grant write permission.
+Required initialized Workspace state is only `AGENTS.md`, `config/`, and `profiles/`. `outputs/`
+and `notes/` are optional personal data. In a distribution clone, tracked root instructions,
+`.agents/skills`, templates, and distribution metadata are product-managed while `config/`,
+`profiles/`, `notes/`, `outputs/`, and `AGENTS.local.md` are ignored personal paths. Profile JSON
+stores durable game rules and supports explicit validated field-level updates; per-asset requests
+do not become Profile rules implicitly. Project paths are bookmarks and never grant write
+permission.
 
 Development experiments use
 `output/experiments/<experiment>/<category>/<asset>/<number>-<purpose>/`; `experiment.json`
 describes the validation goal. User tasks use
-`outputs/<active-profile>/<category>/<asset>/<number>-<purpose>/`. The experiment id answers what
-is being evaluated, the catalog category answers what kind of asset it is, the asset id answers
+`<selected-root>/<active-profile>/<category>/<asset>/<number>-<purpose>/`. The selected root is, in
+descending precedence, an explicit one-task root, Profile `output_defaults.root`, Workspace
+`settings.preferences.output_root`, or internal `<workspace>/outputs`. External roots must already
+exist and require the owning Workspace when validating or continuing a task. The experiment id
+answers what is being evaluated, the catalog category answers what kind of asset it is, the asset id answers
 which concrete target it is, and the task purpose answers what this preserved result does.
 
 New-versus-existing experiment choice is explicit. The Runtime lists and validates metadata but
@@ -90,8 +109,16 @@ requires an existing in-progress task and recorded artifacts. No catalog, provid
 Skill, package, or test reads prior results as implicit state. A prior artifact becomes an input
 only when the user explicitly selects it.
 
-Legacy `gameassetai.output-run.v1` manifests remain read-only validatable. They are not moved,
-renamed, deleted, or used for new allocation.
+The official artifact kinds map to on-demand `models/`, `previews/`, `sprites/`, and `exports/`
+directories. A producer first atomically reserves a descriptive no-overwrite path in the local
+manifest, writes the real nonempty file, and registers it to consume the reservation. An abandoned
+reservation can be released only while no file exists at that path. `complete` records that production ended without
+a quality decision. `accepted` and `rejected` require a human-visible/semantic review summary and
+registered evidence; tests or successful file creation do not confer acceptance. Reviewed states
+are terminal, while `complete` may later receive a review without reopening publication.
+
+Legacy `gameassetai.output-run.v1` and prior numbered-task manifests remain read-only validatable.
+They are not moved, renamed, deleted, or used for new allocation.
 
 ## Blender execution
 

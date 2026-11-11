@@ -18,10 +18,10 @@ jobs:
 
     steps:
       - name: Check out tracked repository files
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.10"
 
@@ -30,3 +30,14 @@ jobs:
 
       - name: Run offline product and retained-contract tests
         run: python -B -m unittest discover -s tests -p "test_*.py" -v
+
+      - name: Build and validate the Workspace distribution without publishing
+        run: >-
+          python -B scripts/gameassetai.py package build-workspace-dist .
+          "${{ runner.temp }}/gameassetai-workspace-dist"
+          --source-commit "${{ github.sha }}"
+
+      - name: Validate the generated Workspace distribution
+        run: >-
+          python -B scripts/gameassetai.py package validate-workspace-dist
+          "${{ runner.temp }}/gameassetai-workspace-dist"

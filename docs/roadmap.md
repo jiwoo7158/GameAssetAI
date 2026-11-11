@@ -89,7 +89,7 @@ under an isolated temporary `.codex/skills` root, and its installed catalog comm
 development-checkout dependency. Live Codex host discovery, Blender/MCP execution, visual asset
 quality, and engine behavior were not validated and remain incomplete environment/product gates.
 
-## Completed output-management foundation work package (2026-11-11)
+## Implemented / Under Review — output-management foundation work package (2026-11-11)
 
 - Requirements advanced: `REQ-STYLE`, `REQ-WORKSPACE`, `REQ-DISTRIBUTION`, `REQ-OUTPUT`, and
   `REQ-SAFE`.
@@ -134,14 +134,79 @@ quality, and engine behavior were not validated and remain incomplete environmen
   goals are semantically identical. It lists and validates experiment metadata; when the request
   does not establish new versus existing work, the agent must ask for the minimum clarification.
 
-Closeout recorded on 2026-11-11: repository validation and 68 offline tests passed. Two Windows
+Implementation evidence recorded on 2026-11-11: repository validation and 68 offline tests passed. Two Windows
 symlink cases were skipped because the local process lacks symlink privilege; equivalent Junction
 refusal tests for output allocation and Skill installation passed. The suite exercised the actual
 CLI for ordered project installation, installed-Runtime Profile and output commands, bundle
 build/validation, experiment/task deletion and recreation, concurrent numbering, style-dimension
 rejection, and legacy output read-only validation. No Repository `output/`, Blender asset, user
 Workspace, or external project was created or modified. Live Codex host discovery, Blender/MCP,
-visual quality, and engine behavior were outside this package and remain unverified.
+visual quality, and engine behavior were outside this package and remain unverified. This package
+remains under review in draft pull request #3 and is not complete until approved and merged.
+
+## Implemented / Under Review — Workspace distribution and result lifecycle work package (2026-11-11)
+
+- Requirements advanced: `REQ-WORKSPACE`, `REQ-DISTRIBUTION`, `REQ-OUTPUT`, `REQ-SAFE`, and
+  `REQ-QUALITY`.
+- Existing implementation to reuse: four-Skill self-contained bundle construction and validation,
+  installed Runtime entrypoints, v2 Workspace/Profile persistence, output experiment and numbered
+  task allocation, link/Junction rejection, atomic JSON publication, and Linux/Windows CI.
+- Concrete gaps: project and user Skill guidance still uses the superseded `.codex/skills`
+  locations; there is no allowlisted `dist/workspace` product tree or safe initialization path for
+  a cloned distribution; output allocation is limited to Workspace-internal storage; and artifact
+  path allocation, manifest registration, and reviewed task-state transitions lack a shared API.
+- Non-goals: publishing `dist/workspace` before this draft PR is approved and merged, creating a
+  second Repository or distribution branch, adding an installer/updater service or database,
+  running Blender, producing an asset, validating visual quality, introducing a provider, or
+  modifying a real user Workspace.
+- Affected files: existing distribution, Workspace, output, filesystem, and CLI modules; packaging
+  source files; focused tests and repository validation; CI plus one master-only distribution
+  workflow; root/Workspace/Skill instructions; and current architecture, requirements,
+  capabilities, quality, distribution, Workspace, and user guidance.
+- Validation assets: isolated temporary source checkouts, generated distribution trees, simulated
+  Git clones, user-scoped Skill copies, internal/external output roots, manifests, update fixtures,
+  and supported link/Junction cases. No real Workspace, Repository `output/`, Blender file, or
+  external project is a test target.
+- Representative asset: none. File and deployment contracts are tested without claiming asset or
+  visual-quality evidence.
+- Acceptance criteria:
+  1. Official local discovery paths are `.agents/skills` for project scope and
+     `$HOME/.agents/skills` for user scope; existing `.codex/skills` folders are left untouched.
+  2. One allowlisted distribution tree contains product-managed instructions, all four
+     self-contained Skills, initialization templates, ignore rules, and source/version metadata,
+     and runs without the development checkout.
+  3. A verified distribution clone can be initialized idempotently without overwriting Profiles,
+     settings, notes, outputs, or other existing personal files.
+  4. The default internal output root, configured Workspace root, Profile override, and explicit
+     one-task root follow a documented priority and preserve the existing category/asset/number
+     hierarchy with link, escape, and collision checks.
+  5. Artifact subdirectories are created only on demand; actual files can be registered once; and
+     manifest state changes are atomic, validated, and do not treat automated tests as quality
+     acceptance.
+  6. Pull requests build and validate the distribution without publishing it. Only a successful
+     approved `master` push may append a normal commit to `dist/workspace`; the workflow never
+     force-pushes or targets another branch.
+  7. Repository validation, the complete offline suite, and Linux/Windows CI pass while result
+     movement/deletion remains independent of new work and packaging.
+- Unresolved environment gates: live Codex Desktop and VS Code discovery, GitHub-hosted deployment
+  permissions until the approved merge triggers them, Blender/MCP behavior, movable real `.blend`
+  dependencies, visual acceptance, and engine import remain unverified and must be reported as
+  such.
+
+Implementation evidence recorded on 2026-11-11: repository validation and 80 offline tests passed;
+two Windows symlink tests were skipped because the local process lacks symlink privilege, while
+the equivalent output-root, output-intermediate, and Skill-installation Junction checks passed.
+The suite built and validated the allowlisted distribution, ran its vendored Runtime, initialized
+a simulated clone without replacing personal data, copied the same Skills to user scope, preserved
+ignored Profile/note/output data through a fast-forward Pull, enforced official output-root
+precedence, and exercised artifact reservation, registration, release, and reviewed state changes.
+An additional CLI build/validation of the generated distribution passed in an isolated temporary
+directory. No real Workspace, Repository `output/`, Blender asset, external project, or
+`dist/workspace` branch was created or modified. The dedicated Skill quick validator could not run
+because PyYAML is absent from the local tool environment; repository frontmatter validation,
+bundle hash validation, installed-manifest validation, and vendored CLI execution passed instead.
+This package remains under review in draft pull request #3 and is not complete until user approval
+and merge. Hosted Linux/Windows CI results for these commits are recorded only after push.
 
 ## Candidate development areas after the foundation
 

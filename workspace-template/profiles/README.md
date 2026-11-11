@@ -10,6 +10,11 @@ Official `styles.three_d` and `styles.two_d` values must be registered catalog i
 dimension. Put user-specific prose in art-direction rules instead of inventing a style id. Do not
 replace a personal Profile with `_template.json`.
 
+An optional absolute `output_defaults.root` is a durable game-specific external output root. It
+overrides the Workspace preference but not an explicit one-task root. The directory must be
+selected by the user and exist when a task begins; moving it does not invalidate the Profile, and
+GameAssetAI does not recreate the old external location automatically.
+
 Older Workspaces may contain Markdown Profiles. The current Runtime detects the Workspace as
 legacy and does not convert it automatically. Back up the legacy Workspace, review every durable
 rule, create a separate v2 Workspace or JSON Profile, compare the result, and switch only after the

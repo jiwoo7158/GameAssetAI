@@ -11,7 +11,8 @@ sys.path.insert(0, str(ROOT / "src"))
 from gameassetai.errors import SafetyError, ValidationError  # noqa: E402
 from gameassetai.workspace import (  # noqa: E402
     create_or_connect_workspace, create_profile, list_profiles, read_active_profile,
-    read_profile, read_profile_setting, select_profile, update_profile_setting,
+    read_profile, read_profile_setting, read_workspace_output_root, select_profile,
+    set_workspace_output_root, update_profile_setting,
     update_workspace, validate_workspace,
 )
 
@@ -187,6 +188,27 @@ class WorkspaceTests(unittest.TestCase):
         with self.assertRaisesRegex(ValidationError, "only reference 2D styles"):
             read_profile(self.workspace, "forest-game")
         self.assertEqual(corrupted, path.read_bytes())
+
+    def test_workspace_and_profile_output_roots_are_explicit_and_non_destructive(self):
+        self.create()
+        create_profile(self.workspace, "forest-game", "Forest Game", "Output root policy")
+        select_profile(self.workspace, "forest-game")
+        external = self.root / "external-output"
+        external.mkdir()
+        result = set_workspace_output_root(self.workspace, str(external))
+        self.assertEqual(str(external), result["output_root"])
+        self.assertEqual("workspace-preference", read_workspace_output_root(self.workspace)["source"])
+
+        profile_path = self.workspace / "profiles" / "forest-game.json"
+        before = profile_path.read_bytes()
+        with self.assertRaisesRegex(ValidationError, "absolute"):
+            update_profile_setting(self.workspace, "output_defaults.root", "relative-output")
+        self.assertEqual(before, profile_path.read_bytes())
+
+        external.rmdir()
+        self.assertEqual("valid", validate_workspace(self.workspace)["status"])
+        set_workspace_output_root(self.workspace, None)
+        self.assertEqual("workspace-internal", read_workspace_output_root(self.workspace)["source"])
 
 
 if __name__ == "__main__":

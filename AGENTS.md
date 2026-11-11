@@ -46,6 +46,9 @@ an active work instruction.
 
 - Shared runtime code belongs in `src/gameassetai/`. Do not copy source implementations into
   multiple Skill folders. Installable bundles vendor the shared runtime as generated output.
+- `dist/workspace` is generated product output, never a development branch. Pull requests may
+  build and validate its tree, but only a successful approved `master` push may append a normal
+  non-force publication commit through GitHub Actions.
 - Catalog entries and style presets belong in `catalog/`, separate from implementation code and
   personal game Profiles.
 - Expose a small task-oriented Skill surface. Add a new Skill only for a distinct repeated user
@@ -73,6 +76,9 @@ an active work instruction.
   explicitly requested.
 - `outputs/` is disposable user output, not runtime state. Code, catalog, Profiles, new generation,
   and independent tests must still work after the entire output tree is deleted.
+- A user may explicitly select a real external output root. One-task selection overrides a Profile
+  root, which overrides the Workspace preference, which overrides internal `outputs/`. A project
+  bookmark is never output authorization, and a missing external root is not silently recreated.
 - Do not require `input/` or `references/` folders. A user may provide direct paths or attachments.
 - Never write generated user assets to Git. Development tests use isolated temporary directories.
 
@@ -95,14 +101,22 @@ an active work instruction.
 - Allocate paths only through the shared Runtime. New task folders use the next existing local
   number and a descriptive purpose; never use a date, time, UUID, generic `test`/`final` name, or
   overwrite an existing task. Continue work only from an exact validated in-progress task path.
+- Within a task, create only the required `models/`, `previews/`, `sprites/`, or `exports/`
+  directory through the Runtime. Its path planner records a task-local reservation; register only
+  the real nonempty file to consume that reservation, using a normalized task-relative path.
+  `accepted` requires a recorded visible/semantic review and registered evidence; tests or
+  file creation alone never grant acceptance.
 - Repository `output/` and Workspace `outputs/` are disposable local results, not registries,
   fixtures, package input, or hidden Runtime state. Partial or complete movement/deletion is valid;
   report failure only for a specifically requested missing continuation and allow independent new
   work.
 
-For a fresh project-scoped installation, create or connect and validate the Workspace before
-installing all four Skills into its `.codex/skills`. Validate that installation, then create and
-select a Profile. User-scoped installation is independent of Workspace creation.
+Official local Skill roots are project `.agents/skills` and user `$HOME/.agents/skills`. Do not
+move or delete an existing legacy `.codex/skills` installation automatically. For the normal
+project-scoped product, clone `dist/workspace`, validate its generated metadata, run the bundled
+`workspace init-clone` command, and then create/select a Profile. For bundle-based onboarding,
+create or connect and validate the Workspace before installing all four Skills into
+`.agents/skills`. User-scoped installation is independent of Workspace creation.
 
 ## Blender and acceptance rules
 

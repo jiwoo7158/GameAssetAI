@@ -13,9 +13,9 @@ These stable ids express product obligations; they do not imply implementation.
 | `REQ-CHARACTER` | Humanoid and nonhumanoid character paths without a universal anatomy or skeleton assumption. |
 | `REQ-ANIMATION` | Existing Rig/Action, Mixamo-eligible, cleanup, editing, and asset-specific animation paths. |
 | `REQ-2D` | Optional preview, pixel/cel/toon, direction, action-frame, and sprite outputs from accepted 3D. |
-| `REQ-OUTPUT` | Separate disposable development experiments and user game outputs, with catalog categories, concrete asset ids, atomic local task numbers, purpose names, no overwrite, and local manifests. |
+| `REQ-OUTPUT` | Separate disposable development experiments and user game outputs, with configurable explicit roots, catalog categories, concrete asset ids, atomic local task numbers, purpose names, on-demand artifact directories, no overwrite, registered files, and reviewed local manifests. |
 | `REQ-WORKSPACE` | User-selected persistent Workspace with Profiles, project bookmarks, settings, notes, and outputs. |
-| `REQ-DISTRIBUTION` | Self-contained installed Skills with declared runtime, catalog, template, safe install, update, and backup. |
+| `REQ-DISTRIBUTION` | One allowlisted `dist/workspace` product tree plus self-contained Skills using official `.agents/skills` roots, declared runtime/catalog/templates, verified clone initialization, safe install/update, and preserved Git history. |
 | `REQ-INTEGRATION` | Optional UnityWorkbench and external projects only through explicit paths and authorization. |
 | `REQ-SAFE` | Inspect-first, copy/checkpoint, rollback, source preservation, and no hidden output dependency. |
 | `REQ-QUALITY` | Structural plus visible/semantic acceptance; engine claims require engine evidence. |
@@ -37,10 +37,23 @@ These stable ids express product obligations; they do not imply implementation.
 - Moving or deleting any or all result directories leaves Repository validation, Workspace
   validation, Profiles, catalog, installed Skills, package building, and independent new task
   allocation intact. Continuing a missing task fails only that exact continuation.
+- User output-root precedence is explicit one-task selection, Profile override, Workspace
+  preference, then internal `outputs/`. External roots must already exist, cannot escape through a
+  link/Junction, and are never silently recreated after movement or deletion.
+- A task creates `models/`, `previews/`, `sprites/`, or `exports/` only when requested. Only an
+  existing nonempty reserved official artifact can be registered. Reservations and Manifest
+  writes are atomic, and
+  accepted/rejected states require registered review evidence rather than a test result.
 - Four product Skills build with a vendored runtime and no development checkout dependency.
+- The generated Workspace distribution contains only allowlisted product files, validates after a
+  normal Windows or Linux Git clone, and initializes ignored personal state without overwriting it.
+- Project Skills live under `.agents/skills`; user Skills live under `$HOME/.agents/skills`.
+  Existing `.codex/skills` installations are left untouched and are not claimed as current roots.
 - Fresh project-scoped onboarding creates/connects and validates the Workspace before installing
   and validating its four Skills; Profile creation and selection occur afterward. User-scoped
   installation remains independent of Workspace creation.
 - Existing installed Skills are never overwritten during install; update requires an explicit
   unused backup path and retains the previous installation.
 - Current code contains no active B/M stage authority or hard-coded personal output path.
+- Pull requests build and validate but do not publish. Only the master-push workflow may append a
+  normal, non-force commit to `dist/workspace`.

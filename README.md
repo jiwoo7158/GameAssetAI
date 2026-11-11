@@ -29,41 +29,41 @@ Repository, 설치된 Skill, 사용자 Workspace, 외부 게임 프로젝트, �
 
 ## 최초 설치
 
-1. 개발 checkout에서 bundle을 만들고 검증합니다.
+1. 프로젝트 범위 사용자는 승인된 `master`에서 GitHub Actions가 생성한 단일
+   `dist/workspace` 브랜치를 원하는 Workspace 경로로 Clone합니다. Draft PR만으로 이
+   배포 브랜치가 생성되거나 갱신되지는 않습니다.
+
+   ```powershell
+   git clone --branch dist/workspace --single-branch `
+     https://github.com/jiwoo7158/GameAssetAI.git <workspace>
+   python -B <workspace>\.agents\skills\gameassetai-workspace\scripts\gameassetai.py `
+     workspace init-clone <workspace>
+   ```
+
+   초기화는 배포 메타데이터와 네 Skill을 먼저 검증하고, Git에서 무시되는 개인
+   `config/`와 `profiles/`만 안전하게 추가합니다. 재실행해도 기존 개인 파일을 덮어쓰지
+   않습니다.
+
+2. 사용자 범위 사용자는 같은 배포본의 `.agents/skills/` 아래 네 디렉터리만
+   `$HOME/.agents/skills/`로 복사하고, 별도 경로에 Workspace를 생성합니다. 프로젝트와
+   사용자 범위에 같은 Skill을 중복 설치하면 두 항목이 표시될 수 있으므로 한 범위를
+   선택합니다. 기존 `.codex/skills` 설치는 자동 이동·삭제하지 않습니다.
+
+   현재 공식 경로와 탐색 규칙은
+   [OpenAI Build skills 문서](https://developers.openai.com/codex/skills/)를 참고하십시오.
+   파일 검증은 실제 Codex Desktop/VS Code 인식을 증명하지 않으므로 `/skills` 또는
+   `$gameassetai-workspace`로 별도 확인합니다.
+
+3. 개발자는 필요하면 기존 bundle 명령으로 독립 Skill을 빌드·검증할 수 있습니다.
 
    ```powershell
    python -B scripts/gameassetai.py package build . <bundle>
    python -B scripts/gameassetai.py package validate <bundle>
    ```
 
-2. Workspace를 Codex 프로젝트로 사용할 경우에는 반드시 Workspace 생성/연결·검증을 먼저
-   하고 네 Skill을 설치합니다. 통합 명령이 이 순서를 보장합니다.
+   bundle 기반 프로젝트 설치도 Workspace를 먼저 검증한 뒤 `.agents/skills`를 생성합니다.
 
-   ```powershell
-   python -B scripts/gameassetai.py package install-project <bundle> <workspace> `
-     --template workspace-template
-   python -B scripts/gameassetai.py package validate-install <workspace>\.codex\skills
-   ```
-
-   새 폴더에 `.codex/skills`부터 만들면 미등록 비어 있지 않은 Workspace가 될 수 있으므로
-   프로젝트 범위에서는 일반 `package install`을 먼저 실행하지 않습니다.
-
-   사용자 전역 범위는 Workspace보다 먼저 설치할 수 있습니다.
-
-   ```powershell
-   python -B scripts/gameassetai.py package install <bundle> `
-     $env:USERPROFILE\.codex\skills
-   python -B scripts/gameassetai.py package validate-install `
-     $env:USERPROFILE\.codex\skills
-   ```
-
-   OpenAI 공식 예시의 Codex 경로는 프로젝트 `.codex/skills/<name>/SKILL.md`, 사용자
-   `~/.codex/skills/<name>/SKILL.md`입니다. 자세한 내용은
-   [Testing Agent Skills Systematically with Evals](https://developers.openai.com/blog/eval-skills)을
-   참고하십시오. 파일 검증은 실제 Codex Desktop/VS Code 호스트의 자동 인식을 증명하지
-   않으므로, 앱을 다시 열고 `/skills` 또는 `$gameassetai-workspace`로 별도 확인합니다.
-
-3. 설치 뒤 게임 Profile을 생성하고 선택합니다.
+4. 설치 뒤 게임 Profile을 생성하고 선택합니다.
 
    ```powershell
    python -B scripts/gameassetai.py profile create <workspace> my-game `
@@ -76,7 +76,7 @@ Repository, 설치된 Skill, 사용자 Workspace, 외부 게임 프로젝트, �
    공식 `styles.three_d`와 `styles.two_d`에는 카탈로그의 올바른 차원 ID만 저장됩니다.
    사용자 고유의 자유로운 스타일 설명은 `art_direction` 규칙으로 관리합니다.
 
-4. Blender와 Blender MCP 연결은 별도로 확인합니다. Skill 설치는 Blender, MCP, 외부 AI,
+5. Blender와 Blender MCP 연결은 별도로 확인합니다. Skill 설치는 Blender, MCP, 외부 AI,
    UnityWorkbench를 자동 설치하거나 설정하지 않습니다.
 
 ## 일상적인 사용자 작업
@@ -92,6 +92,10 @@ Repository, 설치된 Skill, 사용자 Workspace, 외부 게임 프로젝트, �
      --category equipment-prop --asset bronze-sword --purpose initial-model
    ```
 
+   기본은 Workspace `outputs/`이며, 사용자가 명시한 기존 외부 디렉터리는
+   `--output-root`로 한 작업에만 사용할 수 있습니다. 우선순위는 일회성 경로, Profile
+   `output_defaults.root`, Workspace 공통 설정, 내부 `outputs/` 순서입니다.
+
    결과는 다음 구조에 저장됩니다.
 
    ```text
@@ -103,8 +107,15 @@ Repository, 설치된 Skill, 사용자 Workspace, 외부 게임 프로젝트, �
    정확한 작업 경로를 `outputs continue`로 검증합니다. 날짜·UUID 이름이나 전역 카운터는
    사용하지 않습니다.
 
+   실제 파일은 필요한 `models/`, `previews/`, `sprites/`, `exports/` 경로만 Runtime으로
+   예약한 뒤 생성·등록합니다. 등록은 해당 예약을 소비하며, 미해결 예약이 있으면 작업
+   상태를 변경하지 않습니다. `complete`는 제작 종료일 뿐 품질 승인이 아니며,
+   `accepted`/`rejected`는 등록된 결과물과 실제 시각·의미 검토 기록이 필요합니다.
+
 `outputs/`의 일부나 전체를 이동·삭제해도 Profile, 설치된 Skill, 카탈로그, 새 독립 작업에는
 영향이 없습니다. 삭제된 특정 작업을 계속할 수는 없으며 시스템은 이를 자동 복원하지 않습니다.
+외부 출력 루트 자체가 이동·삭제되면 이전 위치를 다시 만들지 않고 새 경로를 선택하거나 설정을
+해제합니다.
 
 ## 개발 실험
 

@@ -127,6 +127,20 @@ then use a catalog category, concrete asset id, and local numbered purpose. Date
 global result registry are not part of user-facing folder names. Result manifests describe only
 their local task and may disappear with it; no independent work depends on prior results.
 
+User results default to the Workspace `outputs/` tree, but the user may select an existing external
+root for one task or persist one in a Profile or Workspace preference. Product code never infers an
+external root from a project bookmark or recreates one after it was moved or deleted. Artifact
+directories are created only when needed, and only actual nonempty files are registered. A
+`complete` task has no quality meaning; accepted/rejected status requires recorded visual/semantic
+review evidence.
+
+The normal project-scoped product is a generated `dist/workspace` clone containing the four
+self-contained Skills under `.agents/skills`, initialization templates, product instructions, and
+source/version hashes. Profile, setting, note, and result paths are ignored personal ownership and
+survive ordinary product Pulls. User-scoped use copies the same four Skills to
+`$HOME/.agents/skills`. The development checkout and the generated product branch remain separate
+ownership domains.
+
 ## Explicitly deferred in this foundation
 
 - selection of the first new production generator and representative asset;

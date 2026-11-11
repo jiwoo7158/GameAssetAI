@@ -15,10 +15,13 @@ sys.path.insert(0, str(ROOT / "src"))
 from gameassetai.errors import SafetyError, ValidationError  # noqa: E402
 from gameassetai.outputs import (  # noqa: E402
     begin_output_task, continue_output_task, create_experiment, list_experiments,
+    plan_artifact_path, register_output_artifact, release_artifact_reservation,
+    update_output_task_status,
     validate_experiment, validate_output_path, validate_output_task,
 )
 from gameassetai.workspace import (  # noqa: E402
     create_or_connect_workspace, create_profile, select_profile, validate_workspace,
+    set_workspace_output_root, update_profile_setting,
 )
 
 
@@ -71,6 +74,7 @@ class OutputManagementTests(unittest.TestCase):
         asset: str = "bronze-sword",
         purpose: str = "initial-model",
         game: str | None = None,
+        output_root: Path | None = None,
     ) -> Path:
         return Path(begin_output_task(
             "workspace",
@@ -79,6 +83,7 @@ class OutputManagementTests(unittest.TestCase):
             asset_category=category,
             asset_id=asset,
             purpose=purpose,
+            output_root=output_root,
         )["task"])
 
     def test_development_requires_explicit_identified_experiment(self):
@@ -204,6 +209,142 @@ class OutputManagementTests(unittest.TestCase):
         with self.assertRaisesRegex(ValidationError, "active Profile"):
             self.begin_workspace(game="other-game")
 
+    def test_external_output_root_priority_and_deleted_results_remain_independent(self):
+        workspace_root = self.root / "workspace-default"
+        profile_root = self.root / "profile-default"
+        explicit_root = self.root / "one-task-root"
+        for path in (workspace_root, profile_root, explicit_root):
+            path.mkdir()
+
+        set_workspace_output_root(self.workspace, str(workspace_root))
+        first = self.begin_workspace(purpose="workspace-root-result")
+        self.assertEqual(workspace_root, first.parents[3])
+        self.assertEqual(
+            "workspace-preference",
+            json.loads((first / "manifest.json").read_text())["output_root_source"],
+        )
+
+        update_profile_setting(self.workspace, "output_defaults.root", str(profile_root))
+        second = self.begin_workspace(purpose="profile-root-result")
+        self.assertEqual(profile_root, second.parents[3])
+        third = self.begin_workspace(
+            purpose="explicit-root-result", output_root=explicit_root,
+        )
+        self.assertEqual(explicit_root, third.parents[3])
+        with self.assertRaisesRegex(ValidationError, "owning Workspace"):
+            validate_output_path(third)
+        self.assertEqual(
+            "explicit", validate_output_path(third, workspace=self.workspace)["output_root_source"],
+        )
+
+        shutil.rmtree(explicit_root)
+        shutil.rmtree(profile_root)
+        with self.assertRaisesRegex(ValidationError, "existing real directory"):
+            self.begin_workspace(purpose="missing-profile-root-result")
+        self.assertFalse(profile_root.exists())
+        self.assertEqual(
+            str(profile_root),
+            json.loads((self.workspace / "profiles" / "game-one.json").read_text())
+            ["output_defaults"]["root"],
+        )
+        update_profile_setting(self.workspace, "output_defaults.root", None)
+        set_workspace_output_root(self.workspace, None)
+        independent = self.begin_workspace(purpose="internal-independent-result")
+        self.assertEqual(self.workspace / "outputs", independent.parents[3])
+        self.assertEqual("game-one", validate_workspace(self.workspace)["active_profile"])
+
+    def test_artifact_paths_registration_concurrency_and_status_transitions(self):
+        task = self.begin_workspace()
+        model_plan = plan_artifact_path(
+            task, kind="model", filename="bronze-sword.blend",
+        )
+        self.assertEqual({"manifest.json", "models"}, {path.name for path in task.iterdir()})
+        model = Path(model_plan["artifact"])
+        with self.assertRaisesRegex(SafetyError, "already reserved"):
+            plan_artifact_path(task, kind="model", filename="bronze-sword.blend")
+        model.write_bytes(b"synthetic model contract fixture")
+        registered = register_output_artifact(task, model)
+        self.assertEqual(["models/bronze-sword.blend"], registered["artifacts"])
+        with self.assertRaisesRegex(SafetyError, "already registered"):
+            register_output_artifact(task, model)
+
+        plans = [
+            plan_artifact_path(task, kind="preview", filename=name)
+            for name in ("front.png", "three-quarter.png")
+        ]
+        for plan in plans:
+            Path(plan["artifact"]).write_bytes(b"synthetic preview")
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            results = list(executor.map(
+                lambda plan: register_output_artifact(task, Path(plan["artifact"])), plans,
+            ))
+        self.assertEqual(2, len(results))
+        manifest = validate_output_task(task)
+        self.assertEqual(
+            {
+                "models/bronze-sword.blend",
+                "previews/front.png",
+                "previews/three-quarter.png",
+            },
+            set(manifest["artifacts"]),
+        )
+        with self.assertRaises(ValidationError):
+            plan_artifact_path(task, kind="preview", filename="render123.png")
+        unplanned = task / "previews" / "side.png"
+        unplanned.write_bytes(b"synthetic unplanned preview")
+        with self.assertRaisesRegex(SafetyError, "not reserved"):
+            register_output_artifact(task, unplanned)
+        before_failed_register = (task / "manifest.json").read_bytes()
+        with self.assertRaises(SafetyError):
+            register_output_artifact(task, self.root / "outside.png")
+        self.assertEqual(before_failed_register, (task / "manifest.json").read_bytes())
+
+        before = (task / "manifest.json").read_bytes()
+        with self.assertRaises(ValidationError):
+            update_output_task_status(task, "accepted", review_summary="reviewed")
+        self.assertEqual(before, (task / "manifest.json").read_bytes())
+        accepted = update_output_task_status(
+            task,
+            "accepted",
+            review_summary="Synthetic transition contract only; not product quality evidence",
+            review_evidence=["previews/front.png", "previews/three-quarter.png"],
+        )
+        self.assertEqual("accepted", accepted["task_status"])
+        with self.assertRaises(SafetyError):
+            register_output_artifact(task, model)
+        with self.assertRaises(SafetyError):
+            update_output_task_status(task, "complete")
+
+    def test_complete_can_receive_later_review_but_cannot_receive_new_artifacts(self):
+        task = self.begin_workspace(purpose="review-state-contract")
+        plan = plan_artifact_path(task, kind="preview", filename="front.png")
+        preview = Path(plan["artifact"])
+        preview.write_bytes(b"synthetic preview")
+        register_output_artifact(task, preview)
+        update_output_task_status(task, "complete")
+        with self.assertRaises(SafetyError):
+            plan_artifact_path(task, kind="preview", filename="side.png")
+        result = update_output_task_status(
+            task,
+            "rejected",
+            review_summary="Synthetic rejection transition contract",
+            review_evidence=["previews/front.png"],
+        )
+        self.assertEqual("rejected", result["task_status"])
+
+    def test_abandoned_artifact_reservation_can_be_released_without_leaving_directories(self):
+        task = self.begin_workspace(purpose="reservation-release-contract")
+        plan = plan_artifact_path(task, kind="export", filename="bronze-sword.fbx")
+        self.assertTrue((task / "exports").is_dir())
+        with self.assertRaisesRegex(SafetyError, "reservations remain"):
+            update_output_task_status(task, "complete")
+        result = release_artifact_reservation(task, plan["relative_path"])
+        self.assertEqual("released", result["status"])
+        self.assertFalse((task / "exports").exists())
+        self.assertEqual(
+            "complete", update_output_task_status(task, "complete")["task_status"],
+        )
+
     def test_deleting_output_trees_preserves_profiles_and_allows_independent_restart(self):
         self.create_experiment()
         self.begin_development()
@@ -272,6 +413,35 @@ class OutputManagementTests(unittest.TestCase):
         self.assertEqual(before, manifest_path.read_bytes())
         self.assertTrue(legacy.is_dir())
 
+        legacy_numbered = (
+            self.workspace / "outputs" / "game-one" / "equipment-prop"
+            / "bronze-sword" / "009-old-numbered-task"
+        )
+        legacy_numbered.mkdir(parents=True)
+        legacy_numbered_manifest = {
+            "schema": "gameassetai.output-task.v2",
+            "storage": "workspace",
+            "task_id": "009-old-numbered-task",
+            "task_number": 9,
+            "purpose": "old-numbered-task",
+            "experiment_id": None,
+            "game_id": "game-one",
+            "asset_category": "equipment-prop",
+            "asset_id": "bronze-sword",
+            "created_utc": "2026-11-11T00:00:00+00:00",
+            "artifacts": [],
+            "status": "in-progress",
+            "review": None,
+        }
+        (legacy_numbered / "manifest.json").write_text(
+            json.dumps(legacy_numbered_manifest), encoding="utf-8",
+        )
+        self.assertEqual(
+            "gameassetai.output-task.v2", validate_output_path(legacy_numbered)["schema"],
+        )
+        with self.assertRaisesRegex(SafetyError, "read-only"):
+            continue_output_task(legacy_numbered)
+
     def test_linked_intermediate_output_directory_is_refused(self):
         output_root = self.workspace / "outputs"
         output_root.mkdir()
@@ -303,6 +473,28 @@ class OutputManagementTests(unittest.TestCase):
         try:
             with self.assertRaises(SafetyError):
                 self.begin_workspace()
+            self.assertEqual([], list(external.iterdir()))
+        finally:
+            if junction.exists():
+                os.rmdir(junction)
+
+    @unittest.skipUnless(os.name == "nt", "Windows junction test")
+    def test_windows_junction_external_output_root_is_refused(self):
+        external = self.root / "external-target"
+        external.mkdir()
+        junction = self.root / "external-root-junction"
+        result = subprocess.run(
+            ["cmd", "/c", "mklink", "/J", str(junction), str(external)],
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode != 0:
+            self.skipTest(f"Cannot create a test junction: {result.stderr or result.stdout}")
+        try:
+            with self.assertRaises(SafetyError):
+                self.begin_workspace(
+                    purpose="junction-root-result", output_root=junction,
+                )
             self.assertEqual([], list(external.iterdir()))
         finally:
             if junction.exists():

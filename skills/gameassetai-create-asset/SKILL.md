@@ -47,6 +47,10 @@ views. Stop on rejection before Rig, animation, 2D conversion, or export. Concep
 used before modeling, Blender previews of the 3D source, and final PNG/pixel/sprite outputs are
 three different stages.
 
+Use the output Skill to obtain every deliverable path, publish without overwrite, register the
+actual nonempty file, and record `complete`, `accepted`, or `rejected` explicitly. A successful
+generator call or structural test is not acceptance evidence.
+
 If no implemented provider fits, return the validated specification, missing capability, and
 needed user input instead of presenting primitive-only geometry as a finished asset. Do not mutate
 an existing source under this Skill. Result folders and manifests are local descriptions, not

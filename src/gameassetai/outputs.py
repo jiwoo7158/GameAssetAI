@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+from contextlib import contextmanager
 from datetime import datetime, timezone
+import os
 from pathlib import Path, PurePosixPath
 import re
+import time
 from typing import Any, Iterable
 
 from .catalog import asset_categories
@@ -14,14 +17,29 @@ from .filesystem import (
     reject_linked_components,
     validate_identifier,
 )
-from .workspace import read_profile, validate_workspace
+from .workspace import read_profile, resolve_workspace_output_root, validate_workspace
 
 
 EXPERIMENT_SCHEMA = "gameassetai.experiment.v1"
-TASK_SCHEMA = "gameassetai.output-task.v2"
+TASK_SCHEMA = "gameassetai.output-task.v3"
+LEGACY_TASK_SCHEMA = "gameassetai.output-task.v2"
 LEGACY_RUN_SCHEMA = "gameassetai.output-run.v1"
 TASK_NAME = re.compile(r"(?P<number>[0-9]{3,})-(?P<purpose>[a-z0-9]+(?:-[a-z0-9]+)*)\Z")
 TASK_STATUSES = {"in-progress", "accepted", "rejected", "complete"}
+TASK_TRANSITIONS = {
+    "in-progress": {"complete", "accepted", "rejected"},
+    "complete": {"accepted", "rejected"},
+    "accepted": set(),
+    "rejected": set(),
+}
+ARTIFACT_KINDS = {
+    "model": ("models", {".blend"}),
+    "preview": ("previews", {".jpg", ".jpeg", ".png", ".webp"}),
+    "sprite": ("sprites", {".png"}),
+    "export": ("exports", {".fbx", ".glb", ".gltf", ".obj"}),
+}
+ARTIFACT_FILENAME = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*(?:\.[a-z0-9]+)+\Z")
+GENERIC_ARTIFACT_STEMS = {"test", "final", "new", "output", "render", "file", "image", "model"}
 GENERIC_EXPERIMENT_IDS = {"test", "experiment", "new-test", "try-again"}
 GENERIC_TASK_PURPOSES = {"test", "final", "new", "backup", "output", "run", "task", "try-again"}
 
@@ -248,6 +266,7 @@ def begin_output_task(
     purpose: str,
     experiment_id: str | None = None,
     game_id: str | None = None,
+    output_root: Path | None = None,
     catalog_root: Path | None = None,
 ) -> dict[str, Any]:
     if storage not in {"development", "workspace"}:
@@ -259,6 +278,8 @@ def begin_output_task(
     if storage == "development":
         if game_id is not None:
             raise ValidationError("development output does not accept a game id")
+        if output_root is not None:
+            raise ValidationError("development output uses the Repository output root")
         if experiment_id is None:
             raise ValidationError(
                 "development output requires an explicit existing experiment id; list or create "
@@ -276,6 +297,9 @@ def begin_output_task(
         parent, created = _ensure_real_directories(owner_root, (category, asset_id))
         game_value: str | None = None
         experiment_value: str | None = experiment_id
+        workspace_id: str | None = None
+        output_root_kind = "repository"
+        output_root_source = "repository"
     else:
         if experiment_id is not None:
             raise ValidationError("Workspace output does not accept an experiment id")
@@ -291,12 +315,25 @@ def begin_output_task(
         else:
             game_id = active
         category = _validate_category(asset_category, catalog_root)
-        parent, created = _ensure_real_directories(
-            workspace, ("outputs", game_id, category, asset_id),
+        resolved_output = resolve_workspace_output_root(
+            workspace,
+            explicit_output_root=output_root,
+            profile_id=game_id,
         )
+        if resolved_output["kind"] == "workspace":
+            parent, created = _ensure_real_directories(
+                workspace, ("outputs", game_id, category, asset_id),
+            )
+        else:
+            parent, created = _ensure_real_directories(
+                resolved_output["root"], (game_id, category, asset_id),
+            )
         owner_id = game_id
         game_value = game_id
         experiment_value = None
+        workspace_id = resolved_output["workspace_id"]
+        output_root_kind = resolved_output["kind"]
+        output_root_source = resolved_output["source"]
 
     task, number = _allocate_task_directory(parent, purpose)
     manifest = {
@@ -309,7 +346,11 @@ def begin_output_task(
         "game_id": game_value,
         "asset_category": category,
         "asset_id": asset_id,
+        "workspace_id": workspace_id,
+        "output_root_kind": output_root_kind,
+        "output_root_source": output_root_source,
         "created_utc": _utc_now(),
+        "reservations": [],
         "artifacts": [],
         "status": "in-progress",
         "review": None,
@@ -337,13 +378,42 @@ def _validate_artifact_path(value: object) -> str:
     path = PurePosixPath(value)
     if path.is_absolute() or any(part in {"", ".", ".."} for part in path.parts):
         raise ValidationError(f"Artifact path escapes or is not normalized: {value!r}")
+    if len(path.parts) != 2 or path.parts[0] not in {
+        specification[0] for specification in ARTIFACT_KINDS.values()
+    }:
+        raise ValidationError("Artifact paths must use one official task artifact directory")
+    _validate_artifact_filename(path.parts[1], expected_directory=path.parts[0])
+    return value
+
+
+def _validate_artifact_filename(value: object, *, expected_directory: str) -> str:
+    if not isinstance(value, str) or not ARTIFACT_FILENAME.fullmatch(value):
+        raise ValidationError(
+            "Artifact filename must be a lowercase descriptive name with an extension"
+        )
+    stem = Path(value).stem
+    if stem in GENERIC_ARTIFACT_STEMS or re.fullmatch(
+        r"(?:test|final|new|output|render|file|image|model)[0-9]+", stem,
+    ):
+        raise ValidationError("Artifact filename must describe the asset or file role")
+    suffix = Path(value).suffix
+    allowed = next(
+        extensions
+        for directory, extensions in ARTIFACT_KINDS.values()
+        if directory == expected_directory
+    )
+    if suffix not in allowed:
+        raise ValidationError(
+            f"Artifact extension {suffix!r} is not allowed under {expected_directory}/"
+        )
     return value
 
 
 def _validate_task_manifest(manifest: dict[str, Any]) -> None:
     required = {
         "schema", "storage", "task_id", "task_number", "purpose", "experiment_id", "game_id",
-        "asset_category", "asset_id", "created_utc", "artifacts", "status", "review",
+        "asset_category", "asset_id", "workspace_id", "output_root_kind",
+        "output_root_source", "created_utc", "reservations", "artifacts", "status", "review",
     }
     if set(manifest) != required or manifest.get("schema") != TASK_SCHEMA:
         raise ValidationError("Invalid output task manifest contract")
@@ -366,24 +436,71 @@ def _validate_task_manifest(manifest: dict[str, Any]) -> None:
         )
         if manifest.get("game_id") is not None:
             raise ValidationError("Development task cannot contain a game id")
+        if (
+            manifest.get("workspace_id") is not None
+            or manifest.get("output_root_kind") != "repository"
+            or manifest.get("output_root_source") != "repository"
+        ):
+            raise ValidationError("Development task has invalid output-root metadata")
     else:
         validate_identifier(manifest.get("game_id"), "game id")
         if manifest.get("experiment_id") is not None:
             raise ValidationError("Workspace task cannot contain an experiment id")
+        if not isinstance(manifest.get("workspace_id"), str) or not manifest["workspace_id"].strip():
+            raise ValidationError("Workspace task requires a workspace_id")
+        if manifest.get("output_root_kind") not in {"workspace", "external"}:
+            raise ValidationError("Workspace task has an invalid output_root_kind")
+        if manifest.get("output_root_source") not in {
+            "workspace-internal", "workspace-preference", "profile", "explicit",
+        }:
+            raise ValidationError("Workspace task has an invalid output_root_source")
     if not isinstance(manifest.get("created_utc"), str) or not manifest["created_utc"]:
         raise ValidationError("Output task created_utc must be a nonempty string")
+    reservations = manifest.get("reservations")
+    if not isinstance(reservations, list):
+        raise ValidationError("Output task reservations must be a list")
+    if len(reservations) != len(set(reservations)):
+        raise ValidationError("Output task reservations must not contain duplicates")
+    for reservation in reservations:
+        _validate_artifact_path(reservation)
     artifacts = manifest.get("artifacts")
     if not isinstance(artifacts, list):
         raise ValidationError("Output task artifacts must be a list")
+    if len(artifacts) != len(set(artifacts)):
+        raise ValidationError("Output task artifacts must not contain duplicates")
     for artifact in artifacts:
         _validate_artifact_path(artifact)
+    if set(reservations).intersection(artifacts):
+        raise ValidationError("Reserved and registered artifact paths must not overlap")
     if manifest.get("status") not in TASK_STATUSES:
         raise ValidationError("Invalid output task status")
-    if manifest.get("review") is not None and not isinstance(manifest["review"], dict):
-        raise ValidationError("Output task review must be null or an object")
+    review = manifest.get("review")
+    if manifest["status"] in {"accepted", "rejected"}:
+        if not isinstance(review, dict) or set(review) != {
+            "decision", "summary", "evidence", "reviewed_utc",
+        }:
+            raise ValidationError("Accepted/rejected tasks require the official review contract")
+        if review["decision"] != manifest["status"]:
+            raise ValidationError("Task review decision must match task status")
+        _nonempty_text(review["summary"], "review summary")
+        if (
+            not isinstance(review["evidence"], list)
+            or not review["evidence"]
+            or any(value not in artifacts for value in review["evidence"])
+        ):
+            raise ValidationError("Review evidence must name registered task artifacts")
+        if not isinstance(review["reviewed_utc"], str) or not review["reviewed_utc"]:
+            raise ValidationError("Task review requires reviewed_utc")
+    elif review is not None:
+        raise ValidationError("In-progress/complete tasks must not carry an acceptance review")
 
 
-def validate_output_task(path: Path, catalog_root: Path | None = None) -> dict[str, Any]:
+def validate_output_task(
+    path: Path,
+    catalog_root: Path | None = None,
+    *,
+    workspace: Path | None = None,
+) -> dict[str, Any]:
     path = path.expanduser().absolute()
     reject_linked_components(path)
     if is_link(path) or not path.is_dir():
@@ -416,18 +533,33 @@ def validate_output_task(path: Path, catalog_root: Path | None = None) -> dict[s
             repository / "output" / "experiments" / manifest["experiment_id"],
         )
     else:
-        if len(path.parents) < 5:
-            raise ValidationError("Workspace task path is too shallow")
-        if path.parents[3].name != "outputs":
-            raise ValidationError("Workspace task is not under the fixed outputs directory")
-        workspace = path.parents[4]
+        if manifest["output_root_kind"] == "workspace":
+            if len(path.parents) < 5 or path.parents[3].name != "outputs":
+                raise ValidationError("Workspace-internal task is not under the fixed outputs directory")
+            inferred_workspace = path.parents[4]
+            if workspace is not None and workspace.expanduser().absolute() != inferred_workspace:
+                raise ValidationError("Explicit Workspace does not own this internal output task")
+            workspace = inferred_workspace
+        elif workspace is None:
+            raise ValidationError("External output validation requires the owning Workspace path")
+        workspace = workspace.expanduser().absolute()
         validate_workspace(workspace)
+        marker = read_json_object(workspace / "config" / "workspace.json")
+        if marker["workspace_id"] != manifest["workspace_id"]:
+            raise ValidationError("Output task belongs to a different Workspace")
         read_profile(workspace, manifest["game_id"])
     return manifest
 
 
-def continue_output_task(path: Path, catalog_root: Path | None = None) -> dict[str, Any]:
-    manifest = validate_output_task(path, catalog_root)
+def continue_output_task(
+    path: Path,
+    catalog_root: Path | None = None,
+    *,
+    workspace: Path | None = None,
+) -> dict[str, Any]:
+    manifest = validate_output_path(path, catalog_root, workspace=workspace)
+    if manifest.get("schema") != TASK_SCHEMA:
+        raise SafetyError("Legacy output manifests are read-only; allocate a new numbered task")
     if manifest["status"] != "in-progress":
         raise SafetyError("Completed, accepted, or rejected work requires a new numbered task")
     task = path.expanduser().absolute()
@@ -437,6 +569,249 @@ def continue_output_task(path: Path, catalog_root: Path | None = None) -> dict[s
         if is_link(artifact) or not artifact.exists():
             raise ValidationError(f"Cannot continue because a recorded artifact is missing or linked: {relative}")
     return {"status": "continued", "task": str(task), "manifest": manifest}
+
+
+@contextmanager
+def _manifest_update_lock(task: Path) -> Iterable[None]:
+    lock = task / ".gameassetai-manifest.lock"
+    descriptor: int | None = None
+    for _ in range(200):
+        try:
+            descriptor = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+            os.write(descriptor, f"pid={os.getpid()}\n".encode("ascii"))
+            break
+        except FileExistsError:
+            time.sleep(0.01)
+    if descriptor is None:
+        raise SafetyError(f"Output task manifest is busy: {task}")
+    try:
+        yield
+    finally:
+        os.close(descriptor)
+        try:
+            lock.unlink()
+        except FileNotFoundError:
+            pass
+
+
+def plan_artifact_path(
+    path: Path,
+    *,
+    kind: str,
+    filename: str,
+    workspace: Path | None = None,
+    catalog_root: Path | None = None,
+) -> dict[str, Any]:
+    if kind not in ARTIFACT_KINDS:
+        raise ValidationError(f"Artifact kind must be one of {', '.join(sorted(ARTIFACT_KINDS))}")
+    directory, _ = ARTIFACT_KINDS[kind]
+    filename = _validate_artifact_filename(filename, expected_directory=directory)
+    task = path.expanduser().absolute()
+    validate_output_task(task, catalog_root, workspace=workspace)
+    created: list[Path] = []
+    with _manifest_update_lock(task):
+        manifest = validate_output_task(task, catalog_root, workspace=workspace)
+        if manifest["status"] != "in-progress":
+            raise SafetyError("Artifact paths can be planned only for an in-progress task")
+        artifact_directory, created = _ensure_real_directories(task, (directory,))
+        artifact = artifact_directory / filename
+        _assert_within(artifact, task, "Artifact path")
+        reject_linked_components(artifact, stop=task)
+        if artifact.exists() or is_link(artifact):
+            raise SafetyError(f"Refusing to overwrite an existing artifact: {artifact}")
+        relative = artifact.relative_to(task).as_posix()
+        if relative in manifest["artifacts"]:
+            raise SafetyError(f"Artifact path is already registered: {relative}")
+        if relative in manifest["reservations"]:
+            raise SafetyError(f"Artifact path is already reserved: {relative}")
+        manifest["reservations"].append(relative)
+        try:
+            _validate_task_manifest(manifest)
+            atomic_write_json(task / "manifest.json", manifest, replace=True)
+        except BaseException:
+            _cleanup_empty(created)
+            raise
+    return {
+        "status": "planned",
+        "task": str(task),
+        "kind": kind,
+        "artifact": str(artifact),
+        "relative_path": relative,
+    }
+
+
+def register_output_artifact(
+    path: Path,
+    artifact: Path,
+    *,
+    workspace: Path | None = None,
+    catalog_root: Path | None = None,
+) -> dict[str, Any]:
+    task = path.expanduser().absolute()
+    validate_output_task(task, catalog_root, workspace=workspace)
+    with _manifest_update_lock(task):
+        manifest = validate_output_task(task, catalog_root, workspace=workspace)
+        if manifest["status"] != "in-progress":
+            raise SafetyError("Artifacts can be registered only while a task is in progress")
+        candidate = artifact.expanduser()
+        candidate = candidate if candidate.is_absolute() else task / candidate
+        candidate = candidate.absolute()
+        _assert_within(candidate, task, "Artifact path")
+        reject_linked_components(candidate, stop=task)
+        if is_link(candidate) or not candidate.is_file():
+            raise ValidationError(f"Registered artifact must be an existing real file: {candidate}")
+        if candidate.stat().st_size <= 0:
+            raise ValidationError(f"Registered artifact must not be empty: {candidate}")
+        relative = candidate.relative_to(task).as_posix()
+        _validate_artifact_path(relative)
+        if relative in manifest["artifacts"]:
+            raise SafetyError(f"Artifact is already registered: {relative}")
+        if relative not in manifest["reservations"]:
+            raise SafetyError(f"Artifact path was not reserved through the Runtime: {relative}")
+        manifest["reservations"].remove(relative)
+        manifest["artifacts"].append(relative)
+        _validate_task_manifest(manifest)
+        atomic_write_json(task / "manifest.json", manifest, replace=True)
+    return {
+        "status": "registered",
+        "task": str(task),
+        "artifact": relative,
+        "artifacts": list(manifest["artifacts"]),
+    }
+
+
+def release_artifact_reservation(
+    path: Path,
+    reservation: str,
+    *,
+    workspace: Path | None = None,
+    catalog_root: Path | None = None,
+) -> dict[str, Any]:
+    relative = _validate_artifact_path(reservation)
+    task = path.expanduser().absolute()
+    validate_output_task(task, catalog_root, workspace=workspace)
+    with _manifest_update_lock(task):
+        manifest = validate_output_task(task, catalog_root, workspace=workspace)
+        if manifest["status"] != "in-progress":
+            raise SafetyError("Reservations can be released only while a task is in progress")
+        if relative not in manifest["reservations"]:
+            raise SafetyError(f"Artifact path is not reserved: {relative}")
+        artifact = task / PurePosixPath(relative)
+        _assert_within(artifact, task, "Artifact path")
+        reject_linked_components(artifact, stop=task)
+        if artifact.exists() or is_link(artifact):
+            raise SafetyError(
+                "A published artifact exists at the reserved path; register it instead of "
+                f"releasing the reservation: {relative}"
+            )
+        manifest["reservations"].remove(relative)
+        _validate_task_manifest(manifest)
+        atomic_write_json(task / "manifest.json", manifest, replace=True)
+    directory = artifact.parent
+    if directory.parent == task and directory.is_dir() and not is_link(directory):
+        try:
+            directory.rmdir()
+        except OSError:
+            pass
+    return {
+        "status": "released",
+        "task": str(task),
+        "artifact": relative,
+        "reservations": list(manifest["reservations"]),
+    }
+
+
+def update_output_task_status(
+    path: Path,
+    status: str,
+    *,
+    review_summary: str | None = None,
+    review_evidence: list[str] | None = None,
+    workspace: Path | None = None,
+    catalog_root: Path | None = None,
+) -> dict[str, Any]:
+    if status not in TASK_STATUSES:
+        raise ValidationError(f"Task status must be one of {', '.join(sorted(TASK_STATUSES))}")
+    task = path.expanduser().absolute()
+    validate_output_task(task, catalog_root, workspace=workspace)
+    with _manifest_update_lock(task):
+        manifest = validate_output_task(task, catalog_root, workspace=workspace)
+        current = manifest["status"]
+        if status not in TASK_TRANSITIONS[current]:
+            raise SafetyError(f"Task status cannot transition from {current} to {status}")
+        if manifest["reservations"]:
+            raise SafetyError("Task status cannot change while artifact reservations remain")
+        if status in {"accepted", "rejected"}:
+            summary = _nonempty_text(review_summary, "review summary")
+            evidence = list(review_evidence or [])
+            if not evidence or any(item not in manifest["artifacts"] for item in evidence):
+                raise ValidationError("Review evidence must name one or more registered artifacts")
+            manifest["review"] = {
+                "decision": status,
+                "summary": summary,
+                "evidence": evidence,
+                "reviewed_utc": _utc_now(),
+            }
+        elif review_summary is not None or review_evidence:
+            raise ValidationError("Complete status does not accept quality-review evidence")
+        manifest["status"] = status
+        _validate_task_manifest(manifest)
+        atomic_write_json(task / "manifest.json", manifest, replace=True)
+    return {
+        "status": "updated",
+        "task": str(task),
+        "previous": current,
+        "task_status": status,
+        "review": manifest["review"],
+    }
+
+
+def _validate_legacy_output_task(path: Path, manifest: dict[str, Any]) -> dict[str, Any]:
+    required = {
+        "schema", "storage", "task_id", "task_number", "purpose", "experiment_id", "game_id",
+        "asset_category", "asset_id", "created_utc", "artifacts", "status", "review",
+    }
+    if set(manifest) != required or manifest.get("schema") != LEGACY_TASK_SCHEMA:
+        raise ValidationError("Invalid legacy output task contract")
+    number = manifest.get("task_number")
+    purpose = _descriptive_identifier(
+        manifest.get("purpose"), "task purpose", GENERIC_TASK_PURPOSES,
+    )
+    if (
+        not isinstance(number, int)
+        or isinstance(number, bool)
+        or number < 1
+        or manifest.get("task_id") != f"{number:03d}-{purpose}"
+        or path.name != manifest.get("task_id")
+    ):
+        raise ValidationError("Invalid legacy output task identity")
+    if manifest.get("storage") not in {"development", "workspace"}:
+        raise ValidationError("Invalid legacy output task storage")
+    validate_identifier(manifest.get("asset_category"), "asset category")
+    _descriptive_identifier(manifest.get("asset_id"), "asset id", set())
+    if path.parent.name != manifest["asset_id"] or path.parent.parent.name != manifest["asset_category"]:
+        raise ValidationError("Legacy output task path does not match its asset identity")
+    if manifest["storage"] == "development":
+        owner = _descriptive_identifier(
+            manifest.get("experiment_id"), "experiment id", GENERIC_EXPERIMENT_IDS,
+        )
+        if manifest.get("game_id") is not None:
+            raise ValidationError("Legacy development task cannot contain a game id")
+    else:
+        owner = validate_identifier(manifest.get("game_id"), "game id")
+        if manifest.get("experiment_id") is not None:
+            raise ValidationError("Legacy Workspace task cannot contain an experiment id")
+    if path.parent.parent.parent.name != owner:
+        raise ValidationError("Legacy output task owner directory does not match its manifest")
+    if not isinstance(manifest.get("artifacts"), list) or manifest.get("status") not in TASK_STATUSES:
+        raise ValidationError("Invalid legacy output task artifacts/status")
+    for artifact in manifest["artifacts"]:
+        if not isinstance(artifact, str) or not artifact or "\\" in artifact:
+            raise ValidationError("Invalid legacy artifact path")
+        relative = PurePosixPath(artifact)
+        if relative.is_absolute() or any(part in {"", ".", ".."} for part in relative.parts):
+            raise ValidationError("Legacy artifact path escapes its task")
+    return manifest
 
 
 def _validate_legacy_output_run(path: Path, manifest: dict[str, Any]) -> dict[str, Any]:
@@ -455,7 +830,12 @@ def _validate_legacy_output_run(path: Path, manifest: dict[str, Any]) -> dict[st
     return manifest
 
 
-def validate_output_path(path: Path, catalog_root: Path | None = None) -> dict[str, Any]:
+def validate_output_path(
+    path: Path,
+    catalog_root: Path | None = None,
+    *,
+    workspace: Path | None = None,
+) -> dict[str, Any]:
     path = path.expanduser().absolute()
     reject_linked_components(path)
     if is_link(path) or not path.is_dir():
@@ -465,7 +845,9 @@ def validate_output_path(path: Path, catalog_root: Path | None = None) -> dict[s
         raise ValidationError("Output path is missing a real manifest.json")
     manifest = read_json_object(manifest_path)
     if manifest.get("schema") == TASK_SCHEMA:
-        return validate_output_task(path, catalog_root)
+        return validate_output_task(path, catalog_root, workspace=workspace)
+    if manifest.get("schema") == LEGACY_TASK_SCHEMA:
+        return _validate_legacy_output_task(path, manifest)
     if manifest.get("schema") == LEGACY_RUN_SCHEMA:
         return _validate_legacy_output_run(path, manifest)
     raise ValidationError(f"Unsupported output manifest schema: {manifest.get('schema')}")

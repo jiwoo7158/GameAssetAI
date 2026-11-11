@@ -3,6 +3,11 @@
 This is a persistent user Workspace, not the GameAssetAI development repository. Durable game
 rules live in JSON Profiles, not in chat memory.
 
+When this Workspace is a `dist/workspace` clone, `.agents/skills/`, this file, templates, product
+documentation, and `distribution.json` are product-managed. Personal state belongs in ignored
+`config/`, `profiles/`, `notes/`, `outputs/`, or `AGENTS.local.md`. If `AGENTS.local.md` exists,
+read it explicitly when its user rules are relevant; do not assume a host discovers it by name.
+
 ## Before every game-specific task
 
 1. Validate this Workspace and read `config/active-profile.json`.
@@ -63,8 +68,11 @@ meshes, Armatures, Actions, materials, images, source references, and game proje
 anywhere; preserve them and prefer a copy or checkpoint. `unity-workbench` is optional and may be
 used only when the user explicitly requests it.
 
-Allocate generated deliverables through the installed Runtime under
-`outputs/<game-id>/<asset-category>/<asset-id>/<number>-<purpose>/`. The only category ids are
+Allocate generated deliverables through the installed Runtime. The default root is this
+Workspace's `outputs/`; a one-task explicit root overrides a Profile `output_defaults.root`, which
+overrides the Workspace `settings.preferences.output_root`. Every external root requires explicit
+selection, must already be a real directory, and is not inferred from `config/projects.json`.
+Regardless of root, use `<game-id>/<asset-category>/<asset-id>/<number>-<purpose>/`. The only category ids are
 `character`, `equipment-prop`, `environment`, and `vfx-mesh`. The asset id names the concrete
 target; a revision of the same target keeps that id. A new comparable result receives the next
 number in that asset directory, while an exact in-progress continuation must validate the exact
@@ -73,13 +81,22 @@ existing task path. Completed work is never reopened for overwrite.
 Task folder names use a three-or-more-digit local number and descriptive purpose, for example
 `001-initial-model` or `002-silhouette-refinement`. Do not use dates, times, UUIDs, generic
 `test`/`final` names, or extra classification levels. Create artifact subfolders only when that
-task needs them. The local `manifest.json` describes the task; it is not global state.
+task needs them: `models/`, `previews/`, `sprites/`, or `exports/`. Plan paths through the Runtime
+to record a task-local reservation, then register actual nonempty files to consume it. Never
+overwrite an existing file, and keep Manifest artifact
+paths relative to the task. `accepted` and `rejected` require recorded review evidence; file
+creation or a Python test is not visual/semantic acceptance. The local `manifest.json` describes
+the task; it is not global state.
+
+If a planned file is abandoned before publication, release that reservation through the Runtime.
+Never release a reservation to hide an existing unregistered file.
 
 `outputs/` is disposable user output: deleting or moving all or part of it removes those copies but
 must not affect Profiles, settings, installed Skills, catalogs, or an independent new task. Do not
 restore moved results automatically. A prior result is input only when the user explicitly selects
 it; if an exact in-progress task is missing, report that continuation error without blocking new
-work.
+work. If an approved external root itself was moved or deleted, do not recreate the old location;
+select a new root or clear the setting before starting another task.
 
 Catalog registration is not proof that a generator exists. Stop downstream Rig, animation, 2D,
 and export work when a source fails visible or semantic review, and report unsupported work

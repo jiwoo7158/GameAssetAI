@@ -35,6 +35,10 @@ revision. It does not provide arbitrary semantic mesh editing, automatic clothin
 facial work, or general nonhumanoid Rig generation. Existing suitable Rigs and Actions are
 first-class inputs; never delete or replace them merely to simplify the task.
 
+Route each preserved revision artifact through the output Skill: obtain an official no-overwrite
+path, register only the actual nonempty result, and record a reviewed status separately. Never
+label a revision accepted from a successful script or structural test alone.
+
 If the request exceeds an implemented contract, narrow it with the user or report the capability
 gap. On failure, preserve the checkpoint and source, state what changed before failure, and do not
 continue to output as though the asset were accepted. A moved or deleted output blocks only that
