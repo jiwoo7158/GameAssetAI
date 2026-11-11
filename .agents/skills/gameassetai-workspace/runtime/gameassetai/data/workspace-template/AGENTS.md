@@ -52,11 +52,16 @@ interpretations, ask before changing it. Never copy a rule into another game's P
 Use the installed Workspace Skill to read the exact setting before changing one field, then
 validate after the atomic update:
 
-```text
-python scripts/gameassetai.py profile get <workspace> art_direction.palette
-python scripts/gameassetai.py profile set <workspace> art_direction.palette --value-json <json>
-python scripts/gameassetai.py workspace validate <workspace> --require-profile
+```powershell
+$GameAssetAICli = ".agents/skills/gameassetai-workspace/scripts/gameassetai.py"
+python -B $GameAssetAICli profile get <workspace> art_direction.palette
+python -B $GameAssetAICli profile set <workspace> art_direction.palette --value-json <json>
+python -B $GameAssetAICli workspace validate <workspace> --require-profile
 ```
+
+The path above is for project-scoped installation from the Workspace root. At user scope, resolve
+the actual copied `gameassetai-workspace/scripts/gameassetai.py` path. Do not assume a distribution
+Workspace contains the development-only root `scripts/gameassetai.py`.
 
 The CLI preserves fields not named by the update. It does not automatically infer rules from an
 image, merge arbitrary Profile documents, or migrate a legacy Markdown Profile.
@@ -84,9 +89,17 @@ Task folder names use a three-or-more-digit local number and descriptive purpose
 task needs them: `models/`, `previews/`, `sprites/`, or `exports/`. Plan paths through the Runtime
 to record a task-local reservation, then register actual nonempty files to consume it. Never
 overwrite an existing file, and keep Manifest artifact
-paths relative to the task. `accepted` and `rejected` require recorded review evidence; file
-creation or a Python test is not visual/semantic acceptance. The local `manifest.json` describes
-the task; it is not global state.
+paths relative to the task. `accepted` and `rejected` require distinct registered review evidence
+that is still a nonempty real file inside the task when the review is recorded; links and
+Junctions are refused and a failed transition leaves the Manifest unchanged. Later movement or
+deletion preserves the historical review record and does not block independent work. File creation
+or a Python test is not visual/semantic acceptance. The local `manifest.json` describes the task;
+it is not global state.
+
+Manifest mutations use the task-local `.gameassetai-manifest.lock`. Normal completion and handled
+errors remove it. If a busy error occurs, do not delete the lock while another process may still
+be using the task. After an abnormal termination, first verify that no GameAssetAI process is using
+that exact task, then inspect the PID text and Manifest before any manual cleanup.
 
 If a planned file is abandoned before publication, release that reservation through the Runtime.
 Never release a reservation to hide an existing unregistered file.

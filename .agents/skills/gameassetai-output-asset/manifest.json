@@ -1,6 +1,6 @@
 {
   "files": {
-    "SKILL.md": "bb2b6c8d02c9b40532b6822aba2ea1932265360f41ed63d4e11b7997bbffa31e",
+    "SKILL.md": "3481a3aca6bf7ad15e52555d5eedd2ff2d00277a41519419b5c8338cabaca4bf",
     "runtime/gameassetai/__init__.py": "eac669d3ca3592ea5cd6f2116dd4278c8cf44b6bb0b62d15422b4a257e401b86",
     "runtime/gameassetai/blender/__init__.py": "42f3aa25d01a369760d0d8420e72604417e37e5d657d5bcb301b4a65b06a7d6c",
     "runtime/gameassetai/blender/action_copy.py": "e2cb374eaf07baec38e177f8d85103a17d7f1d6e7b147da1f469cc999d1f668d",
@@ -78,8 +78,8 @@
     "runtime/gameassetai/data/catalog/asset-types/core.json": "9d4b5574c8b9832a697d44f5f157064b0e0867e4a5b32a57665d5eb0c06e16d2",
     "runtime/gameassetai/data/catalog/generation-providers/core.json": "397c9f17fd2dc2bb3332eceb353569f5b5a9f7fb17341d22c455ecf992eeaa6a",
     "runtime/gameassetai/data/catalog/styles/core.json": "a5659f8ec3ce4ec93ac7b88407bec7edbbb09b43afbf154f5ed33b48c4ecc0fb",
-    "runtime/gameassetai/data/workspace-template/AGENTS.md": "7be87b2996c5bc330bd6c196f22473cb940c79a0376feb17b50152a2304988b1",
-    "runtime/gameassetai/data/workspace-template/README.md": "c56e3a1a95421f6453215b8c32f6253b8bf778038df692b4f7b7cb0516abec51",
+    "runtime/gameassetai/data/workspace-template/AGENTS.md": "629255d3ba01ec17a616aaad8225da96f8aeb20aa05fc7e2e8a4cd4ba819c38a",
+    "runtime/gameassetai/data/workspace-template/README.md": "a76a3cd776b21e96fec2861d3779528a94f62bc168e4ba3db719110701dff0c2",
     "runtime/gameassetai/data/workspace-template/config/active-profile.json": "dee2ed132039eaa14ad05e571085ebfbbb9f247eb368d194ec0b1af5061d0747",
     "runtime/gameassetai/data/workspace-template/config/projects.json": "08a8b05fd9577489942c8b95b2ff3d626b5ff1b3b602c42d99c7195b3c4136df",
     "runtime/gameassetai/data/workspace-template/config/settings.json": "ddedae77a42e0d85504141eb0edcc33a530c0bc2ce08ebe6f36405b839d7ecfd",
@@ -90,8 +90,8 @@
     "runtime/gameassetai/distribution.py": "ccc37d1059d3a1f57ae21e95302d2986e0acb2e8711402841ac15bd539b37009",
     "runtime/gameassetai/errors.py": "fec6b20bd00a7bb9cca44d22c22c98dcb0e731875bc3ea994acf06e6d29f8cf0",
     "runtime/gameassetai/filesystem.py": "453b9108ea582107b6ca234d6eb435721b4574add891fe4afffb5f68a0a6d86f",
-    "runtime/gameassetai/outputs.py": "21abf8147504fef088a4b19535b5af2cfa85fe96816f903ed4e3d7b638e2e04e",
-    "runtime/gameassetai/specification.py": "d4a9f1c1dcd7f0379a6b53384797def10b3f1eb428edb919cf3d9a4d8987ba9e",
+    "runtime/gameassetai/outputs.py": "6555a7d50719b399a5bcd8b6ec5cd64a8bdde21d5403422c56401efaf5d26fe7",
+    "runtime/gameassetai/specification.py": "25972d31fd87dfdde165976734c7dcfe4973f12fc4578e9a2efda059646be863",
     "runtime/gameassetai/workspace.py": "24eb36c8f6515415caa838ed6d10d3a8d136ffc1046fa448eee6a9db3ac88147",
     "scripts/gameassetai.py": "28e132dff1fdbac48af0ede4a687a17b7b5e2b6d9a990a634856b249f306207a"
   },

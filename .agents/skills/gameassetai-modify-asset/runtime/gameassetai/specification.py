@@ -9,7 +9,17 @@ from .filesystem import read_json_object, validate_identifier
 
 
 SCHEMA = "gameassetai.asset-specification.v1"
-OUTPUT_FORMATS = {"blend", "fbx", "png", "sprite-sheet", "png-sequence"}
+OUTPUT_FORMAT_ARTIFACTS: dict[str, dict[str, frozenset[str]]] = {
+    "blend": {"model": frozenset({".blend"})},
+    "fbx": {"export": frozenset({".fbx"})},
+    "png": {
+        "preview": frozenset({".png"}),
+        "sprite": frozenset({".png"}),
+    },
+    "sprite-sheet": {"sprite": frozenset({".png"})},
+    "png-sequence": {"sprite": frozenset({".png"})},
+}
+OUTPUT_FORMATS = set(OUTPUT_FORMAT_ARTIFACTS)
 
 
 def _strings(value: object, label: str) -> list[str]:
