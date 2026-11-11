@@ -1,0 +1,20 @@
+{
+  "schema": "gameassetai.profile.v1",
+  "id": "example-game",
+  "name": "Example Game",
+  "description": "Copy through the Workspace command; do not select this template directly.",
+  "styles": {
+    "three_d": null,
+    "two_d": []
+  },
+  "art_direction": {
+    "rules": [],
+    "palette": []
+  },
+  "asset_defaults": {},
+  "rig_animation": {},
+  "output_defaults": {
+    "formats": ["blend"]
+  },
+  "metadata": {}
+}
