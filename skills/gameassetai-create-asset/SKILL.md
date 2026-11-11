@@ -9,6 +9,11 @@ Use this Skill for a new 3D asset. Route Workspace/Profile setup to `gameassetai
 existing source revision to `gameassetai-modify-asset`, and result-path allocation/publication to
 `gameassetai-output-asset`.
 
+Use the bundled CLI from the Skill's actual installation. From a project-scoped distribution root,
+the shared entrypoint is `.agents/skills/gameassetai-workspace/scripts/gameassetai.py`; at user
+scope resolve the copied `gameassetai-workspace/scripts/gameassetai.py`. Never assume that the
+Workspace root contains the development-only `scripts/gameassetai.py`.
+
 ## Inputs and preparation
 
 The normal input flow is a text description, a selected 3D style preset, and one or more reference

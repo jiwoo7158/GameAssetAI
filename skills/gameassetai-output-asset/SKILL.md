@@ -10,6 +10,12 @@ result path. Route Workspace/Profile administration to `gameassetai-workspace`; 
 creation or revision to the matching Skill. Export or final publication still requires a source
 that passed explicit visible and semantic review.
 
+Resolve the CLI before running a command. From a project-scoped distribution root use
+`$GameAssetAICli = ".agents/skills/gameassetai-workspace/scripts/gameassetai.py"`; at user scope
+use the actual copied `gameassetai-workspace/scripts/gameassetai.py`. Development experiments run
+from a development Repository with `$DevelopmentCli = "scripts/gameassetai.py"`. A distribution
+Workspace does not contain that development-only root `scripts/` directory.
+
 ## Classify before allocation
 
 1. Decide the storage domain. Development research uses the Repository
@@ -17,8 +23,8 @@ that passed explicit visible and semantic review.
    operating-system temporary directory and do not invoke production allocation.
 2. For development work, inspect existing experiment metadata:
 
-   ```text
-   python scripts/gameassetai.py outputs experiment list <repository>
+   ```powershell
+   python -B $DevelopmentCli outputs experiment list <repository>
    ```
 
    Reuse an experiment only when the validation purpose, core question, and evaluation criteria
@@ -27,8 +33,8 @@ that passed explicit visible and semantic review.
    select by similar name alone. When the request is ambiguous, ask the minimum clarification;
    do not create or reuse a default.
 
-   ```text
-   python scripts/gameassetai.py outputs experiment create <repository> <experiment-id> \
+   ```powershell
+   python -B $DevelopmentCli outputs experiment create <repository> <experiment-id> `
      --purpose <text> --question <text> --criterion <text>
    ```
 
@@ -37,18 +43,18 @@ that passed explicit visible and semantic review.
    this individual result.
 4. Allocate a new task through the Runtime:
 
-   ```text
+   ```powershell
    # Development experiment
-   python scripts/gameassetai.py outputs begin <repository> --space development \
+   python -B $DevelopmentCli outputs begin <repository> --space development `
      --experiment <experiment-id> --category <category> --asset <asset-id> --purpose <purpose>
 
    # User game work; game defaults to the active Profile and an explicit --game must match it
-   python scripts/gameassetai.py outputs begin <workspace> --space workspace \
+   python -B $GameAssetAICli outputs begin <workspace> --space workspace `
      --category <category> --asset <asset-id> --purpose <purpose>
 
    # One-task external root; it must already exist and be explicitly selected
-   python scripts/gameassetai.py outputs begin <workspace> --space workspace \
-     --category <category> --asset <asset-id> --purpose <purpose> \
+   python -B $GameAssetAICli outputs begin <workspace> --space workspace `
+     --category <category> --asset <asset-id> --purpose <purpose> `
      --output-root <absolute-directory>
    ```
 
@@ -57,8 +63,8 @@ that passed explicit visible and semantic review.
    times, UUIDs, generic `test`/`final` names, or add another classification level.
 5. Continue work only from the exact in-progress task path:
 
-   ```text
-   python scripts/gameassetai.py outputs continue <exact-task-path> [--workspace <workspace>]
+   ```powershell
+   python -B $GameAssetAICli outputs continue <exact-task-path> [--workspace <workspace>]
    ```
 
    A completed, accepted, or rejected result must remain unchanged; allocate a new number for a
@@ -67,9 +73,9 @@ that passed explicit visible and semantic review.
 6. Create only the artifact directory needed by the next file and obtain its no-overwrite path
    through the Runtime:
 
-   ```text
-   python scripts/gameassetai.py outputs artifact-path <task> \
-     --kind <model|preview|sprite|export> --filename <descriptive-name.ext> \
+   ```powershell
+   python -B $GameAssetAICli outputs artifact-path <task> `
+     --kind <model|preview|sprite|export> --filename <descriptive-name.ext> `
      [--workspace <workspace>]
    ```
 
@@ -78,36 +84,50 @@ that passed explicit visible and semantic review.
    path. Publish the actual file without overwriting, then register that existing nonempty file;
    registration consumes the reservation:
 
-   ```text
-   python scripts/gameassetai.py outputs register <task> <artifact> \
+   ```powershell
+   python -B $GameAssetAICli outputs register <task> <artifact> `
      [--workspace <workspace>]
    ```
 
    If production is abandoned before a file exists, release only that unused reservation:
 
-   ```text
-   python scripts/gameassetai.py outputs release <task> <relative-artifact> \
+   ```powershell
+   python -B $GameAssetAICli outputs release <task> <relative-artifact> `
      [--workspace <workspace>]
    ```
 
    Releasing is refused when a file exists at the reserved path; register or explicitly inspect
    that file instead.
 
+   Asset Specification formats are logical requests: `blend` maps to model `.blend`, `fbx` to
+   export `.fbx`, plain `png` to preview or sprite `.png`, and `sprite-sheet`/`png-sequence` to
+   sprite `.png`. The artifact registry can safely store additional existing export/preview
+   extensions, including GLB/GLTF/OBJ and JPG/WebP. Registration support is not a claim that a
+   generator, Blender exporter, or engine import workflow for those formats is implemented.
+
 7. Change state only through `outputs status`. Outstanding artifact reservations must be resolved
    before a state change. `complete` means file production ended without a quality decision.
-   `accepted` or `rejected` requires a real visible/semantic review summary and
-   one or more registered evidence paths:
+   `accepted` or `rejected` requires a real visible/semantic review summary and one or more
+   distinct registered evidence paths. At the transition, every evidence path must still resolve
+   to a nonempty real file inside the task, without a link or Junction component. Invalid evidence
+   leaves the Manifest unchanged:
 
-   ```text
-   python scripts/gameassetai.py outputs status <task> complete [--workspace <workspace>]
-   python scripts/gameassetai.py outputs status <task> accepted \
-     --review-summary <text> --review-evidence <relative-artifact> \
+   ```powershell
+   python -B $GameAssetAICli outputs status <task> complete [--workspace <workspace>]
+   python -B $GameAssetAICli outputs status <task> accepted `
+     --review-summary <text> --review-evidence <relative-artifact> `
      [--workspace <workspace>]
    ```
 
    Tests and successful file creation never justify `accepted`. Accepted/rejected tasks are
    terminal; a completed task may receive a later accepted/rejected review but cannot receive new
-   artifacts.
+   artifacts. Moving or deleting evidence after a successful review preserves the historical
+   decision and does not block an independent new task.
+
+   Manifest mutation uses `.gameassetai-manifest.lock` in the task. Normal completion and handled
+   exceptions remove it. On a busy error, do not delete the lock while another process may be
+   active. If abnormal termination is suspected, first confirm no process is using that exact task
+   and inspect the recorded PID and Manifest; the Runtime does not delete stale-looking locks.
 
 The default user root is `<workspace>/outputs`. A one-task `--output-root` overrides a Profile
 `output_defaults.root`, which overrides the Workspace preference, which overrides that default.

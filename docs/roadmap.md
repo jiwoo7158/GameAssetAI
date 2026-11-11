@@ -89,7 +89,7 @@ under an isolated temporary `.codex/skills` root, and its installed catalog comm
 development-checkout dependency. Live Codex host discovery, Blender/MCP execution, visual asset
 quality, and engine behavior were not validated and remain incomplete environment/product gates.
 
-## Implemented / Under Review — output-management foundation work package (2026-11-11)
+## Completed — output-management foundation work package (2026-11-11)
 
 - Requirements advanced: `REQ-STYLE`, `REQ-WORKSPACE`, `REQ-DISTRIBUTION`, `REQ-OUTPUT`, and
   `REQ-SAFE`.
@@ -141,10 +141,10 @@ CLI for ordered project installation, installed-Runtime Profile and output comma
 build/validation, experiment/task deletion and recreation, concurrent numbering, style-dimension
 rejection, and legacy output read-only validation. No Repository `output/`, Blender asset, user
 Workspace, or external project was created or modified. Live Codex host discovery, Blender/MCP,
-visual quality, and engine behavior were outside this package and remain unverified. This package
-remains under review in draft pull request #3 and is not complete until approved and merged.
+visual quality, and engine behavior were outside this package and remain unverified. Pull request
+#3 was approved and merged to `master` as `128a657` on 2026-11-11.
 
-## Implemented / Under Review — Workspace distribution and result lifecycle work package (2026-11-11)
+## Completed — Workspace distribution and result lifecycle work package (2026-11-11)
 
 - Requirements advanced: `REQ-WORKSPACE`, `REQ-DISTRIBUTION`, `REQ-OUTPUT`, `REQ-SAFE`, and
   `REQ-QUALITY`.
@@ -205,8 +205,70 @@ directory. No real Workspace, Repository `output/`, Blender asset, external proj
 `dist/workspace` branch was created or modified. The dedicated Skill quick validator could not run
 because PyYAML is absent from the local tool environment; repository frontmatter validation,
 bundle hash validation, installed-manifest validation, and vendored CLI execution passed instead.
-This package remains under review in draft pull request #3 and is not complete until user approval
-and merge. Hosted Linux/Windows CI results for these commits are recorded only after push.
+Pull request #3 was approved and merged to `master` as
+`128a657f54776cbef6af1572f4125ae2a8fbab94` on 2026-11-11. Foundation CI passed on Windows and
+Ubuntu, and the master-only publication workflow created `dist/workspace` at
+`2196a0e9952399727d7d1981dca0cde603ac7e2f` from that exact source commit with product version
+`0.2.0` and layout version `1`. Live Codex host discovery, Blender/MCP behavior, movable real
+`.blend` dependencies, visual acceptance, and engine import remain unverified.
+
+## Implemented / Under Review — post-merge foundation hardening work package (2026-11-12)
+
+- Requirements advanced: `REQ-SPEC`, `REQ-DISTRIBUTION`, `REQ-OUTPUT`, `REQ-SAFE`, and
+  `REQ-QUALITY`.
+- Existing implementation to reuse: the merged four-Skill Workspace distribution, v3 output-task
+  manifest and atomic lock/update path, registered artifact contract, Asset Specification v1,
+  simulated fast-forward Pull coverage, and Linux/Windows Foundation CI.
+- Concrete gaps: a newly recorded accepted/rejected review verifies only that evidence is listed
+  in the Manifest rather than that each evidence file is still present and safe; some guidance
+  uses development-checkout CLI paths from a distribution root; Pull regression coverage does not
+  prove that changed vendored Runtime code executes after update; and the relationship between
+  logical requested output formats and registrable artifact file kinds is implicit.
+- Non-goals: changing the product architecture or distribution model; creating another installer,
+  Repository, or branch; running Blender; producing or reviewing an asset; adding a provider or
+  exporter; changing a user Workspace; or directly modifying `dist/workspace`.
+- Affected files: existing output and specification Runtime modules; focused output,
+  specification, distribution, and repository tests; existing Skill/Workspace/distribution
+  instructions; generated distribution source files; and current status documentation.
+- Validation assets: only isolated temporary task trees, distribution builds, local Git remotes
+  and clones, generated Skills, Profiles, settings, notes, and synthetic result files. No real
+  Workspace, Repository `output/`, Blender file, or external project is a test target.
+- Representative asset: none. This package verifies lifecycle, deployment, and data contracts and
+  is not evidence for generation, export, Blender portability, or visual quality.
+- Acceptance criteria:
+  1. A new accepted/rejected review requires distinct registered evidence paths that resolve to
+     existing nonempty real files inside the exact task, while failure leaves the Manifest bytes
+     unchanged; later movement or deletion does not invalidate the historical review or block an
+     independent new task.
+  2. Development, project-distribution, and user-scoped CLI entrypoints are distinguished, and
+     every documented distribution-root command runs through the bundled Workspace Skill without
+     a development `scripts/` directory.
+  3. A simulated normal fast-forward Pull changes vendored Runtime content and metadata, runs the
+     changed Runtime, and preserves ignored Profile, setting, note, and output data.
+  4. Asset Specification logical output formats have an explicit compatibility-preserving mapping
+     to registrable artifact kinds/extensions without claiming a generator or exporter.
+  5. Distribution ignore rules cover common local Python, environment, IDE, operating-system, and
+     Blender backup noise without hiding product Skills.
+  6. Repository validation, the complete offline suite, temporary distribution build/validation,
+     and Linux/Windows CI pass. The generated branch remains master-published only.
+- Unresolved environment gates: live Codex Desktop/VS Code discovery, Blender MCP connectivity,
+  real `.blend` dependency movement, visual acceptance, export behavior, and engine import remain
+  manual or later representative checks.
+
+Implementation evidence recorded on 2026-11-12: repository validation and 89 offline tests
+passed locally. Three Windows symlink cases were skipped because the process lacks symlink
+privilege; equivalent Windows Junction refusal tests for output intermediates, review evidence,
+external output roots, and Skill installation passed. The suite built and executed a generated
+distribution without a development `scripts/` directory, exercised the documented Workspace-root
+CLI commands, changed and executed vendored Runtime code after a normal fast-forward Pull, and
+preserved ignored Profile, settings, note, Manifest, and output bytes. Review transitions rejected
+missing, moved, empty, duplicate, unregistered, escaping, and linked evidence without changing the
+Manifest, while later evidence deletion did not invalidate the historical review or block an
+independent task. No real Workspace, Repository `output/`, Blender asset, external project, or
+`dist/workspace` branch was modified. Python, Git, and Blender installation were inspected locally;
+Blender MCP was not connected, and live Codex host discovery, visual quality, export behavior, and
+engine import remain unverified. Hosted pull-request CI is recorded only after this branch is
+pushed and the workflow completes.
 
 ## Candidate development areas after the foundation
 

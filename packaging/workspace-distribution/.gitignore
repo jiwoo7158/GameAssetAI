@@ -11,6 +11,15 @@ Thumbs.db
 desktop.ini
 .vscode/
 .idea/
+*.tmp
+*~
+
+# Local Python caches and environments.
+__pycache__/
+*.py[cod]
+/.venv/
+/venv/
+/env/
 
 # Blender backup files.
 *.blend1

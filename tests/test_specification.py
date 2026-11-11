@@ -8,7 +8,10 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from gameassetai.errors import ValidationError  # noqa: E402
-from gameassetai.specification import validate_asset_specification  # noqa: E402
+from gameassetai.outputs import ARTIFACT_KINDS  # noqa: E402
+from gameassetai.specification import (  # noqa: E402
+    OUTPUT_FORMAT_ARTIFACTS, OUTPUT_FORMATS, validate_asset_specification,
+)
 
 
 def valid_spec():
@@ -58,6 +61,34 @@ class SpecificationTests(unittest.TestCase):
             validate_asset_specification(document, ROOT / "catalog")
         document["source"]["preserve_original"] = True
         validate_asset_specification(document, ROOT / "catalog")
+
+    def test_logical_output_formats_map_to_registrable_artifact_contracts(self):
+        self.assertEqual(
+            {"blend", "fbx", "png", "sprite-sheet", "png-sequence"},
+            OUTPUT_FORMATS,
+        )
+        self.assertEqual(OUTPUT_FORMATS, set(OUTPUT_FORMAT_ARTIFACTS))
+        for artifact_contracts in OUTPUT_FORMAT_ARTIFACTS.values():
+            self.assertTrue(artifact_contracts)
+            for kind, extensions in artifact_contracts.items():
+                self.assertIn(kind, ARTIFACT_KINDS)
+                self.assertTrue(extensions)
+                self.assertTrue(extensions.issubset(ARTIFACT_KINDS[kind][1]))
+
+        # Registrable artifacts are broader than requested generation formats. Supporting
+        # a safe path for one does not claim that GameAssetAI can generate or export it.
+        self.assertIn(".glb", ARTIFACT_KINDS["export"][1])
+        self.assertNotIn("glb", OUTPUT_FORMATS)
+
+    def test_existing_output_format_contract_remains_compatible(self):
+        for output_format in sorted(OUTPUT_FORMATS):
+            document = valid_spec()
+            document["outputs"] = [{"format": output_format, "options": {}}]
+            validate_asset_specification(document, ROOT / "catalog")
+        document = valid_spec()
+        document["outputs"] = [{"format": "glb", "options": {}}]
+        with self.assertRaisesRegex(ValidationError, r"outputs\[0\]"):
+            validate_asset_specification(document, ROOT / "catalog")
 
 
 if __name__ == "__main__":

@@ -10,6 +10,11 @@ part, color, material, Rig, or animation change. Route Profile administration to
 `gameassetai-workspace`, new-source creation to `gameassetai-create-asset`, and result allocation or
 publication to `gameassetai-output-asset`.
 
+Use the bundled CLI from the Skill's actual installation. From a project-scoped distribution root,
+the shared entrypoint is `.agents/skills/gameassetai-workspace/scripts/gameassetai.py`; at user
+scope resolve the copied `gameassetai-workspace/scripts/gameassetai.py`. Never assume that the
+Workspace root contains the development-only `scripts/gameassetai.py`.
+
 1. Validate the Workspace, load the active Profile, and resolve the exact source path/object.
 2. Read the text request, selected style, and user references. Label each image's role; do not
    confuse a pre-production AI reference with a Blender preview or final 2D output.

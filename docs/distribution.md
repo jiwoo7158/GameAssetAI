@@ -27,9 +27,10 @@ Generated Skills vendor these sources so they never require the development chec
 path.
 
 ```powershell
-python -B scripts/gameassetai.py package build . <new-bundle-directory>
-python -B scripts/gameassetai.py package validate <bundle-directory>
-python -B scripts/gameassetai.py package zip <bundle-directory> <new-archive.zip>
+$DevelopmentCli = "scripts/gameassetai.py"
+python -B $DevelopmentCli package build . <new-bundle-directory>
+python -B $DevelopmentCli package validate <bundle-directory>
+python -B $DevelopmentCli package zip <bundle-directory> <new-archive.zip>
 ```
 
 The destination must not exist. Installation is no-overwrite; explicit update requires a new
@@ -40,9 +41,9 @@ connects and validates the Workspace before creating `.agents/skills`, then inst
 all four Skills. Profile creation happens afterward.
 
 ```powershell
-python -B scripts/gameassetai.py package install-project <bundle> <workspace> `
+python -B $DevelopmentCli package install-project <bundle> <workspace> `
   --template workspace-template
-python -B scripts/gameassetai.py package validate-install <workspace>\.agents\skills
+python -B $DevelopmentCli package validate-install <workspace>\.agents\skills
 ```
 
 ## Generated `dist/workspace` product tree
@@ -69,9 +70,9 @@ results are excluded.
 Development and CI can build and validate this tree without publishing it:
 
 ```powershell
-python -B scripts/gameassetai.py package build-workspace-dist . <new-directory> `
+python -B $DevelopmentCli package build-workspace-dist . <new-directory> `
   --source-commit <full-git-sha>
-python -B scripts/gameassetai.py package validate-workspace-dist <directory>
+python -B $DevelopmentCli package validate-workspace-dist <directory>
 ```
 
 The branch is generated output and must not be edited directly. Pull requests run the same build
@@ -81,6 +82,11 @@ validates the tree, then appends a normal commit to `dist/workspace`. It uses th
 `GITHUB_TOKEN` `contents: write` permission, a concurrency group, and never force-pushes. A failed
 test or build cannot replace the prior distribution. The branch is not created or updated merely
 because a draft PR exists.
+
+The initial hosted publication succeeded on 2026-11-11: source `master` commit
+`128a657f54776cbef6af1572f4125ae2a8fbab94` produced `dist/workspace` commit
+`2196a0e9952399727d7d1981dca0cde603ac7e2f`, product version `0.2.0`, layout version `1`.
+This is deployment evidence for that release, not evidence for live Codex discovery or Blender.
 
 The generated `.gitattributes` fixes product text to LF, while distribution and Skill hashes
 canonicalize text line endings. This keeps ordinary Windows and Linux clones verifiable without
@@ -93,8 +99,10 @@ After the approved `master` change has published the branch:
 ```powershell
 git clone --branch dist/workspace --single-branch `
   https://github.com/jiwoo7158/GameAssetAI.git <workspace>
-python -B <workspace>\.agents\skills\gameassetai-workspace\scripts\gameassetai.py `
-  workspace init-clone <workspace>
+Set-Location <workspace>
+$GameAssetAICli = ".agents/skills/gameassetai-workspace/scripts/gameassetai.py"
+python -B $GameAssetAICli workspace init-clone .
+python -B $GameAssetAICli workspace validate .
 ```
 
 `init-clone` accepts only a real Git clone whose distribution metadata, product hashes, Skills,
@@ -103,9 +111,11 @@ the Workspace marker, and validates the result. It is idempotent and refuses con
 personal paths rather than overwriting them. `outputs/` and `notes/` remain absent until needed.
 
 The distribution `.gitignore` excludes `/config/`, `/profiles/`, `/notes/`, `/outputs/`, and
-`/AGENTS.local.md`. Templates live under tracked `/templates/`, never at personal destinations.
-Ignore rules do not protect a file that was already tracked, so the publisher's allowlist and
-tests also verify that personal paths are absent from the distribution commit.
+`/AGENTS.local.md`, plus common Python caches/environments, editor/OS noise, temporary files, and
+Blender backup files. It never ignores `.agents/skills`. Templates live under tracked
+`/templates/`, never at personal destinations. Ignore rules do not protect a file that was already
+tracked, so the publisher's allowlist and tests also verify that personal paths are absent from the
+distribution commit.
 
 ## User-scoped installation
 
@@ -113,7 +123,9 @@ Download or extract the same `dist/workspace` tree and copy only its four `.agen
 directories to `$HOME/.agents/skills/`. Each copied Skill contains its own Runtime, catalog, and
 template and can create a separate Workspace without the development Repository. Use the existing
 bundle validation/update commands when performing a managed replacement; do not overwrite an
-unknown or locally modified Skill silently.
+unknown or locally modified Skill silently. For manual CLI use, resolve the actual copied
+`gameassetai-workspace/scripts/gameassetai.py` and invoke that path; `scripts/gameassetai.py` at the
+Workspace root is a development-checkout path and is not present in this installation.
 
 ## Updates and recovery
 
@@ -123,9 +135,17 @@ If a conflict or incompatible Workspace schema is reported, stop and inspect it;
 `reset --hard`, `clean -fdx`, Profile deletion, or output deletion. Product and Workspace schema
 versions are separate, and any destructive migration requires backup and explicit user approval.
 
+The offline regression constructs two generated releases, changes vendored Runtime code and its
+Skill/distribution hashes in the second release, performs a normal fast-forward Pull, executes the
+updated bundled CLI, and verifies byte-for-byte preservation of ignored Profile, settings, note,
+Manifest, and synthetic result files. This does not authorize force-reset recovery for real Pull
+conflicts.
+
 User-scoped users download the newer distribution and perform a verified four-Skill update with a
 separate backup. The project and user update procedures are intentionally different; no background
 updater, installer wizard, release server, or second distribution branch exists.
 
 Skill distribution does not install or configure Blender, Blender MCP, the Blender Add-on, AI
 models, credentials, Unity, or UnityWorkbench. Those remain separate explicit environment gates.
+Before asset work, users must separately confirm Python, Codex Skill discovery, Blender version,
+and Blender MCP connectivity. File/package validation alone is not a live-host or Blender test.

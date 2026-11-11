@@ -13,6 +13,8 @@ game-asset work.
   `<game>/<category>/<asset>/<number>-<purpose>/`, created on demand and freely movable/removable.
 - Task artifact paths are reserved by the Runtime before publication; registration consumes the
   reservation after a real nonempty file exists. Only needed artifact directories are created.
+  A new accepted/rejected review rechecks that each distinct registered evidence file is present,
+  nonempty, and safely inside the task at that moment.
 - `config/settings.json` and a Profile's `output_defaults` may select an existing external output
   root. One-task explicit selection has highest priority; external roots are never inferred from
   project bookmarks or silently recreated.

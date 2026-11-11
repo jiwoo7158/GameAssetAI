@@ -114,8 +114,17 @@ directories. A producer first atomically reserves a descriptive no-overwrite pat
 manifest, writes the real nonempty file, and registers it to consume the reservation. An abandoned
 reservation can be released only while no file exists at that path. `complete` records that production ended without
 a quality decision. `accepted` and `rejected` require a human-visible/semantic review summary and
-registered evidence; tests or successful file creation do not confer acceptance. Reviewed states
-are terminal, while `complete` may later receive a review without reopening publication.
+distinct registered evidence that is still an existing nonempty real file inside the exact task
+at transition time; linked/Junction evidence and path escape are refused. Tests or successful file
+creation do not confer acceptance. Reviewed states are terminal, while `complete` may later
+receive a review without reopening publication. Later evidence movement/deletion does not rewrite
+the historical decision or block independent allocation.
+
+Asset Specification output formats are logical requests, while artifact kinds describe files the
+task lifecycle can safely reserve and register. The explicit contract maps `blend` to model
+`.blend`, `fbx` to export `.fbx`, plain `png` to preview or sprite `.png`, and sprite-sheet/sequence
+requests to sprite `.png`. Extra registrable export and preview extensions preserve existing-file
+workflows and are not implementation claims for generation, Blender export, or engine import.
 
 Legacy `gameassetai.output-run.v1` and prior numbered-task manifests remain read-only validatable.
 They are not moved, renamed, deleted, or used for new allocation.
