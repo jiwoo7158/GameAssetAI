@@ -47,8 +47,10 @@ palette/readability, and sheet layout rather than merely checking PNG dimensions
 
 Task status follows the same boundary. `complete` means publication ended, not that quality was
 accepted. `accepted` or `rejected` requires a recorded visible/semantic review summary and one or
-more registered artifacts. Unit tests use synthetic bytes to verify this contract and are never
-quality evidence.
+more distinct registered artifacts. Each evidence path is rechecked at transition time as an
+existing nonempty real file safely inside the task; invalid evidence leaves the Manifest unchanged.
+Unit tests use synthetic bytes to verify this contract and are never quality evidence. Later
+movement/deletion does not retroactively erase a recorded decision or block independent work.
 
 ## Development experiments and temporary test artifacts
 

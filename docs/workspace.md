@@ -5,14 +5,16 @@
 Development checkout commands run from the Repository root and require the source template:
 
 ```powershell
-python -B scripts/gameassetai.py workspace create <workspace> --template workspace-template
+$DevelopmentCli = "scripts/gameassetai.py"
+python -B $DevelopmentCli workspace create <workspace> --template workspace-template
 ```
 
-An installed Skill is self-contained. Run from any installed GameAssetAI Skill directory and omit
-the template argument:
+An installed Skill is self-contained. Resolve the entrypoint from that Skill's actual installation
+directory and omit the template argument:
 
 ```powershell
-python -B scripts/gameassetai.py workspace create <workspace>
+$GameAssetAICli = "<installed-skill-root>/gameassetai-workspace/scripts/gameassetai.py"
+python -B $GameAssetAICli workspace create <workspace>
 ```
 
 Codex may invoke these commands through `gameassetai-workspace`; users do not need to run them
@@ -22,7 +24,8 @@ The normal project-scoped product is a `dist/workspace` clone. Its four Skills a
 `.agents/skills`; initialize personal state once without a development checkout:
 
 ```powershell
-python -B .agents\skills\gameassetai-workspace\scripts\gameassetai.py workspace init-clone .
+$GameAssetAICli = ".agents/skills/gameassetai-workspace/scripts/gameassetai.py"
+python -B $GameAssetAICli workspace init-clone .
 ```
 
 The command first validates `distribution.json`, product hashes, templates, and all four Skills,
@@ -33,9 +36,9 @@ For a fresh project-scoped install, use the integrated distribution command from
 checkout before Profile creation:
 
 ```powershell
-python -B scripts/gameassetai.py package install-project <bundle> <workspace> `
+python -B $DevelopmentCli package install-project <bundle> <workspace> `
   --template workspace-template
-python -B scripts/gameassetai.py package validate-install <workspace>\.agents\skills
+python -B $DevelopmentCli package validate-install <workspace>\.agents\skills
 ```
 
 It creates or connects the Workspace, validates it, installs all four Skills, and validates their
@@ -46,9 +49,9 @@ Workspace marker. User-scoped installation is independent and may precede Worksp
 ## Create or connect
 
 ```powershell
-python -B scripts/gameassetai.py workspace create <workspace>
-python -B scripts/gameassetai.py workspace connect <workspace>
-python -B scripts/gameassetai.py workspace validate <workspace>
+python -B $GameAssetAICli workspace create <workspace>
+python -B $GameAssetAICli workspace connect <workspace>
+python -B $GameAssetAICli workspace validate <workspace>
 ```
 
 The path is user-selected and never hard-coded. A valid existing v2 Workspace returns `connected`
@@ -59,17 +62,17 @@ configuration, Profiles, notes, or outputs.
 ## Profiles and durable rules
 
 ```powershell
-python -B scripts/gameassetai.py profile create <workspace> my-game `
+python -B $GameAssetAICli profile create <workspace> my-game `
   --name "My Game" --description "Persistent art and technical context" `
   --three-d-style stylized-chibi-low-poly
-python -B scripts/gameassetai.py profile select <workspace> my-game
-python -B scripts/gameassetai.py profile list <workspace>
-python -B scripts/gameassetai.py profile show <workspace>
-python -B scripts/gameassetai.py profile show <workspace> --profile my-game
-python -B scripts/gameassetai.py profile get <workspace> art_direction.palette
-python -B scripts/gameassetai.py profile set <workspace> art_direction.palette `
+python -B $GameAssetAICli profile select <workspace> my-game
+python -B $GameAssetAICli profile list <workspace>
+python -B $GameAssetAICli profile show <workspace>
+python -B $GameAssetAICli profile show <workspace> --profile my-game
+python -B $GameAssetAICli profile get <workspace> art_direction.palette
+python -B $GameAssetAICli profile set <workspace> art_direction.palette `
   --value-json '["moss", "bark"]'
-python -B scripts/gameassetai.py profile clear <workspace>
+python -B $GameAssetAICli profile clear <workspace>
 ```
 
 The setter changes one dot-separated mutable setting, preserves every unnamed field, validates the
@@ -133,9 +136,9 @@ optional `settings.preferences.output_root`, then internal `<workspace>/outputs`
 clear the Workspace preference with:
 
 ```powershell
-python -B scripts/gameassetai.py workspace output-root <workspace>
-python -B scripts/gameassetai.py workspace output-root <workspace> --set <absolute-existing-directory>
-python -B scripts/gameassetai.py workspace output-root <workspace> --clear
+python -B $GameAssetAICli workspace output-root <workspace>
+python -B $GameAssetAICli workspace output-root <workspace> --set <absolute-existing-directory>
+python -B $GameAssetAICli workspace output-root <workspace> --clear
 ```
 
 External roots require an explicitly selected existing real directory and reject links/Junctions.
@@ -154,12 +157,12 @@ outputs/<game-id>/<asset-category>/<asset-id>/<number>-<purpose>/manifest.json
 - the task is the next local three-or-more-digit number plus a descriptive purpose.
 
 ```powershell
-python -B scripts/gameassetai.py outputs begin <workspace> --space workspace `
+python -B $GameAssetAICli outputs begin <workspace> --space workspace `
   --category equipment-prop --asset bronze-sword --purpose initial-model
-python -B scripts/gameassetai.py outputs begin <workspace> --space workspace `
+python -B $GameAssetAICli outputs begin <workspace> --space workspace `
   --category equipment-prop --asset bronze-sword --purpose external-comparison `
   --output-root <absolute-existing-directory>
-python -B scripts/gameassetai.py outputs continue `
+python -B $GameAssetAICli outputs continue `
   <task-path> [--workspace <workspace>]
 ```
 
@@ -173,11 +176,11 @@ Create only the next required artifact path, publish the file without overwrite,
 the real nonempty file in the Manifest:
 
 ```powershell
-python -B scripts/gameassetai.py outputs artifact-path <task> `
+python -B $GameAssetAICli outputs artifact-path <task> `
   --kind model --filename bronze-sword.blend [--workspace <workspace>]
-python -B scripts/gameassetai.py outputs register <task> `
+python -B $GameAssetAICli outputs register <task> `
   <task>\models\bronze-sword.blend [--workspace <workspace>]
-python -B scripts/gameassetai.py outputs release <task> `
+python -B $GameAssetAICli outputs release <task> `
   exports/unused-export.fbx [--workspace <workspace>]
 ```
 
@@ -187,9 +190,19 @@ work cannot claim the same relative path; `register` consumes that reservation a
 exists. A task cannot change state while a reservation remains. `complete` means artifact production ended without a quality decision.
 Release only an abandoned reservation whose artifact was never published; if a file exists, it
 must be registered or handled explicitly rather than hidden by releasing its reservation.
-`accepted` and `rejected` require a review summary and registered evidence paths. Only
+`accepted` and `rejected` require a review summary and distinct registered evidence paths. At the
+moment the review is recorded, every evidence path must still be a nonempty real file inside the
+task with no linked/Junction component. A failed review transition leaves the Manifest unchanged.
+After a successful review, later user movement or deletion does not erase the historical decision
+and does not block independent work. Only
 `in-progress -> complete|accepted|rejected` and `complete -> accepted|rejected` are allowed;
 accepted/rejected tasks are terminal. Automated tests or file creation never justify acceptance.
+
+Manifest mutations use the task-local `.gameassetai-manifest.lock`. Normal completion and handled
+exceptions remove it. A busy error can mean another process is writing; do not delete the lock
+while that process may still be active. If a process terminated abnormally, first confirm that no
+GameAssetAI process is using that exact task, then inspect the PID text and Manifest before any
+manual cleanup. The Runtime does not automatically delete an apparently stale lock.
 
 Users may move or delete one task, one asset, or all of `outputs/`. This removes those copies, but
 configuration, Profiles, installed Skills, catalog access, and a new independent task remain
@@ -214,12 +227,12 @@ task, list metadata and explicitly reuse the experiment only when the validation
 create a descriptive new experiment when it does not:
 
 ```powershell
-python -B scripts/gameassetai.py outputs experiment list <repository>
-python -B scripts/gameassetai.py outputs experiment create <repository> chibi-character-quality `
+python -B $DevelopmentCli outputs experiment list <repository>
+python -B $DevelopmentCli outputs experiment create <repository> chibi-character-quality `
   --purpose "Validate chibi visual quality" `
   --question "Does the method meet the target silhouette?" `
   --criterion "Readable front and three-quarter silhouette"
-python -B scripts/gameassetai.py outputs begin <repository> --space development `
+python -B $DevelopmentCli outputs begin <repository> --space development `
   --experiment chibi-character-quality --category character `
   --asset chibi-adventurer --purpose initial-model
 ```

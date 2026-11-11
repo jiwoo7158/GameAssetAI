@@ -13,24 +13,27 @@ asset revision to `gameassetai-modify-asset`, and publication/export to
 ## Runtime boundary
 
 An installed Skill contains `scripts/gameassetai.py`, `runtime/`, catalog data, and a Workspace
-template. Run commands from that installed Skill directory; do not import a development checkout.
+template. Resolve the entrypoint from the Skill's actual installed directory; do not import a
+development checkout or assume that a Workspace root contains `scripts/`.
 The normal project-scoped product is a verified `dist/workspace` clone whose four Skills are
 already under `.agents/skills/`. Initialize its personal state once from the clone root:
 
-```text
-python .agents/skills/gameassetai-workspace/scripts/gameassetai.py workspace init-clone .
+```powershell
+$GameAssetAICli = ".agents/skills/gameassetai-workspace/scripts/gameassetai.py"
+python -B $GameAssetAICli workspace init-clone .
 ```
 
 This command refuses arbitrary nonempty directories and Git repositories. It requires valid
 distribution metadata and Skill hashes, adds only missing personal `config/` and `profiles/`
 state, and is safe to rerun. It never replaces an existing Profile or setting.
 
-For a fresh project-scoped install, do not install into an unrecognized folder first. From the
-development/distribution environment run the integrated sequence:
+For the bundle-based development/recovery route, do not install into an unrecognized folder first.
+From a development Repository root run the integrated sequence:
 
-```text
-python scripts/gameassetai.py package install-project <bundle> <workspace> --template workspace-template
-python scripts/gameassetai.py package validate-install <workspace>/.agents/skills
+```powershell
+$DevelopmentCli = "scripts/gameassetai.py"
+python -B $DevelopmentCli package install-project <bundle> <workspace> --template workspace-template
+python -B $DevelopmentCli package validate-install <workspace>/.agents/skills
 ```
 
 This creates or connects and validates the Workspace before installing and validating all four
@@ -39,19 +42,20 @@ user's `$HOME/.agents/skills` may happen before a Workspace exists. Leave legacy
 installations in place unless the user explicitly chooses a reviewed migration, and warn when the
 same Skill name is installed at both project and user scope.
 
-Typical installed commands:
+Typical installed commands use `$GameAssetAICli`. For user scope, set that variable to the actual
+copied `gameassetai-workspace/scripts/gameassetai.py` path instead of hard-coding a home path:
 
-```text
-python scripts/gameassetai.py workspace create <path>
-python scripts/gameassetai.py workspace connect <path>
-python scripts/gameassetai.py workspace validate <path> --require-profile
-python scripts/gameassetai.py profile create <workspace> <id> --name <name> --description <text>
-python scripts/gameassetai.py profile select <workspace> <id>
-python scripts/gameassetai.py profile show <workspace> [--profile <id>]
-python scripts/gameassetai.py profile get <workspace> <setting> [--profile <id>]
-python scripts/gameassetai.py profile set <workspace> <setting> --value-json <json> [--profile <id>]
-python scripts/gameassetai.py workspace output-root <workspace> [--set <absolute-directory> | --clear]
-python scripts/gameassetai.py catalog list styles
+```powershell
+python -B $GameAssetAICli workspace create <path>
+python -B $GameAssetAICli workspace connect <path>
+python -B $GameAssetAICli workspace validate <path> --require-profile
+python -B $GameAssetAICli profile create <workspace> <id> --name <name> --description <text>
+python -B $GameAssetAICli profile select <workspace> <id>
+python -B $GameAssetAICli profile show <workspace> [--profile <id>]
+python -B $GameAssetAICli profile get <workspace> <setting> [--profile <id>]
+python -B $GameAssetAICli profile set <workspace> <setting> --value-json <json> [--profile <id>]
+python -B $GameAssetAICli workspace output-root <workspace> [--set <absolute-directory> | --clear]
+python -B $GameAssetAICli catalog list styles
 ```
 
 ## Procedure

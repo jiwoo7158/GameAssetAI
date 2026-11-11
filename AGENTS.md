@@ -104,8 +104,9 @@ an active work instruction.
 - Within a task, create only the required `models/`, `previews/`, `sprites/`, or `exports/`
   directory through the Runtime. Its path planner records a task-local reservation; register only
   the real nonempty file to consume that reservation, using a normalized task-relative path.
-  `accepted` requires a recorded visible/semantic review and registered evidence; tests or
-  file creation alone never grant acceptance.
+  A new `accepted`/`rejected` review requires distinct registered evidence that is still a
+  nonempty real file safely inside the task at transition time; tests or file creation alone never
+  grant acceptance. Later evidence movement/deletion preserves the historical review record.
 - Repository `output/` and Workspace `outputs/` are disposable local results, not registries,
   fixtures, package input, or hidden Runtime state. Partial or complete movement/deletion is valid;
   report failure only for a specifically requested missing continuation and allow independent new

@@ -7,6 +7,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -331,6 +332,136 @@ class OutputManagementTests(unittest.TestCase):
             review_evidence=["previews/front.png"],
         )
         self.assertEqual("rejected", result["task_status"])
+
+    def test_review_transition_requires_live_safe_distinct_evidence_without_manifest_change(self):
+        task = self.begin_workspace(purpose="review-evidence-contract")
+        plan = plan_artifact_path(task, kind="preview", filename="front.png")
+        preview = Path(plan["artifact"])
+        preview.write_bytes(b"synthetic visible review evidence")
+        register_output_artifact(task, preview)
+        manifest_path = task / "manifest.json"
+        before = manifest_path.read_bytes()
+
+        for evidence, message in (
+            (["../outside.png"], "normalized"),
+            (["previews/front.png", "previews/front.png"], "duplicates"),
+            (["previews/not-registered.png"], "registered artifacts"),
+        ):
+            with self.assertRaisesRegex(ValidationError, message):
+                update_output_task_status(
+                    task, "accepted", review_summary="Must not publish", review_evidence=evidence,
+                )
+            self.assertEqual(before, manifest_path.read_bytes())
+            self.assertFalse((task / ".gameassetai-manifest.lock").exists())
+
+        moved = self.root / "moved-review-evidence.png"
+        preview.rename(moved)
+        with self.assertRaisesRegex(ValidationError, "existing real file"):
+            update_output_task_status(
+                task, "accepted", review_summary="Must not publish",
+                review_evidence=["previews/front.png"],
+            )
+        self.assertEqual(before, manifest_path.read_bytes())
+        moved.rename(preview)
+
+        preview.write_bytes(b"")
+        with self.assertRaisesRegex(ValidationError, "must not be empty"):
+            update_output_task_status(
+                task, "rejected", review_summary="Must not publish",
+                review_evidence=["previews/front.png"],
+            )
+        self.assertEqual(before, manifest_path.read_bytes())
+        preview.unlink()
+        with self.assertRaisesRegex(ValidationError, "existing real file"):
+            update_output_task_status(
+                task, "rejected", review_summary="Must not publish",
+                review_evidence=["previews/front.png"],
+            )
+        self.assertEqual(before, manifest_path.read_bytes())
+
+    def test_review_transition_refuses_external_evidence_symlink(self):
+        task = self.begin_workspace(purpose="linked-review-evidence")
+        plan = plan_artifact_path(task, kind="preview", filename="front.png")
+        preview = Path(plan["artifact"])
+        preview.write_bytes(b"registered before replacement")
+        register_output_artifact(task, preview)
+        before = (task / "manifest.json").read_bytes()
+        external = self.root / "external-review-evidence.png"
+        external.write_bytes(b"outside task")
+        preview.unlink()
+        try:
+            preview.symlink_to(external)
+        except (OSError, NotImplementedError) as exc:
+            self.skipTest(f"File symlinks are unavailable: {exc}")
+        with self.assertRaises(SafetyError):
+            update_output_task_status(
+                task, "accepted", review_summary="Must not publish",
+                review_evidence=["previews/front.png"],
+            )
+        self.assertEqual(before, (task / "manifest.json").read_bytes())
+
+    @unittest.skipUnless(os.name == "nt", "Windows junction test")
+    def test_review_transition_refuses_external_evidence_junction(self):
+        task = self.begin_workspace(purpose="junction-review-evidence")
+        plan = plan_artifact_path(task, kind="preview", filename="front.png")
+        preview = Path(plan["artifact"])
+        preview.write_bytes(b"registered before replacement")
+        register_output_artifact(task, preview)
+        before = (task / "manifest.json").read_bytes()
+        preview.unlink()
+        preview.parent.rmdir()
+        external = self.root / "external-review-directory"
+        external.mkdir()
+        (external / "front.png").write_bytes(b"outside task")
+        result = subprocess.run(
+            ["cmd", "/c", "mklink", "/J", str(preview.parent), str(external)],
+            capture_output=True, text=True,
+        )
+        if result.returncode != 0:
+            self.skipTest(f"Cannot create a test junction: {result.stderr or result.stdout}")
+        try:
+            with self.assertRaises(SafetyError):
+                update_output_task_status(
+                    task, "accepted", review_summary="Must not publish",
+                    review_evidence=["previews/front.png"],
+                )
+            self.assertEqual(before, (task / "manifest.json").read_bytes())
+        finally:
+            if preview.parent.exists():
+                os.rmdir(preview.parent)
+
+    def test_historical_review_survives_evidence_deletion_and_new_work_remains_independent(self):
+        task = self.begin_workspace(purpose="accepted-review-record")
+        plan = plan_artifact_path(task, kind="preview", filename="front.png")
+        preview = Path(plan["artifact"])
+        preview.write_bytes(b"synthetic visible review evidence")
+        register_output_artifact(task, preview)
+        update_output_task_status(
+            task, "accepted", review_summary="Synthetic lifecycle review only",
+            review_evidence=["previews/front.png"],
+        )
+        preview.unlink()
+        self.assertEqual("accepted", validate_output_task(task)["status"])
+        independent = self.begin_workspace(purpose="new-independent-result")
+        self.assertEqual("002-new-independent-result", independent.name)
+
+    def test_manifest_lock_is_cleaned_after_failure_and_busy_lock_is_not_removed(self):
+        task = self.begin_workspace(purpose="manifest-lock-contract")
+        manifest_path = task / "manifest.json"
+        before = manifest_path.read_bytes()
+        with self.assertRaises(ValidationError):
+            update_output_task_status(task, "accepted", review_summary="Missing evidence")
+        lock = task / ".gameassetai-manifest.lock"
+        self.assertFalse(lock.exists())
+        self.assertEqual(before, manifest_path.read_bytes())
+
+        lock.write_text("pid=fixture\n", encoding="ascii")
+        with patch("gameassetai.outputs.time.sleep", return_value=None):
+            with self.assertRaisesRegex(SafetyError, "manifest is busy"):
+                update_output_task_status(task, "complete")
+        self.assertTrue(lock.exists())
+        self.assertEqual(before, manifest_path.read_bytes())
+        lock.unlink()
 
     def test_abandoned_artifact_reservation_can_be_released_without_leaving_directories(self):
         task = self.begin_workspace(purpose="reservation-release-contract")

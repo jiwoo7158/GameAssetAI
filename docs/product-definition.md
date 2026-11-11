@@ -121,6 +121,13 @@ Planned formats are `.blend`, `.fbx`, `.png`, PNG sequences, 8-direction sprites
 Files should remain editable in Blender where practical. Support and evidence are tracked by
 format and asset scope; successful Generic FBX does not imply Unity Humanoid support.
 
+Asset Specification formats are logical user requests. Their current storage contract maps
+`blend` to a `.blend` model artifact, `fbx` to an `.fbx` export artifact, plain `png` to a `.png`
+preview or sprite artifact, and `sprite-sheet`/`png-sequence` to `.png` sprite artifacts. The
+artifact registry also accepts bounded file types such as GLB/GLTF/OBJ exports and JPG/WebP
+previews so existing files can be managed safely; path registration alone does not claim that a
+generator or exporter for those formats is implemented.
+
 Development experiments and user game results are separate disposable domains. Development paths
 start with a validation-goal experiment id; user paths start with the active game Profile id. Both
 then use a catalog category, concrete asset id, and local numbered purpose. Dates, UUIDs, and a
@@ -132,7 +139,9 @@ root for one task or persist one in a Profile or Workspace preference. Product c
 external root from a project bookmark or recreates one after it was moved or deleted. Artifact
 directories are created only when needed, and only actual nonempty files are registered. A
 `complete` task has no quality meaning; accepted/rejected status requires recorded visual/semantic
-review evidence.
+review evidence. When a new review is recorded, every distinct evidence path must be a registered,
+existing, nonempty real file safely inside the task. Later movement or deletion preserves the
+historical review record and does not make prior results a dependency of independent work.
 
 The normal project-scoped product is a generated `dist/workspace` clone containing the four
 self-contained Skills under `.agents/skills`, initialization templates, product instructions, and

@@ -42,8 +42,12 @@ These stable ids express product obligations; they do not imply implementation.
   link/Junction, and are never silently recreated after movement or deletion.
 - A task creates `models/`, `previews/`, `sprites/`, or `exports/` only when requested. Only an
   existing nonempty reserved official artifact can be registered. Reservations and Manifest
-  writes are atomic, and
-  accepted/rejected states require registered review evidence rather than a test result.
+  writes are atomic, and accepted/rejected states require distinct registered evidence that is
+  still an existing nonempty real file inside the task at review time rather than a test result.
+  A failed transition leaves the Manifest unchanged; later evidence movement/deletion preserves
+  the historical review and independent-work behavior.
+- Logical Asset Specification formats map explicitly to compatible artifact kinds/extensions.
+  Broader artifact registration does not imply a generator, exporter, or engine-proven capability.
 - Four product Skills build with a vendored runtime and no development checkout dependency.
 - The generated Workspace distribution contains only allowlisted product files, validates after a
   normal Windows or Linux Git clone, and initializes ignored personal state without overwriting it.

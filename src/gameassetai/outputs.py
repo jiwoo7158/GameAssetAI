@@ -409,6 +409,39 @@ def _validate_artifact_filename(value: object, *, expected_directory: str) -> st
     return value
 
 
+def _validate_review_evidence_files(
+    task: Path,
+    evidence: list[object],
+    registered_artifacts: list[str],
+) -> list[str]:
+    if not evidence:
+        raise ValidationError("Review evidence must name one or more registered artifacts")
+    validated: list[str] = []
+    seen: set[str] = set()
+    for value in evidence:
+        relative = _validate_artifact_path(value)
+        if relative in seen:
+            raise ValidationError("Review evidence paths must not contain duplicates")
+        seen.add(relative)
+        if relative not in registered_artifacts:
+            raise ValidationError("Review evidence must name one or more registered artifacts")
+        artifact = task / PurePosixPath(relative)
+        _assert_within(artifact, task, "Review evidence path")
+        reject_linked_components(artifact, stop=task)
+        if is_link(artifact) or not artifact.is_file():
+            raise ValidationError(
+                f"Review evidence must be an existing real file at review time: {relative}"
+            )
+        try:
+            size = artifact.stat().st_size
+        except OSError as exc:
+            raise ValidationError(f"Cannot inspect review evidence: {relative}") from exc
+        if size <= 0:
+            raise ValidationError(f"Review evidence must not be empty: {relative}")
+        validated.append(relative)
+    return validated
+
+
 def _validate_task_manifest(manifest: dict[str, Any]) -> None:
     required = {
         "schema", "storage", "task_id", "task_number", "purpose", "experiment_id", "game_id",
@@ -578,7 +611,13 @@ def _manifest_update_lock(task: Path) -> Iterable[None]:
     for _ in range(200):
         try:
             descriptor = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
-            os.write(descriptor, f"pid={os.getpid()}\n".encode("ascii"))
+            try:
+                os.write(descriptor, f"pid={os.getpid()}\n".encode("ascii"))
+            except BaseException:
+                os.close(descriptor)
+                descriptor = None
+                lock.unlink(missing_ok=True)
+                raise
             break
         except FileExistsError:
             time.sleep(0.01)
@@ -743,9 +782,9 @@ def update_output_task_status(
             raise SafetyError("Task status cannot change while artifact reservations remain")
         if status in {"accepted", "rejected"}:
             summary = _nonempty_text(review_summary, "review summary")
-            evidence = list(review_evidence or [])
-            if not evidence or any(item not in manifest["artifacts"] for item in evidence):
-                raise ValidationError("Review evidence must name one or more registered artifacts")
+            evidence = _validate_review_evidence_files(
+                task, list(review_evidence or []), manifest["artifacts"],
+            )
             manifest["review"] = {
                 "decision": status,
                 "summary": summary,

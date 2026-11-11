@@ -9,6 +9,11 @@ creates self-contained installable copies by vendoring the shared runtime, catal
 template into each built Skill. Generated bundles are not committed. Install all four together;
 do not point an installed Skill back at this source tree.
 
+The command above is a development-Repository entrypoint. From a cloned project distribution,
+commands use `.agents/skills/gameassetai-workspace/scripts/gameassetai.py`; user-scoped commands use
+the actual copied `gameassetai-workspace/scripts/gameassetai.py`. A distribution root has no
+development `scripts/` directory.
+
 The normal project-scoped product is the generated `dist/workspace` branch. Clone it, run the
 bundled `workspace init-clone` command, and then create/select a Profile; its four self-contained
 Skills already live under `.agents/skills/`. Bundle-based onboarding remains available for

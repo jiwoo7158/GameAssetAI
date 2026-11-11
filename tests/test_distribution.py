@@ -1,5 +1,4 @@
 from pathlib import Path
-import hashlib
 import json
 import os
 import shutil
@@ -19,9 +18,12 @@ from gameassetai.distribution import (  # noqa: E402
     validate_workspace_distribution, write_bundle_zip,
 )
 from gameassetai.errors import SafetyError, ValidationError  # noqa: E402
-from gameassetai.outputs import begin_output_task  # noqa: E402
+from gameassetai.outputs import (  # noqa: E402
+    begin_output_task, plan_artifact_path, register_output_artifact,
+)
 from gameassetai.workspace import (  # noqa: E402
     create_profile, initialize_distribution_workspace, select_profile, validate_workspace,
+    set_workspace_output_root, update_profile_setting,
 )
 
 
@@ -272,6 +274,48 @@ class DistributionTests(unittest.TestCase):
         )
         self.assertEqual(0, user_command.returncode, user_command.stderr)
 
+    def test_distribution_root_readme_commands_run_without_development_scripts(self):
+        distribution = self.root / "readme-command-distribution"
+        build_workspace_distribution(ROOT, distribution, source_commit="c" * 40)
+        clone = self.root / "readme-command-clone"
+        shutil.copytree(distribution, clone)
+        initialized_git = subprocess.run(
+            ["git", "init", "-b", "dist/workspace"],
+            cwd=clone, capture_output=True, text=True,
+        )
+        self.assertEqual(0, initialized_git.returncode, initialized_git.stderr)
+        self.assertFalse((clone / "scripts").exists())
+        entry = Path(".agents") / "skills" / "gameassetai-workspace" / "scripts" / "gameassetai.py"
+
+        def run(*arguments: str) -> dict[str, object]:
+            result = subprocess.run(
+                [sys.executable, "-B", str(entry), *arguments],
+                cwd=clone, capture_output=True, text=True,
+            )
+            self.assertEqual(0, result.returncode, result.stderr)
+            return json.loads(result.stdout)
+
+        self.assertEqual("initialized", run("workspace", "init-clone", ".")["status"])
+        self.assertEqual("valid", run("workspace", "validate", ".")["status"])
+        run(
+            "profile", "create", ".", "my-game", "--name", "My Game",
+            "--description", "Distribution README command contract",
+            "--three-d-style", "stylized-chibi-low-poly",
+        )
+        run("profile", "select", ".", "my-game")
+        self.assertEqual("my-game", run("profile", "show", ".")["profile"]["id"])
+        self.assertEqual("valid", run(
+            "workspace", "validate", ".", "--require-profile",
+        )["status"])
+        output_root = run("workspace", "output-root", ".")
+        self.assertEqual("workspace-internal", output_root["source"])
+        task = run(
+            "outputs", "begin", ".", "--space", "workspace",
+            "--category", "equipment-prop", "--asset", "bronze-sword",
+            "--purpose", "initial-model",
+        )["task"]
+        self.assertEqual("valid", run("outputs", "validate", str(task))["status"])
+
     def test_clone_initialization_refuses_unverified_or_invalid_personal_state_without_mutation(self):
         unrelated = self.root / "unrelated-repository"
         unrelated.mkdir()
@@ -345,35 +389,72 @@ class DistributionTests(unittest.TestCase):
         initialize_distribution_workspace(clone)
         create_profile(clone, "game-one", "Game One", "Preserved through pull")
         select_profile(clone, "game-one")
+        update_profile_setting(clone, "art_direction.palette", ["moss", "bark"])
         task = Path(begin_output_task(
             "workspace", clone, asset_category="equipment-prop",
             asset_id="bronze-sword", purpose="initial-model",
         )["task"])
+        artifact_plan = plan_artifact_path(
+            task, kind="preview", filename="bronze-sword-front.png",
+        )
+        artifact = Path(artifact_plan["artifact"])
+        artifact.write_bytes(b"personal synthetic output")
+        register_output_artifact(task, artifact)
         (clone / "notes").mkdir()
         (clone / "notes" / "personal.md").write_text("keep note", encoding="utf-8")
+        external_root = self.root / "personal-external-output"
+        external_root.mkdir()
+        set_workspace_output_root(clone, str(external_root))
         before_profile = (clone / "profiles" / "game-one.json").read_bytes()
+        before_settings = (clone / "config" / "settings.json").read_bytes()
         before_manifest = (task / "manifest.json").read_bytes()
+        before_artifact = artifact.read_bytes()
+        old_runtime = (
+            clone / ".agents" / "skills" / "gameassetai-workspace" / "runtime"
+            / "gameassetai" / "cli.py"
+        ).read_bytes()
         status = subprocess.run(
             ["git", "status", "--porcelain"], cwd=clone, capture_output=True, text=True,
         )
         self.assertEqual("", status.stdout.strip())
 
-        readme = publisher / "README.md"
-        readme.write_text(readme.read_text(encoding="utf-8") + "\nProduct update fixture.\n", encoding="utf-8")
-        metadata_path = publisher / "distribution.json"
-        metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
-        metadata["source_commit"] = "b" * 40
-        canonical_readme = readme.read_text(encoding="utf-8").replace("\r\n", "\n").replace("\r", "\n")
-        metadata["files"]["README.md"] = hashlib.sha256(
-            canonical_readme.encode("utf-8")
-        ).hexdigest()
-        metadata_path.write_text(
-            json.dumps(metadata, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        updated_source = self.root / "updated-development-source"
+        for relative in ("src", "skills", "catalog", "workspace-template", "packaging"):
+            shutil.copytree(ROOT / relative, updated_source / relative)
+        runtime_cli = updated_source / "src" / "gameassetai" / "cli.py"
+        runtime_text = runtime_cli.read_text(encoding="utf-8")
+        version_line = '    parser.add_argument("--version", action="version", version=__version__)\n'
+        self.assertIn(version_line, runtime_text)
+        runtime_cli.write_text(
+            runtime_text.replace(
+                version_line,
+                version_line
+                + '    parser.add_argument("--runtime-build", action="version", '
+                'version="pull-regression-runtime")\n',
+                1,
+            ),
             encoding="utf-8",
         )
+        updated_distribution = self.root / "updated-workspace-distribution"
+        build_workspace_distribution(
+            updated_source, updated_distribution, source_commit="b" * 40,
+        )
+        for child in list(publisher.iterdir()):
+            if child.name == ".git":
+                continue
+            if child.is_dir():
+                shutil.rmtree(child)
+            else:
+                child.unlink()
+        for child in updated_distribution.iterdir():
+            target = publisher / child.name
+            if child.is_dir():
+                shutil.copytree(child, target)
+            else:
+                shutil.copy2(child, target)
         for command in (
-            ["git", "add", "README.md", "distribution.json"],
-            ["git", "commit", "-m", "update product files"],
+            ["git", "add", "-A"],
+            ["git", "commit", "-m", "update vendored runtime"],
         ):
             update = subprocess.run(command, cwd=publisher, capture_output=True, text=True)
             self.assertEqual(0, update.returncode, update.stderr)
@@ -382,10 +463,36 @@ class DistributionTests(unittest.TestCase):
         )
         self.assertEqual(0, pull.returncode, pull.stderr)
         self.assertEqual(before_profile, (clone / "profiles" / "game-one.json").read_bytes())
+        self.assertEqual(before_settings, (clone / "config" / "settings.json").read_bytes())
         self.assertEqual(before_manifest, (task / "manifest.json").read_bytes())
+        self.assertEqual(before_artifact, artifact.read_bytes())
         self.assertEqual("keep note", (clone / "notes" / "personal.md").read_text())
         self.assertEqual("valid", validate_workspace_distribution(clone)["status"])
         self.assertEqual("valid", validate_workspace(clone, require_profile=True)["status"])
+        updated_runtime = (
+            clone / ".agents" / "skills" / "gameassetai-workspace" / "runtime"
+            / "gameassetai" / "cli.py"
+        ).read_bytes()
+        self.assertNotEqual(old_runtime, updated_runtime)
+        self.assertFalse((clone / "scripts").exists())
+        entry = (
+            clone / ".agents" / "skills" / "gameassetai-workspace"
+            / "scripts" / "gameassetai.py"
+        )
+        runtime_build = subprocess.run(
+            [sys.executable, "-B", str(entry), "--runtime-build"],
+            cwd=clone, capture_output=True, text=True,
+        )
+        self.assertEqual(0, runtime_build.returncode, runtime_build.stderr)
+        self.assertEqual("pull-regression-runtime", runtime_build.stdout.strip())
+        catalog = subprocess.run(
+            [sys.executable, "-B", str(entry), "catalog", "validate"],
+            cwd=clone, capture_output=True, text=True,
+        )
+        self.assertEqual(0, catalog.returncode, catalog.stderr)
+        self.assertEqual("b" * 40, json.loads(
+            (clone / "distribution.json").read_text(encoding="utf-8")
+        )["source_commit"])
 
     def test_bundle_is_independent_of_present_or_deleted_development_output(self):
         checkout = self.root / "isolated-checkout"

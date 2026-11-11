@@ -56,6 +56,19 @@ class RepositoryTests(unittest.TestCase):
         self.assertIn('workspace / ".agents" / "skills"', distribution)
         self.assertNotIn('workspace / ".codex" / "skills"', distribution)
 
+    def test_workspace_distribution_ignore_rules_protect_local_noise_not_product_skills(self):
+        rules = (ROOT / "packaging" / "workspace-distribution" / ".gitignore").read_text(
+            encoding="utf-8",
+        ).splitlines()
+        for expected in (
+            "/config/", "/profiles/", "/notes/", "/outputs/", "/AGENTS.local.md",
+            "__pycache__/", "*.py[cod]", "/.venv/", "/venv/", "/env/",
+            ".vscode/", ".idea/", ".DS_Store", "Thumbs.db", "desktop.ini",
+            "*.blend1", "*.blend2", "*.blend@", "*.blend@*",
+        ):
+            self.assertIn(expected, rules)
+        self.assertFalse(any(".agents" in rule for rule in rules))
+
 
 if __name__ == "__main__":
     unittest.main()

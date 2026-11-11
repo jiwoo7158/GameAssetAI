@@ -36,8 +36,9 @@ Repository, 설치된 Skill, 사용자 Workspace, 외부 게임 프로젝트, �
    ```powershell
    git clone --branch dist/workspace --single-branch `
      https://github.com/jiwoo7158/GameAssetAI.git <workspace>
-   python -B <workspace>\.agents\skills\gameassetai-workspace\scripts\gameassetai.py `
-     workspace init-clone <workspace>
+   Set-Location <workspace>
+   $GameAssetAICli = ".agents/skills/gameassetai-workspace/scripts/gameassetai.py"
+   python -B $GameAssetAICli workspace init-clone .
    ```
 
    초기화는 배포 메타데이터와 네 Skill을 먼저 검증하고, Git에서 무시되는 개인
@@ -57,8 +58,9 @@ Repository, 설치된 Skill, 사용자 Workspace, 외부 게임 프로젝트, �
 3. 개발자는 필요하면 기존 bundle 명령으로 독립 Skill을 빌드·검증할 수 있습니다.
 
    ```powershell
-   python -B scripts/gameassetai.py package build . <bundle>
-   python -B scripts/gameassetai.py package validate <bundle>
+   $DevelopmentCli = "scripts/gameassetai.py"
+   python -B $DevelopmentCli package build . <bundle>
+   python -B $DevelopmentCli package validate <bundle>
    ```
 
    bundle 기반 프로젝트 설치도 Workspace를 먼저 검증한 뒤 `.agents/skills`를 생성합니다.
@@ -66,11 +68,11 @@ Repository, 설치된 Skill, 사용자 Workspace, 외부 게임 프로젝트, �
 4. 설치 뒤 게임 Profile을 생성하고 선택합니다.
 
    ```powershell
-   python -B scripts/gameassetai.py profile create <workspace> my-game `
+   python -B $GameAssetAICli profile create . my-game `
      --name "My Game" --description "Persistent game art profile" `
      --three-d-style stylized-chibi-low-poly
-   python -B scripts/gameassetai.py profile select <workspace> my-game
-   python -B scripts/gameassetai.py workspace validate <workspace> --require-profile
+   python -B $GameAssetAICli profile select . my-game
+   python -B $GameAssetAICli workspace validate . --require-profile
    ```
 
    공식 `styles.three_d`와 `styles.two_d`에는 카탈로그의 올바른 차원 ID만 저장됩니다.
@@ -88,7 +90,7 @@ Repository, 설치된 Skill, 사용자 Workspace, 외부 게임 프로젝트, �
 5. 공통 Runtime으로 결과 경로를 할당합니다.
 
    ```powershell
-   python -B scripts/gameassetai.py outputs begin <workspace> --space workspace `
+   python -B $GameAssetAICli outputs begin . --space workspace `
      --category equipment-prop --asset bronze-sword --purpose initial-model
    ```
 
