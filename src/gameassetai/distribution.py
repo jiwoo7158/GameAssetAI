@@ -7,24 +7,64 @@ import shutil
 import tempfile
 import uuid
 import zipfile
+import re
 from typing import Any
 
+from . import __version__
 from .errors import SafetyError, ValidationError
 from .filesystem import canonical_json, is_link, reject_linked_components
 
 
 BUNDLE_SCHEMA = "gameassetai.skill-bundle.v1"
 SKILL_SCHEMA = "gameassetai.installed-skill.v1"
+WORKSPACE_DISTRIBUTION_SCHEMA = "gameassetai.workspace-distribution.v1"
+WORKSPACE_DISTRIBUTION_LAYOUT = 1
 PRODUCT_SKILLS = (
     "gameassetai-workspace",
     "gameassetai-create-asset",
     "gameassetai-modify-asset",
     "gameassetai-output-asset",
 )
+WORKSPACE_DISTRIBUTION_ROOT_FILES = (
+    ".gitattributes",
+    ".gitignore",
+    "AGENTS.md",
+    "README.md",
+)
+PERSONAL_WORKSPACE_IGNORES = {
+    "/config/",
+    "/profiles/",
+    "/notes/",
+    "/outputs/",
+    "/AGENTS.local.md",
+}
+WORKSPACE_DISTRIBUTION_LOCAL_ROOTS = {
+    ".git",
+    ".idea",
+    ".vscode",
+    ".DS_Store",
+    "AGENTS.local.md",
+    "Thumbs.db",
+    "config",
+    "desktop.ini",
+    "notes",
+    "outputs",
+    "profiles",
+}
+TEXT_HASH_SUFFIXES = {
+    ".json", ".md", ".py", ".toml", ".txt", ".yaml", ".yml",
+}
+TEXT_HASH_NAMES = {".gitattributes", ".gitignore"}
 
 
 def _hash(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    content = path.read_bytes()
+    if path.suffix.lower() in TEXT_HASH_SUFFIXES or path.name in TEXT_HASH_NAMES:
+        # Git may materialize text as LF or CRLF depending on the client. Hash the
+        # canonical text content so a verified distribution remains verifiable
+        # after a normal cross-platform clone while still detecting real edits.
+        content = content.replace(b"\r\n", b"\n").replace(b"\r", b"\n")
+    return hashlib.sha256(content).hexdigest()
 
 
 def _files(root: Path) -> list[Path]:
@@ -61,6 +101,14 @@ def _copy_tree(source: Path, destination: Path, *, python_only: bool = False) ->
         target.parent.mkdir(parents=True, exist_ok=True)
         with target.open("xb") as output:
             output.write(path.read_bytes())
+
+
+def _copy_file(source: Path, destination: Path) -> None:
+    if is_link(source) or not source.is_file():
+        raise ValidationError(f"Distribution source must be a real file: {source}")
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    with destination.open("xb") as output:
+        output.write(source.read_bytes())
 
 
 def _validate_skill_source(path: Path, expected_name: str) -> None:
@@ -176,6 +224,28 @@ def validate_product_bundle(bundle: Path) -> dict[str, Any]:
     return {"status": "valid", "bundle": str(bundle), "skills": list(PRODUCT_SKILLS)}
 
 
+def validate_installed_product(skills_dir: Path) -> dict[str, Any]:
+    skills_dir = skills_dir.expanduser().absolute()
+    reject_linked_components(skills_dir)
+    if is_link(skills_dir) or not skills_dir.is_dir():
+        raise ValidationError(f"Installed Skills root must be a real directory: {skills_dir}")
+    for name in PRODUCT_SKILLS:
+        skill = skills_dir / name
+        _validate_skill_source(skill, name)
+        manifest_path = skill / "manifest.json"
+        try:
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8-sig"))
+        except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+            raise ValidationError(f"Cannot read installed Skill manifest for {name}: {exc}") from exc
+        if (
+            manifest.get("schema") != SKILL_SCHEMA
+            or manifest.get("skill") != name
+            or manifest.get("files") != _manifest(skill, exclude={"manifest.json"})
+        ):
+            raise ValidationError(f"Installed Skill manifest mismatch: {name}")
+    return {"status": "valid", "skills_dir": str(skills_dir), "skills": list(PRODUCT_SKILLS)}
+
+
 def install_product_bundle(bundle: Path, skills_dir: Path) -> dict[str, Any]:
     validate_product_bundle(bundle)
     skills_dir = skills_dir.expanduser().absolute()
@@ -209,6 +279,184 @@ def install_product_bundle(bundle: Path, skills_dir: Path) -> dict[str, Any]:
             shutil.rmtree(stage)
         raise
     return {"status": "installed", "skills_dir": str(skills_dir), "skills": list(PRODUCT_SKILLS)}
+
+
+def install_project_bundle(
+    bundle: Path,
+    workspace: Path,
+    *,
+    template: Path | None = None,
+) -> dict[str, Any]:
+    """Create/connect a Workspace before installing its project-scoped Skills."""
+    from .workspace import create_or_connect_workspace, validate_workspace
+
+    workspace = workspace.expanduser().absolute()
+    workspace_result = create_or_connect_workspace(template, workspace)
+    if workspace_result["status"] == "legacy-connected":
+        raise ValidationError(
+            "Project-scoped Skills require a current validated Workspace; migrate the legacy "
+            "Workspace only after user review"
+        )
+    validate_workspace(workspace)
+    skills_dir = workspace / ".agents" / "skills"
+    install_result = install_product_bundle(bundle, skills_dir)
+    installed_result = validate_installed_product(skills_dir)
+    return {
+        "status": "installed",
+        "workspace": str(workspace),
+        "workspace_status": workspace_result["status"],
+        "skills_dir": str(skills_dir),
+        "skills": list(PRODUCT_SKILLS),
+        "steps": [
+            "workspace-created-or-connected",
+            "workspace-validated",
+            "skills-installed",
+            "installation-validated",
+        ],
+        "install_status": install_result["status"],
+        "validation_status": installed_result["status"],
+    }
+
+
+def _distribution_managed_files(root: Path) -> dict[str, str]:
+    managed: list[Path] = []
+    for relative in WORKSPACE_DISTRIBUTION_ROOT_FILES:
+        path = root / relative
+        if is_link(path) or not path.is_file():
+            raise ValidationError(f"Missing distribution product file: {relative}")
+        managed.append(path)
+    for relative in (Path(".agents") / "skills", Path("templates") / "workspace"):
+        directory = root / relative
+        if is_link(directory) or not directory.is_dir():
+            raise ValidationError(f"Missing distribution product directory: {relative.as_posix()}")
+        managed.extend(_files(directory))
+    return {
+        path.relative_to(root).as_posix(): _hash(path)
+        for path in sorted(managed)
+    }
+
+
+def _validate_source_commit(value: object) -> str:
+    if not isinstance(value, str) or not re.fullmatch(r"[0-9a-f]{40,64}", value):
+        raise ValidationError("Distribution source_commit must be a full lowercase Git SHA")
+    return value
+
+
+def build_workspace_distribution(
+    repo_root: Path,
+    destination: Path,
+    *,
+    source_commit: str,
+) -> dict[str, Any]:
+    """Build the allowlisted product tree published to ``dist/workspace``."""
+    source_commit = _validate_source_commit(source_commit)
+    repo_root = repo_root.expanduser().absolute()
+    reject_linked_components(repo_root)
+    repo_root = repo_root.resolve()
+    destination = destination.expanduser().absolute()
+    if destination.exists() or is_link(destination):
+        raise SafetyError(f"Workspace distribution destination already exists: {destination}")
+    reject_linked_components(destination)
+
+    packaging_root = repo_root / "packaging" / "workspace-distribution"
+    source_template = repo_root / "workspace-template"
+    for relative in ("README.md", ".gitattributes", ".gitignore"):
+        if is_link(packaging_root / relative) or not (packaging_root / relative).is_file():
+            raise ValidationError(f"Missing packaging/workspace-distribution/{relative}")
+
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    reject_linked_components(destination.parent)
+    stage = Path(tempfile.mkdtemp(prefix=".gameassetai-workspace-dist-", dir=destination.parent))
+    bundle = stage / ".bundle"
+    try:
+        build_product_bundle(repo_root, bundle)
+        _copy_tree(bundle / "skills", stage / ".agents" / "skills")
+        shutil.rmtree(bundle)
+        _copy_tree(source_template, stage / "templates" / "workspace")
+        _copy_file(source_template / "AGENTS.md", stage / "AGENTS.md")
+        _copy_file(packaging_root / "README.md", stage / "README.md")
+        _copy_file(packaging_root / ".gitattributes", stage / ".gitattributes")
+        _copy_file(packaging_root / ".gitignore", stage / ".gitignore")
+        metadata = {
+            "schema": WORKSPACE_DISTRIBUTION_SCHEMA,
+            "layout_version": WORKSPACE_DISTRIBUTION_LAYOUT,
+            "product_version": __version__,
+            "source_commit": source_commit,
+            "skills": list(PRODUCT_SKILLS),
+            "files": _distribution_managed_files(stage),
+        }
+        (stage / "distribution.json").write_text(canonical_json(metadata), encoding="utf-8")
+        validate_workspace_distribution(stage)
+        stage.rename(destination)
+    except BaseException:
+        if stage.exists() and not is_link(stage):
+            shutil.rmtree(stage)
+        raise
+    return {
+        "status": "built",
+        "distribution": str(destination),
+        "source_commit": source_commit,
+        "product_version": __version__,
+        "skills": list(PRODUCT_SKILLS),
+    }
+
+
+def validate_workspace_distribution(root: Path) -> dict[str, Any]:
+    root = root.expanduser().absolute()
+    reject_linked_components(root)
+    if is_link(root) or not root.is_dir():
+        raise ValidationError(f"Workspace distribution must be a real directory: {root}")
+    metadata_path = root / "distribution.json"
+    try:
+        metadata = json.loads(metadata_path.read_text(encoding="utf-8-sig"))
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        raise ValidationError(f"Cannot read distribution.json: {exc}") from exc
+    required = {
+        "schema", "layout_version", "product_version", "source_commit", "skills", "files",
+    }
+    if (
+        not isinstance(metadata, dict)
+        or set(metadata) != required
+        or metadata.get("schema") != WORKSPACE_DISTRIBUTION_SCHEMA
+        or metadata.get("layout_version") != WORKSPACE_DISTRIBUTION_LAYOUT
+        or metadata.get("product_version") != __version__
+        or metadata.get("skills") != list(PRODUCT_SKILLS)
+        or not isinstance(metadata.get("files"), dict)
+    ):
+        raise ValidationError("Invalid Workspace distribution metadata")
+    _validate_source_commit(metadata["source_commit"])
+    allowed_root_entries = {
+        *WORKSPACE_DISTRIBUTION_ROOT_FILES,
+        ".agents",
+        "distribution.json",
+        "templates",
+        *WORKSPACE_DISTRIBUTION_LOCAL_ROOTS,
+    }
+    unexpected = sorted(path.name for path in root.iterdir() if path.name not in allowed_root_entries)
+    if unexpected:
+        raise ValidationError(f"Unexpected Workspace distribution root entries: {unexpected}")
+    actual = _distribution_managed_files(root)
+    if actual != metadata["files"]:
+        raise ValidationError("Workspace distribution hashes do not match distribution.json")
+    validate_installed_product(root / ".agents" / "skills")
+    from .workspace import validate_workspace
+
+    validate_workspace(root / "templates" / "workspace")
+    ignore_lines = {
+        line.strip()
+        for line in (root / ".gitignore").read_text(encoding="utf-8-sig").splitlines()
+        if line.strip() and not line.lstrip().startswith("#")
+    }
+    if not PERSONAL_WORKSPACE_IGNORES.issubset(ignore_lines):
+        missing = sorted(PERSONAL_WORKSPACE_IGNORES - ignore_lines)
+        raise ValidationError(f"Distribution .gitignore misses personal paths: {missing}")
+    return {
+        "status": "valid",
+        "distribution": str(root),
+        "source_commit": metadata["source_commit"],
+        "product_version": metadata["product_version"],
+        "skills": list(PRODUCT_SKILLS),
+    }
 
 
 def update_product_bundle(bundle: Path, skills_dir: Path, backup_root: Path) -> dict[str, Any]:

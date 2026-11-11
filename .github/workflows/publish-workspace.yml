@@ -1,0 +1,73 @@
+name: Publish Workspace Distribution
+
+on:
+  push:
+    branches: [master]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: workspace-distribution
+  cancel-in-progress: false
+
+jobs:
+  publish-workspace:
+    name: Validate and publish dist/workspace
+    if: github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Check out the approved master commit
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.10"
+
+      - name: Validate repository and tracked Skills
+        run: python -B scripts/validate_repo.py
+
+      - name: Run complete offline tests before publication
+        run: python -B -m unittest discover -s tests -p "test_*.py" -v
+
+      - name: Build and validate the distribution tree
+        run: |
+          python -B scripts/gameassetai.py package build-workspace-dist . \
+            "$RUNNER_TEMP/workspace-dist" --source-commit "$GITHUB_SHA"
+          python -B scripts/gameassetai.py package validate-workspace-dist \
+            "$RUNNER_TEMP/workspace-dist"
+
+      - name: Append the validated product tree to dist/workspace
+        shell: bash
+        run: |
+          set -euo pipefail
+          publish_root="$RUNNER_TEMP/dist-worktree"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          if git ls-remote --exit-code --heads origin refs/heads/dist/workspace >/dev/null 2>&1; then
+            git fetch origin refs/heads/dist/workspace:refs/remotes/origin/dist/workspace
+            git worktree add -B dist/workspace "$publish_root" origin/dist/workspace
+          else
+            git worktree add --detach "$publish_root" "$GITHUB_SHA"
+            git -C "$publish_root" switch --orphan dist/workspace
+          fi
+
+          git -C "$publish_root" rm -r --ignore-unmatch .
+          cp -a "$RUNNER_TEMP/workspace-dist/." "$publish_root/"
+          python -B scripts/gameassetai.py package validate-workspace-dist "$publish_root"
+          git -C "$publish_root" add -A
+
+          if git -C "$publish_root" diff --cached --quiet; then
+            echo "dist/workspace already matches $GITHUB_SHA"
+            exit 0
+          fi
+
+          git -C "$publish_root" commit -m "chore(dist): publish ${GITHUB_SHA:0:12}"
+          git -C "$publish_root" push origin HEAD:refs/heads/dist/workspace

@@ -18,6 +18,7 @@ dist/
 *.log
 artifacts/runs/
 validation-runs/
+/output/
 
 # Blender temporary / backup files
 *.blend1

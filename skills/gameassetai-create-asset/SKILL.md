@@ -6,7 +6,7 @@ description: Plan and execute a catalog-aware new game-asset task from text, sty
 # GameAssetAI Create Asset
 
 Use this Skill for a new 3D asset. Route Workspace/Profile setup to `gameassetai-workspace`, an
-existing source revision to `gameassetai-modify-asset`, and accepted deliverable publication to
+existing source revision to `gameassetai-modify-asset`, and result-path allocation/publication to
 `gameassetai-output-asset`.
 
 ## Inputs and preparation
@@ -26,6 +26,16 @@ Before production:
    independent 3D/2D styles, provider choice, Rig/animation intent, and requested outputs.
 4. Inspect the current Blender/MCP environment and preserve unrelated Scene data.
 5. Select only a provider whose implementation state covers the requested work.
+6. Before writing a result, route path allocation through the output Skill. For a user task, use
+   the active Profile game id, catalog top-level category, concrete new asset id, and descriptive
+   task purpose. For a development experiment, inspect `experiment.json` metadata and explicitly
+   select an experiment with the same validation goal or create a descriptive new experiment.
+
+Do not create a new experiment merely because the request is new, and do not reuse one merely
+because the asset name matches. Different validation goals remain separate; revisions and method
+comparisons under the same goal reuse the experiment. If the request does not establish that
+choice, ask the minimum clarification instead of using a default. A revision of the same concrete
+asset keeps its asset id and receives a new numbered task when a distinct result must be preserved.
 
 Catalog registration does not mean generation is implemented. The bundled Runtime contains
 bounded static assembly and template-humanoid helpers, not general prompt-to-mesh generation, all
@@ -37,6 +47,11 @@ views. Stop on rejection before Rig, animation, 2D conversion, or export. Concep
 used before modeling, Blender previews of the 3D source, and final PNG/pixel/sprite outputs are
 three different stages.
 
+Use the output Skill to obtain every deliverable path, publish without overwrite, register the
+actual nonempty file, and record `complete`, `accepted`, or `rejected` explicitly. A successful
+generator call or structural test is not acceptance evidence.
+
 If no implemented provider fits, return the validated specification, missing capability, and
 needed user input instead of presenting primitive-only geometry as a finished asset. Do not mutate
-an existing source under this Skill.
+an existing source under this Skill. Result folders and manifests are local descriptions, not
+Runtime dependencies; never make later independent creation require an earlier output tree.

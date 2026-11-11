@@ -11,7 +11,8 @@ sys.path.insert(0, str(ROOT / "src"))
 from gameassetai.errors import SafetyError, ValidationError  # noqa: E402
 from gameassetai.workspace import (  # noqa: E402
     create_or_connect_workspace, create_profile, list_profiles, read_active_profile,
-    read_profile, read_profile_setting, select_profile, update_profile_setting,
+    read_profile, read_profile_setting, read_workspace_output_root, select_profile,
+    set_workspace_output_root, update_profile_setting,
     update_workspace, validate_workspace,
 )
 
@@ -121,6 +122,93 @@ class WorkspaceTests(unittest.TestCase):
             update_profile_setting(self.workspace, "art_direction", {})
         with self.assertRaisesRegex(ValidationError, "read-only"):
             update_profile_setting(self.workspace, "schema", "other")
+
+    def test_profile_style_ids_are_catalog_and_dimension_validated_without_data_loss(self):
+        self.create()
+        create_profile(
+            self.workspace, "forest-game", "Forest Game", "Style validation",
+            three_d_style="stylized-chibi-low-poly",
+            two_d_styles=["eight-direction-pixel-sprite"],
+        )
+        select_profile(self.workspace, "forest-game")
+        profile_path = self.workspace / "profiles" / "forest-game.json"
+        before = profile_path.read_bytes()
+
+        with self.assertRaisesRegex(ValidationError, "Unknown styles identifier"):
+            update_profile_setting(self.workspace, "styles.three_d", "missing-style")
+        self.assertEqual(before, profile_path.read_bytes())
+        with self.assertRaisesRegex(ValidationError, "must reference a 3D style"):
+            update_profile_setting(
+                self.workspace, "styles.three_d", "eight-direction-pixel-sprite",
+            )
+        self.assertEqual(before, profile_path.read_bytes())
+        with self.assertRaisesRegex(ValidationError, "only reference 2D styles"):
+            update_profile_setting(
+                self.workspace, "styles.two_d", ["simplified-stylized"],
+            )
+        self.assertEqual(before, profile_path.read_bytes())
+
+        update_profile_setting(
+            self.workspace, "art_direction.rules",
+            ["Freeform user rule, not an official style id"],
+        )
+        profile = read_profile(self.workspace)
+        self.assertEqual("stylized-chibi-low-poly", profile["styles"]["three_d"])
+        self.assertEqual(
+            ["eight-direction-pixel-sprite"], profile["styles"]["two_d"],
+        )
+        self.assertEqual(
+            ["Freeform user rule, not an official style id"],
+            profile["art_direction"]["rules"],
+        )
+
+    def test_profile_creation_and_loading_reject_invalid_style_ids_without_mutation(self):
+        self.create()
+        with self.assertRaises(ValidationError):
+            create_profile(
+                self.workspace, "bad-game", "Bad Game", "Unknown style",
+                three_d_style="unknown-style",
+            )
+        self.assertFalse((self.workspace / "profiles" / "bad-game.json").exists())
+        with self.assertRaisesRegex(ValidationError, "must reference a 3D style"):
+            create_profile(
+                self.workspace, "wrong-game", "Wrong Game", "Wrong dimension",
+                three_d_style="animated-sprite-sheet",
+            )
+        self.assertFalse((self.workspace / "profiles" / "wrong-game.json").exists())
+
+        create_profile(self.workspace, "forest-game", "Forest Game", "Load validation")
+        path = self.workspace / "profiles" / "forest-game.json"
+        document = json.loads(path.read_text(encoding="utf-8"))
+        document["styles"]["two_d"] = ["faceted-angular-low-poly"]
+        path.write_text(json.dumps(document), encoding="utf-8")
+        corrupted = path.read_bytes()
+        with self.assertRaisesRegex(ValidationError, "only reference 2D styles"):
+            validate_workspace(self.workspace)
+        with self.assertRaisesRegex(ValidationError, "only reference 2D styles"):
+            read_profile(self.workspace, "forest-game")
+        self.assertEqual(corrupted, path.read_bytes())
+
+    def test_workspace_and_profile_output_roots_are_explicit_and_non_destructive(self):
+        self.create()
+        create_profile(self.workspace, "forest-game", "Forest Game", "Output root policy")
+        select_profile(self.workspace, "forest-game")
+        external = self.root / "external-output"
+        external.mkdir()
+        result = set_workspace_output_root(self.workspace, str(external))
+        self.assertEqual(str(external), result["output_root"])
+        self.assertEqual("workspace-preference", read_workspace_output_root(self.workspace)["source"])
+
+        profile_path = self.workspace / "profiles" / "forest-game.json"
+        before = profile_path.read_bytes()
+        with self.assertRaisesRegex(ValidationError, "absolute"):
+            update_profile_setting(self.workspace, "output_defaults.root", "relative-output")
+        self.assertEqual(before, profile_path.read_bytes())
+
+        external.rmdir()
+        self.assertEqual("valid", validate_workspace(self.workspace)["status"])
+        set_workspace_output_root(self.workspace, None)
+        self.assertEqual("workspace-internal", read_workspace_output_root(self.workspace)["source"])
 
 
 if __name__ == "__main__":

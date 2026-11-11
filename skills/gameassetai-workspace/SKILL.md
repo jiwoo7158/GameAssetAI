@@ -14,8 +14,30 @@ asset revision to `gameassetai-modify-asset`, and publication/export to
 
 An installed Skill contains `scripts/gameassetai.py`, `runtime/`, catalog data, and a Workspace
 template. Run commands from that installed Skill directory; do not import a development checkout.
-The development repository uses the same command through its root `scripts/gameassetai.py` and
-requires `--template workspace-template` when creating or connecting.
+The normal project-scoped product is a verified `dist/workspace` clone whose four Skills are
+already under `.agents/skills/`. Initialize its personal state once from the clone root:
+
+```text
+python .agents/skills/gameassetai-workspace/scripts/gameassetai.py workspace init-clone .
+```
+
+This command refuses arbitrary nonempty directories and Git repositories. It requires valid
+distribution metadata and Skill hashes, adds only missing personal `config/` and `profiles/`
+state, and is safe to rerun. It never replaces an existing Profile or setting.
+
+For a fresh project-scoped install, do not install into an unrecognized folder first. From the
+development/distribution environment run the integrated sequence:
+
+```text
+python scripts/gameassetai.py package install-project <bundle> <workspace> --template workspace-template
+python scripts/gameassetai.py package validate-install <workspace>/.agents/skills
+```
+
+This creates or connects and validates the Workspace before installing and validating all four
+Skills. Create and select the Profile only after those steps. User-scoped installation into the
+user's `$HOME/.agents/skills` may happen before a Workspace exists. Leave legacy `.codex/skills`
+installations in place unless the user explicitly chooses a reviewed migration, and warn when the
+same Skill name is installed at both project and user scope.
 
 Typical installed commands:
 
@@ -28,6 +50,7 @@ python scripts/gameassetai.py profile select <workspace> <id>
 python scripts/gameassetai.py profile show <workspace> [--profile <id>]
 python scripts/gameassetai.py profile get <workspace> <setting> [--profile <id>]
 python scripts/gameassetai.py profile set <workspace> <setting> --value-json <json> [--profile <id>]
+python scripts/gameassetai.py workspace output-root <workspace> [--set <absolute-directory> | --clear]
 python scripts/gameassetai.py catalog list styles
 ```
 
@@ -46,7 +69,18 @@ python scripts/gameassetai.py catalog list styles
 
 Valid durable areas include `styles.three_d`, `styles.two_d`, `art_direction.palette`,
 `art_direction.rules`, nested `asset_defaults`, `rig_animation`, and `output_defaults`. Do not
-invent missing rules. A request such as changing one sword's handle is not a game-wide rule.
+invent missing rules. Official `styles.three_d` accepts only a registered 3D id or null, and
+`styles.two_d` accepts only registered 2D ids. Put user-specific descriptive style rules under art
+direction instead of inventing catalog ids. A request such as changing one sword's handle is not a
+game-wide rule.
+
+Workspace results are allocated by the output Skill and shared Runtime under
+`<selected-root>/<active-profile>/<catalog-category>/<asset-id>/<number>-<purpose>/`; the internal
+root is `<workspace>/outputs`. An explicit task root overrides Profile `output_defaults.root`,
+which overrides `settings.preferences.output_root`, which overrides the internal root. An external
+root must be an existing real absolute directory explicitly chosen by the user; a project bookmark
+does not authorize it. Do not recreate a moved/deleted external root. Moving or deleting results
+is normal user management and must not change Workspace validity or Profile state.
 
 `config/projects.json` contains optional absolute-path bookmarks. The current CLI validates this
 file but does not provide a project-mapping write command; explain the schema and validate after a

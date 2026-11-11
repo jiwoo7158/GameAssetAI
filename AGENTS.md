@@ -46,6 +46,9 @@ an active work instruction.
 
 - Shared runtime code belongs in `src/gameassetai/`. Do not copy source implementations into
   multiple Skill folders. Installable bundles vendor the shared runtime as generated output.
+- `dist/workspace` is generated product output, never a development branch. Pull requests may
+  build and validate its tree, but only a successful approved `master` push may append a normal
+  non-force publication commit through GitHub Actions.
 - Catalog entries and style presets belong in `catalog/`, separate from implementation code and
   personal game Profiles.
 - Expose a small task-oriented Skill surface. Add a new Skill only for a distinct repeated user
@@ -73,8 +76,47 @@ an active work instruction.
   explicitly requested.
 - `outputs/` is disposable user output, not runtime state. Code, catalog, Profiles, new generation,
   and independent tests must still work after the entire output tree is deleted.
+- A user may explicitly select a real external output root. One-task selection overrides a Profile
+  root, which overrides the Workspace preference, which overrides internal `outputs/`. A project
+  bookmark is never output authorization, and a missing external root is not silently recreated.
 - Do not require `input/` or `references/` folders. A user may provide direct paths or attachments.
 - Never write generated user assets to Git. Development tests use isolated temporary directories.
+
+## Output classification and allocation
+
+- Development experiments belong only under
+  `output/experiments/<experiment-id>/<asset-category>/<asset-id>/<number>-<purpose>/`; user game
+  work belongs only under
+  `<workspace>/outputs/<game-id>/<asset-category>/<asset-id>/<number>-<purpose>/`. General tests
+  use operating-system temporary directories.
+- An experiment id identifies one validation goal, an asset id identifies one concrete target, and
+  a numbered purpose identifies one preserved result for that target. Do not create an experiment
+  for every request, merge different validation goals because they share an asset, or create a new
+  asset id for a revision of the same target.
+- Before development work, inspect existing `experiment.json` metadata and explicitly choose an
+  existing experiment or create a descriptive new one. Never infer reuse from a similar folder
+  name. If the validation goal is ambiguous, obtain the minimum user clarification.
+- Asset categories are the catalog top-level ids `character`, `equipment-prop`, `environment`, and
+  `vfx-mesh`. Do not add arbitrary output hierarchy levels.
+- Allocate paths only through the shared Runtime. New task folders use the next existing local
+  number and a descriptive purpose; never use a date, time, UUID, generic `test`/`final` name, or
+  overwrite an existing task. Continue work only from an exact validated in-progress task path.
+- Within a task, create only the required `models/`, `previews/`, `sprites/`, or `exports/`
+  directory through the Runtime. Its path planner records a task-local reservation; register only
+  the real nonempty file to consume that reservation, using a normalized task-relative path.
+  `accepted` requires a recorded visible/semantic review and registered evidence; tests or
+  file creation alone never grant acceptance.
+- Repository `output/` and Workspace `outputs/` are disposable local results, not registries,
+  fixtures, package input, or hidden Runtime state. Partial or complete movement/deletion is valid;
+  report failure only for a specifically requested missing continuation and allow independent new
+  work.
+
+Official local Skill roots are project `.agents/skills` and user `$HOME/.agents/skills`. Do not
+move or delete an existing legacy `.codex/skills` installation automatically. For the normal
+project-scoped product, clone `dist/workspace`, validate its generated metadata, run the bundled
+`workspace init-clone` command, and then create/select a Profile. For bundle-based onboarding,
+create or connect and validate the Workspace before installing all four Skills into
+`.agents/skills`. User-scoped installation is independent of Workspace creation.
 
 ## Blender and acceptance rules
 

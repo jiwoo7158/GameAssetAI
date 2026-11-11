@@ -1,0 +1,19 @@
+# Personal Workspace state is created locally and never distributed through Git.
+/config/
+/profiles/
+/notes/
+/outputs/
+/AGENTS.local.md
+
+# Local editor and platform files.
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+
+# Blender backup files.
+*.blend1
+*.blend2
+*.blend@
+*.blend@*

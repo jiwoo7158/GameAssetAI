@@ -24,7 +24,11 @@ REQUIRED = (
     "catalog/styles/core.json", "catalog/generation-providers/core.json",
     "src/gameassetai/cli.py", "src/gameassetai/workspace.py", "src/gameassetai/outputs.py",
     "src/gameassetai/distribution.py", "packaging/skill-entrypoint.py",
+    "packaging/workspace-distribution/README.md",
+    "packaging/workspace-distribution/.gitattributes",
+    "packaging/workspace-distribution/.gitignore",
     "workspace-template/config/workspace.json", ".github/workflows/ci.yml",
+    ".github/workflows/publish-workspace.yml",
 )
 FORBIDDEN_ACTIVE_DOCS = {
     "SESSION_STATE.md", "IMPLEMENTATION_MEMORY.md", "PROJECT_AUDIT.md",
@@ -64,6 +68,8 @@ def validate_repository(
         path = root / relative
         if is_link(path) or not path.is_file():
             errors.append(f"Missing or linked required file: {relative}")
+        elif tracked_files is not None and relative not in tracked_files:
+            errors.append(f"Required product source is not tracked by Git: {relative}")
     if errors:
         return errors
 
@@ -83,6 +89,29 @@ def validate_repository(
             errors.append(f"Invalid Skill frontmatter: {name}")
         if (root / "skills" / name / "runtime").exists():
             errors.append(f"Generated runtime must not be committed in source Skill: {name}")
+
+    ignore_lines = {
+        line.strip() for line in (root / ".gitignore").read_text(encoding="utf-8-sig").splitlines()
+        if line.strip() and not line.lstrip().startswith("#")
+    }
+    if "/output/" not in ignore_lines:
+        errors.append("Development experiment root must be ignored with the anchored /output/ rule")
+    if tracked_files is not None:
+        tracked_output = sorted(path for path in tracked_files if path.startswith("output/"))
+        if tracked_output:
+            errors.append(f"Development experiment output is Git-tracked: {tracked_output}")
+
+    distribution_ignore = {
+        line.strip()
+        for line in (root / "packaging" / "workspace-distribution" / ".gitignore")
+        .read_text(encoding="utf-8-sig").splitlines()
+        if line.strip() and not line.lstrip().startswith("#")
+    }
+    required_personal_ignores = {
+        "/config/", "/profiles/", "/notes/", "/outputs/", "/AGENTS.local.md",
+    }
+    if not required_personal_ignores.issubset(distribution_ignore):
+        errors.append("Workspace distribution .gitignore does not protect every personal path")
 
     for forbidden in FORBIDDEN_ACTIVE_DOCS:
         if any(path.name == forbidden for path in (root / "docs").rglob("*")):

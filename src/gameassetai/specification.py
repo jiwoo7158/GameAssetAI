@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from .catalog import load_catalogs
+from .catalog import load_catalogs, validate_style_ids
 from .errors import ValidationError
 from .filesystem import read_json_object, validate_identifier
 
@@ -46,14 +46,7 @@ def validate_asset_specification(
     style = document.get("style")
     if not isinstance(style, dict) or set(style) != {"three_d", "two_d", "overrides"}:
         raise ValidationError("style must contain three_d, two_d, and overrides")
-    three_d = style["three_d"]
-    if three_d is not None:
-        entry = registries["styles"].get(three_d)
-        if entry["dimension"] != "3d":
-            raise ValidationError("style.three_d must reference a 3D style")
-    for identifier in _strings(style["two_d"], "style.two_d"):
-        if registries["styles"].get(identifier)["dimension"] != "2d":
-            raise ValidationError("style.two_d may only reference 2D styles")
+    validate_style_ids(style["three_d"], style["two_d"], catalog_root, label="style")
     if not isinstance(style["overrides"], dict):
         raise ValidationError("style.overrides must be an object")
 

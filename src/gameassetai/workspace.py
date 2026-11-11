@@ -5,9 +5,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 import re
 import shutil
+import subprocess
+import tempfile
 from typing import Any
 import uuid
 
+from .catalog import validate_style_ids
 from .errors import SafetyError, ValidationError
 from .filesystem import (
     atomic_write_json,
@@ -33,6 +36,13 @@ REQUIRED_FILES = (
 )
 REQUIRED_DIRS = ("config", "profiles")
 SAFE_ADDITIVE_TEMPLATE_FILES = ("README.md", "profiles/README.md", "notes/README.md")
+CLONE_INITIALIZATION_FILES = (
+    "config/active-profile.json",
+    "config/projects.json",
+    "config/settings.json",
+    "profiles/_template.json",
+    "profiles/README.md",
+)
 PROFILE_SETTING_SEGMENT = re.compile(r"[a-z][a-z0-9_-]*\Z")
 PROFILE_MUTABLE_OBJECTS = {
     "styles", "art_direction", "asset_defaults", "rig_animation", "output_defaults",
@@ -74,13 +84,13 @@ def _validate_profile_document(profile: dict[str, Any], expected_id: str | None 
     styles = profile["styles"]
     if not isinstance(styles, dict) or set(styles) != {"three_d", "two_d"}:
         raise ValidationError("Profile styles must contain three_d and two_d")
-    if styles["three_d"] is not None and not isinstance(styles["three_d"], str):
-        raise ValidationError("Profile styles.three_d must be null or a style id")
-    if not isinstance(styles["two_d"], list) or not all(isinstance(x, str) for x in styles["two_d"]):
-        raise ValidationError("Profile styles.two_d must be a string list")
+    validate_style_ids(styles["three_d"], styles["two_d"], label="Profile styles")
     for field in ("art_direction", "asset_defaults", "rig_animation", "output_defaults", "metadata"):
         if not isinstance(profile[field], dict):
             raise ValidationError(f"Profile {field} must be an object")
+    output_root = profile["output_defaults"].get("root")
+    if output_root is not None:
+        require_absolute_path(output_root, "Profile output_defaults.root")
 
 
 def validate_workspace(root: Path, *, require_profile: bool = False) -> dict[str, Any]:
@@ -113,7 +123,11 @@ def validate_workspace(root: Path, *, require_profile: bool = False) -> dict[str
         profile_path = root / "profiles" / f"{profile_id}.json"
         if is_link(profile_path) or not profile_path.is_file():
             raise ValidationError(f"Active Profile is missing or linked: {profile_path.name}")
-        _validate_profile_document(read_json_object(profile_path), profile_id)
+    for profile_path in sorted((root / "profiles").glob("*.json")):
+        if is_link(profile_path) or not profile_path.is_file():
+            raise ValidationError(f"Profile must be a real JSON file: {profile_path.name}")
+        expected_id = None if profile_path.name.startswith("_") else profile_path.stem
+        _validate_profile_document(read_json_object(profile_path), expected_id)
 
     projects = read_json_object(root / "config" / "projects.json")
     if set(projects) != {"schema", "games"} or projects.get("schema") != PROJECTS_SCHEMA:
@@ -133,6 +147,9 @@ def validate_workspace(root: Path, *, require_profile: bool = False) -> dict[str
         raise ValidationError("Invalid settings.json contract")
     if not isinstance(settings["preferences"], dict):
         raise ValidationError("settings.json preferences must be an object")
+    output_root = settings["preferences"].get("output_root")
+    if output_root is not None:
+        require_absolute_path(output_root, "settings.preferences.output_root")
 
     return {
         "status": "valid",
@@ -224,6 +241,133 @@ def create_or_connect_workspace(template: Path | None, target: Path) -> dict[str
                 path.rmdir()
         raise
     return {**report, "status": "created", "changed": [str(p.relative_to(target)) for p in created_files]}
+
+
+def initialize_distribution_workspace(root: Path) -> dict[str, Any]:
+    """Initialize personal state only inside a verified ``dist/workspace`` clone."""
+    from .distribution import validate_workspace_distribution
+
+    root = root.expanduser().absolute()
+    validate_workspace_distribution(root)
+    git_marker = root / ".git"
+    if is_link(git_marker) or not (git_marker.is_dir() or git_marker.is_file()):
+        raise ValidationError(
+            "workspace init-clone requires a real Git clone of the Workspace distribution"
+        )
+    try:
+        git_check = subprocess.run(
+            ["git", "-C", str(root), "rev-parse", "--is-inside-work-tree"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except OSError as exc:
+        raise ValidationError(f"workspace init-clone requires Git: {exc}") from exc
+    if git_check.returncode != 0 or git_check.stdout.strip() != "true":
+        raise ValidationError(
+            "workspace init-clone requires a valid Git worktree for the Workspace distribution"
+        )
+    try:
+        report = validate_workspace(root)
+    except ValidationError:
+        report = None
+    if report is not None:
+        return {**report, "status": "already-initialized", "changed": []}
+
+    template = root / "templates" / "workspace"
+    marker = root / "config" / "workspace.json"
+    if is_link(marker) or (marker.exists() and not marker.is_file()):
+        raise SafetyError(f"Workspace marker must be a real file: {marker}")
+    marker_document = (
+        read_json_object(marker)
+        if marker.exists()
+        else {"schema": WORKSPACE_SCHEMA, "workspace_id": f"workspace-{uuid.uuid4().hex}"}
+    )
+
+    candidate_parent = root.parent
+    reject_linked_components(candidate_parent)
+    with tempfile.TemporaryDirectory(
+        prefix=".gameassetai-clone-init-", dir=candidate_parent,
+    ) as temporary:
+        candidate = Path(temporary)
+        shutil.copy2(root / "AGENTS.md", candidate / "AGENTS.md")
+        for directory_name in ("config", "profiles"):
+            source_directory = root / directory_name
+            candidate_directory = candidate / directory_name
+            candidate_directory.mkdir()
+            if not source_directory.exists() and not is_link(source_directory):
+                continue
+            if is_link(source_directory) or not source_directory.is_dir():
+                raise SafetyError(
+                    f"Personal Workspace path must be a real directory: {source_directory}"
+                )
+            for source in sorted(source_directory.rglob("*")):
+                if is_link(source):
+                    raise SafetyError(f"Linked personal Workspace component: {source}")
+                relative = source.relative_to(source_directory)
+                destination = candidate_directory / relative
+                if source.is_dir():
+                    destination.mkdir(parents=True, exist_ok=True)
+                elif source.is_file():
+                    destination.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(source, destination)
+                else:
+                    raise SafetyError(f"Unsupported personal Workspace component: {source}")
+        for relative in CLONE_INITIALIZATION_FILES:
+            destination = candidate / relative
+            if destination.exists() or is_link(destination):
+                continue
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(template / relative, destination)
+        atomic_write_json(candidate / "config" / "workspace.json", marker_document, replace=True)
+        validate_workspace(candidate)
+
+    created_files: list[Path] = []
+    created_dirs: list[Path] = []
+    try:
+        for relative in CLONE_INITIALIZATION_FILES:
+            destination = root / relative
+            if destination.exists() or is_link(destination):
+                continue
+            missing: list[Path] = []
+            parent = destination.parent
+            while parent != root and not parent.exists():
+                missing.append(parent)
+                parent = parent.parent
+            for directory in reversed(missing):
+                reject_linked_components(directory.parent, stop=root)
+                directory.mkdir()
+                if is_link(directory) or not directory.is_dir():
+                    raise SafetyError(
+                        f"Personal Workspace directory was replaced during creation: {directory}"
+                    )
+                created_dirs.append(directory)
+            reject_linked_components(destination.parent, stop=root)
+            with destination.open("xb") as output:
+                output.write((template / relative).read_bytes())
+            created_files.append(destination)
+        if not marker.exists() and not is_link(marker):
+            reject_linked_components(marker.parent, stop=root)
+            marker.parent.mkdir(parents=True, exist_ok=True)
+            atomic_write_json(marker, marker_document, replace=False)
+            created_files.append(marker)
+        final = validate_workspace(root)
+    except BaseException:
+        for path in reversed(created_files):
+            if path.is_file() and not is_link(path):
+                path.unlink()
+        for path in reversed(created_dirs):
+            if path.is_dir() and not is_link(path):
+                try:
+                    path.rmdir()
+                except OSError:
+                    pass
+        raise
+    return {
+        **final,
+        "status": "initialized",
+        "changed": [str(path.relative_to(root)) for path in created_files],
+    }
 
 
 def update_workspace(template: Path | None, target: Path) -> dict[str, Any]:
@@ -400,3 +544,114 @@ def read_active_profile(workspace: Path) -> dict[str, Any] | None:
     if identifier is None:
         return None
     return read_json_object(workspace / "profiles" / f"{identifier}.json")
+
+
+def _validate_selected_output_root(workspace: Path, value: str, label: str) -> Path:
+    require_absolute_path(value, label)
+    selected = Path(value).expanduser().absolute()
+    reject_linked_components(selected)
+    if is_link(selected) or not selected.is_dir():
+        raise ValidationError(f"{label} must be an existing real directory: {selected}")
+    resolved_workspace = workspace.resolve(strict=True)
+    resolved_selected = selected.resolve(strict=True)
+    internal = (workspace / "outputs").resolve(strict=False)
+    if resolved_selected != internal:
+        try:
+            resolved_selected.relative_to(resolved_workspace)
+        except ValueError:
+            pass
+        else:
+            raise SafetyError(
+                "An output root inside the Workspace must be exactly the disposable outputs directory"
+            )
+    return selected
+
+
+def read_workspace_output_root(workspace: Path) -> dict[str, Any]:
+    workspace = workspace.expanduser().absolute()
+    report = validate_workspace(workspace)
+    settings = read_json_object(workspace / "config" / "settings.json")
+    workspace_value = settings["preferences"].get("output_root")
+    profile_value = None
+    if report["active_profile"] is not None:
+        profile_value = read_profile(workspace, report["active_profile"])["output_defaults"].get("root")
+    if profile_value is not None:
+        effective, source = profile_value, "profile"
+    elif workspace_value is not None:
+        effective, source = workspace_value, "workspace-preference"
+    else:
+        effective, source = str(workspace / "outputs"), "workspace-internal"
+    return {
+        "workspace": str(workspace),
+        "active_profile": report["active_profile"],
+        "workspace_preference": workspace_value,
+        "profile_override": profile_value,
+        "effective": effective,
+        "source": source,
+    }
+
+
+def set_workspace_output_root(workspace: Path, value: str | None) -> dict[str, Any]:
+    workspace = workspace.expanduser().absolute()
+    validate_workspace(workspace)
+    settings_path = workspace / "config" / "settings.json"
+    if is_link(settings_path):
+        raise SafetyError(f"Refusing to replace linked Workspace settings: {settings_path}")
+    settings = read_json_object(settings_path)
+    previous = settings["preferences"].get("output_root")
+    if value is None:
+        settings["preferences"].pop("output_root", None)
+        normalized = None
+    else:
+        normalized = str(_validate_selected_output_root(
+            workspace, value, "Workspace output root",
+        ))
+        settings["preferences"]["output_root"] = normalized
+    atomic_write_json(settings_path, settings, replace=True)
+    validate_workspace(workspace)
+    return {
+        "status": "updated",
+        "workspace": str(workspace),
+        "previous": previous,
+        "output_root": normalized,
+    }
+
+
+def resolve_workspace_output_root(
+    workspace: Path,
+    *,
+    explicit_output_root: Path | None = None,
+    profile_id: str | None = None,
+) -> dict[str, Any]:
+    workspace = workspace.expanduser().absolute()
+    report = validate_workspace(workspace, require_profile=True)
+    selected_profile = profile_id or report["active_profile"]
+    if selected_profile != report["active_profile"]:
+        raise ValidationError("Output Profile must match the active Profile")
+    profile = read_profile(workspace, selected_profile)
+    settings = read_json_object(workspace / "config" / "settings.json")
+    if explicit_output_root is not None:
+        raw_value = str(explicit_output_root)
+        source = "explicit"
+    elif profile["output_defaults"].get("root") is not None:
+        raw_value = profile["output_defaults"]["root"]
+        source = "profile"
+    elif settings["preferences"].get("output_root") is not None:
+        raw_value = settings["preferences"]["output_root"]
+        source = "workspace-preference"
+    else:
+        marker = read_json_object(workspace / "config" / "workspace.json")
+        return {
+            "root": workspace / "outputs",
+            "source": "workspace-internal",
+            "kind": "workspace",
+            "workspace_id": marker["workspace_id"],
+        }
+    selected = _validate_selected_output_root(workspace, raw_value, f"{source} output root")
+    marker = read_json_object(workspace / "config" / "workspace.json")
+    return {
+        "root": selected,
+        "source": source,
+        "kind": "workspace" if selected.resolve() == (workspace / "outputs").resolve(strict=False) else "external",
+        "workspace_id": marker["workspace_id"],
+    }
