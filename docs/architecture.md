@@ -33,13 +33,14 @@ does not contain or relocate existing game projects.
 - `src/gameassetai/specification.py`: provider-neutral Asset Specification contract.
 - `src/gameassetai/workspace.py`: create/connect/update and Profile persistence.
 - `src/gameassetai/outputs.py`: experiment metadata plus collision-safe disposable numbered tasks.
+- `src/gameassetai/environment.py`: ignored local Blender executable selection and read-only
+  background diagnostics; it contains no asset generator.
 - `src/gameassetai/distribution.py`: self-contained Skill and Workspace-distribution build,
   validation, install, backup update, and ZIP.
-- `src/gameassetai/blender/`: retained bounded Blender execution modules. These are internal
-  capabilities, not separate product Skills.
 - `catalog/`: canonical asset/style/provider data.
 - `skills/`: four instruction surfaces; generated runtime copies are not source.
-- `blender_addon/`: retained optional Blender-native UI/execution layer.
+- `archive/legacy/`: physically isolated, unverified historical Blender Runtime, Add-on, and test
+  candidates. It is neither importable product source nor package/test input and may be absent.
 
 ## Provider abstraction
 
@@ -48,9 +49,17 @@ Asset Specification may name a provider or request `auto`; automatic selection m
 for implemented capability and Profile constraints. It must refuse when no suitable provider
 exists. A catalog noun never creates a provider module automatically.
 
+Provider selection is optional: Codex may instead direct Blender native operations and compose
+bounded task-specific code for the current asset. That temporary code does not become a reusable
+provider or production module merely because it succeeded once.
+
 Approved external providers require a separate bounded decision covering requirement fit, output
 quality, Blender compatibility, license, maintenance, headless behavior, integration cost,
 rollback/removal, and an isolated representative test.
+
+Do not build a generic integration framework before choosing a concrete external tool. An adopted
+tool receives one product-owned boundary so version checks, failure reporting, rollback, and
+removal are not duplicated across Skills. Unverified archived helpers bypass none of these gates.
 
 ## Skill distribution
 
@@ -62,7 +71,8 @@ The Workspace-distribution builder allowlists product files into one generated t
 instructions, four Skills under `.agents/skills/`, initialization templates under
 `templates/workspace/`, Git ownership rules, and source/version/hash metadata. Development tests,
 roadmaps, source layout, local experiments, Profiles, settings, notes, and results are not product
-branch inputs. Text hashes are line-ending neutral and the generated `.gitattributes` fixes LF so
+branch inputs. `archive/legacy/` is also excluded and the generated product must validate if that
+tree is absent. Text hashes are line-ending neutral and the generated `.gitattributes` fixes LF so
 normal Windows and Linux clones validate identically.
 
 Fresh standalone Skill install is no-overwrite and rejects link/reparse-point components. Product update requires
@@ -131,8 +141,22 @@ They are not moved, renamed, deleted, or used for new allocation.
 
 ## Blender execution
 
-Blender MCP is externally configured. Blender-dependent modules are not imported by the offline
-foundation. Before an operation, inspect the current Scene and target data. Retained modules are
-packaged as internal building blocks for bounded static creation/revision, template humanoids,
-Rig/Action/Mixamo operations, FBX, and 2D output; capability labels remain narrower than their file
-count.
+The development checkout selects a Blender executable in ignored
+`.local/environment.json` through `environment blender set`. The shared Runtime rejects missing,
+relative, linked, or nonexistent executable paths. `environment blender validate` runs an unsaved
+factory-startup background session, confirms the embedded Python/version response, and verifies
+that Python errors produce a nonzero exit. The committed source contains no personal executable
+path. A generated Skill has the same command but no dependency on the development checkout's
+local setting; configure the root in which that installed environment is being used.
+
+Blender MCP remains a separately configured integration. A registered MCP server can exist without
+a live Blender Add-on connection, so executable validation and MCP connectivity are distinct
+gates. Before an asset operation, inspect the current Scene and exact targets, preserve sources,
+and allocate output through the shared Runtime.
+
+Codex reasoning plus Blender native capability is the core authoring boundary. Codex may create a
+bounded task script inside a temporary/output task context, run it through a verified Blender
+execution path, inspect the result, and revise it. Reusable code moves into `src/gameassetai/` only
+after a durable independent responsibility and current adoption review are established. Historical
+Blender Runtime, Add-on, and tests under `archive/legacy/` are not imported, bundled, executed by
+formal CI, or claimed as supported.

@@ -24,7 +24,7 @@ rediscovered.
 The development Repository retains the canonical Runtime in `src/gameassetai/`, Skill instructions
 in `skills/`, catalogs in `catalog/`, and Workspace source template in `workspace-template/`.
 Generated Skills vendor these sources so they never require the development checkout's absolute
-path.
+path. `archive/legacy/` is never a Runtime, catalog, template, test, or distribution input.
 
 ```powershell
 $DevelopmentCli = "scripts/gameassetai.py"
@@ -65,7 +65,8 @@ GameAssetAI-Workspace/
 `distribution.json` records the product version, full source `master` commit SHA, layout version,
 four Skill names, and hashes of every product-managed file. Development tests, CI implementation,
 roadmaps, source checkout layout, development `output/`, personal settings, Profiles, notes, and
-results are excluded.
+results are excluded. The product version is authored once in `gameassetai.__version__`; Python
+package metadata and both distribution manifests consume that value.
 
 Development and CI can build and validate this tree without publishing it:
 
@@ -87,6 +88,11 @@ The initial hosted publication succeeded on 2026-11-11: source `master` commit
 `128a657f54776cbef6af1572f4125ae2a8fbab94` produced `dist/workspace` commit
 `2196a0e9952399727d7d1981dca0cde603ac7e2f`, product version `0.2.0`, layout version `1`.
 This is deployment evidence for that release, not evidence for live Codex discovery or Blender.
+
+After pull request #4, `master` advanced to
+`3331bb9ed8f1c46b837800a55d20527867703be3` and the master-only workflow published
+`dist/workspace` commit `07f14acaf15b330c754bf0afe97f1eacefc2cbfc`. These hashes describe the
+pre-current-work baseline, not the unmerged work branch.
 
 The generated `.gitattributes` fixes product text to LF, while distribution and Skill hashes
 canonicalize text line endings. This keeps ordinary Windows and Linux clones verifiable without
@@ -110,8 +116,8 @@ and templates validate. It creates only missing personal `config/` and `profiles
 the Workspace marker, and validates the result. It is idempotent and refuses conflicting or linked
 personal paths rather than overwriting them. `outputs/` and `notes/` remain absent until needed.
 
-The distribution `.gitignore` excludes `/config/`, `/profiles/`, `/notes/`, `/outputs/`, and
-`/AGENTS.local.md`, plus common Python caches/environments, editor/OS noise, temporary files, and
+The distribution `.gitignore` excludes `/config/`, `/profiles/`, `/notes/`, `/outputs/`,
+`/AGENTS.local.md`, and local environment configuration under `/.local/`, plus common Python caches/environments, editor/OS noise, temporary files, and
 Blender backup files. It never ignores `.agents/skills`. Templates live under tracked
 `/templates/`, never at personal destinations. Ignore rules do not protect a file that was already
 tracked, so the publisher's allowlist and tests also verify that personal paths are absent from the
@@ -148,4 +154,7 @@ updater, installer wizard, release server, or second distribution branch exists.
 Skill distribution does not install or configure Blender, Blender MCP, the Blender Add-on, AI
 models, credentials, Unity, or UnityWorkbench. Those remain separate explicit environment gates.
 Before asset work, users must separately confirm Python, Codex Skill discovery, Blender version,
-and Blender MCP connectivity. File/package validation alone is not a live-host or Blender test.
+and Blender MCP connectivity. The bundled CLI can record and validate a local Blender executable
+under an ignored root-specific `.local/environment.json`; that diagnostic does not install Blender
+or prove MCP connectivity, modeling, rendering, export, or quality. File/package validation alone
+is not a live-host or Blender test.

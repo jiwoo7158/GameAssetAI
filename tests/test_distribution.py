@@ -17,6 +17,7 @@ from gameassetai.distribution import (  # noqa: E402
     update_product_bundle, validate_installed_product, validate_product_bundle,
     validate_workspace_distribution, write_bundle_zip,
 )
+from gameassetai import __version__  # noqa: E402
 from gameassetai.errors import SafetyError, ValidationError  # noqa: E402
 from gameassetai.outputs import (  # noqa: E402
     begin_output_task, plan_artifact_path, register_output_artifact,
@@ -40,6 +41,8 @@ class DistributionTests(unittest.TestCase):
     def test_bundle_is_self_contained_reproducible_and_executable(self):
         self.build()
         self.assertEqual("valid", validate_product_bundle(self.bundle)["status"])
+        manifest = json.loads((self.bundle / "manifest.json").read_text(encoding="utf-8"))
+        self.assertEqual(__version__, manifest["version"])
         for name in PRODUCT_SKILLS:
             skill = self.bundle / "skills" / name
             self.assertTrue((skill / "runtime" / "gameassetai" / "cli.py").is_file())
@@ -48,6 +51,9 @@ class DistributionTests(unittest.TestCase):
                 for path in skill.rglob("*") if path.is_file() and path.suffix in {".py", ".md", ".json"}
             )
             self.assertNotIn(str(ROOT), all_text)
+            self.assertFalse((skill / "runtime" / "gameassetai" / "blender").exists())
+            self.assertFalse((skill / "archive").exists())
+            self.assertTrue((skill / "runtime" / "gameassetai" / "environment.py").is_file())
         entry = self.bundle / "skills" / "gameassetai-workspace" / "scripts" / "gameassetai.py"
         result = subprocess.run(
             [sys.executable, "-B", str(entry), "catalog", "validate"],
@@ -227,6 +233,7 @@ class DistributionTests(unittest.TestCase):
         self.assertFalse((distribution / "src").exists())
         self.assertFalse((distribution / "tests").exists())
         self.assertFalse((distribution / "output").exists())
+        self.assertFalse((distribution / "archive").exists())
 
         clone = self.root / "project-clone"
         shutil.copytree(distribution, clone)

@@ -2,6 +2,7 @@ name: Foundation CI
 
 on:
   push:
+    branches-ignore: [dist/workspace]
   pull_request:
 
 permissions:
@@ -28,7 +29,7 @@ jobs:
       - name: Validate repository and tracked Skills
         run: python -B scripts/validate_repo.py
 
-      - name: Run offline product and retained-contract tests
+      - name: Run offline product tests
         run: python -B -m unittest discover -s tests -p "test_*.py" -v
 
       - name: Build and validate the Workspace distribution without publishing

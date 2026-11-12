@@ -3,6 +3,10 @@
 This is a persistent user Workspace, not the GameAssetAI development repository. Durable game
 rules live in JSON Profiles, not in chat memory.
 
+Codex reasoning may direct Blender native operations and write bounded task-specific code for the
+current asset. Do not require a prewritten generator for every asset, but do not promote one task
+script into a supported reusable capability without product review and representative evidence.
+
 When this Workspace is a `dist/workspace` clone, `.agents/skills/`, this file, templates, product
 documentation, and `distribution.json` are product-managed. Personal state belongs in ignored
 `config/`, `profiles/`, `notes/`, `outputs/`, or `AGENTS.local.md`. If `AGENTS.local.md` exists,
@@ -21,6 +25,8 @@ read it explicitly when its user rules are relevant; do not assume a host discov
    silently ignoring either source.
 5. Distinguish an asset-local request from a durable game-wide rule before changing the Profile.
 6. Inspect the current Blender Scene and exact targets before modifying existing data.
+   Validate the configured executable and live MCP connection separately; one does not prove the
+   other.
 7. Before allocating output, decide whether this is a new asset, a new preserved result for an
    existing asset, or an exact continuation of an in-progress task. Use the active Profile id as
    the game id and the catalog top-level category; do not invent a test game or category.
@@ -114,3 +120,9 @@ select a new root or clear the setting before starting another task.
 Catalog registration is not proof that a generator exists. Stop downstream Rig, animation, 2D,
 and export work when a source fails visible or semantic review, and report unsupported work
 honestly.
+
+For a new 3D task, preserve an editable `.blend` as the first primary artifact unless the user
+explicitly chooses another bounded source contract. FBX, previews, sprites, and sheets are later
+explicit outputs. A local Blender executable may be stored only in ignored
+`.local/environment.json` through `environment blender set`; never commit or copy a personal path
+into a Profile or Skill.

@@ -30,7 +30,9 @@ Before production:
 3. Build and validate an Asset Specification containing asset type, description, references,
    independent 3D/2D styles, provider choice, Rig/animation intent, and requested outputs.
 4. Inspect the current Blender/MCP environment and preserve unrelated Scene data.
-5. Select only a provider whose implementation state covers the requested work.
+5. Choose a bounded authoring route: Blender native operations and task-specific code directed by
+   Codex, or a provider whose current implementation/evidence covers the request. A prewritten
+   generator is not required merely because the asset noun is new.
 6. Before writing a result, route path allocation through the output Skill. For a user task, use
    the active Profile game id, catalog top-level category, concrete new asset id, and descriptive
    task purpose. For a development experiment, inspect `experiment.json` metadata and explicitly
@@ -42,10 +44,12 @@ comparisons under the same goal reuse the experiment. If the request does not es
 choice, ask the minimum clarification instead of using a default. A revision of the same concrete
 asset keeps its asset id and receives a new numbered task when a distinct result must be preserved.
 
-Catalog registration does not mean generation is implemented. The bundled Runtime contains
-bounded static assembly and template-humanoid helpers, not general prompt-to-mesh generation, all
-creatures, or accepted generators for the four target 3D styles. Never force humanoid anatomy,
-topology, Rig, or animation policy onto a nonhumanoid.
+Catalog registration does not mean generation is implemented. Unverified historical Blender
+helpers and Add-on code are isolated outside the bundled Runtime and must not be imported or
+treated as capabilities. Codex may write bounded code for the exact task in its temporary/output
+context, but must not accumulate numbered variants in product source or advertise one success as a
+general generator. Never force humanoid anatomy, topology, Rig, or animation policy onto a
+nonhumanoid.
 
 Define visible and semantic invariants, perform structural checks, and inspect relevant Blender
 views. Stop on rejection before Rig, animation, 2D conversion, or export. Concept/reference images
@@ -56,7 +60,12 @@ Use the output Skill to obtain every deliverable path, publish without overwrite
 actual nonempty file, and record `complete`, `accepted`, or `rejected` explicitly. A successful
 generator call or structural test is not acceptance evidence.
 
-If no implemented provider fits, return the validated specification, missing capability, and
-needed user input instead of presenting primitive-only geometry as a finished asset. Do not mutate
-an existing source under this Skill. Result folders and manifests are local descriptions, not
-Runtime dependencies; never make later independent creation require an earlier output tree.
+For new 3D work, reserve and preserve an editable `.blend` model as the first primary artifact
+unless the user explicitly requests a different bounded source contract. Treat FBX, preview PNG,
+pixel frames, and sprite sheets as explicit downstream tasks after source review.
+
+If neither native/task-specific work nor a verified provider can safely meet the request, return
+the validated specification, missing capability, and needed user input instead of presenting
+primitive-only geometry as a finished asset. Do not mutate an existing source under this Skill.
+Result folders and manifests are local descriptions, not Runtime dependencies; never make later
+independent creation require an earlier output tree.

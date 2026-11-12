@@ -178,7 +178,7 @@ def build_product_bundle(repo_root: Path, destination: Path) -> dict[str, Any]:
 
         bundle_manifest = {
             "schema": BUNDLE_SCHEMA,
-            "version": "0.2.0",
+            "version": __version__,
             "skills": list(PRODUCT_SKILLS),
             "files": _manifest(stage, exclude={"manifest.json"}),
         }
@@ -204,6 +204,7 @@ def validate_product_bundle(bundle: Path) -> dict[str, Any]:
     if (
         not isinstance(manifest, dict)
         or manifest.get("schema") != BUNDLE_SCHEMA
+        or manifest.get("version") != __version__
         or manifest.get("skills") != list(PRODUCT_SKILLS)
         or not isinstance(manifest.get("files"), dict)
     ):

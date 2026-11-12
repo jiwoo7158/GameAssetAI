@@ -1,12 +1,14 @@
 # Product Skills
 
 GameAssetAI exposes four task-oriented Skills: Workspace management, asset creation, asset
-modification, and output. Narrow Blender operations live in the shared runtime and are routed
-internally; they are not separate product commands.
+modification, and output. Codex reasoning and Blender native capability drive individual asset
+work; task-specific code may be created in an isolated work context without becoming another Skill
+or permanent Runtime module.
 
 Source Skills intentionally contain instructions only. `scripts/gameassetai.py package build`
 creates self-contained installable copies by vendoring the shared runtime, catalog, and Workspace
-template into each built Skill. Generated bundles are not committed. Install all four together;
+template into each built Skill. Unverified code under `archive/legacy/` is never vendored.
+Generated bundles are not committed. Install all four together;
 do not point an installed Skill back at this source tree.
 
 The command above is a development-Repository entrypoint. From a cloned project distribution,

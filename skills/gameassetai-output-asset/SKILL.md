@@ -141,10 +141,15 @@ product state. Users may move or delete any part of either result tree; this rem
 but must not damage code, Profiles, settings, catalogs, installed Skills, packaging, validation, or
 independent future work. A prior result becomes input only when the user explicitly selects it.
 
-Current helpers cover bounded static and Generic animated FBX preparation, deterministic
-static/action PNG rendering, batch coordination, quantization, and sprite-sheet assembly. They do
-not prove Unity Humanoid Avatar setup, every material round trip, autonomous pixel-art direction,
-or an accepted end-to-end eight-direction workflow.
+Artifact registration supports file lifecycle management, not production implementation. The
+active product currently makes no helper-based claim for FBX preparation, PNG rendering,
+quantization, or sprite-sheet assembly; historical candidates are isolated outside the package.
+Do not infer Unity setup, material round trips, autonomous pixel-art direction, or an accepted
+end-to-end eight-direction workflow from an allowed extension or output directory.
+
+For a new 3D asset, plan the editable `.blend` as the first primary model artifact unless the user
+explicitly selects another bounded source contract. Allocate exports and 2D products later as
+separate explicit results; do not let a downstream artifact replace the preserved source.
 
 Moving a task is valid product data management, but do not claim an individual `.blend` is portable
 until its external textures, linked libraries, images, caches, and other dependencies were

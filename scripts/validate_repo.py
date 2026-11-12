@@ -12,6 +12,7 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from gameassetai.catalog import validate_catalog  # noqa: E402
 from gameassetai.distribution import PRODUCT_SKILLS  # noqa: E402
+from gameassetai import __version__  # noqa: E402
 from gameassetai.filesystem import is_link  # noqa: E402
 from gameassetai.workspace import validate_workspace  # noqa: E402
 
@@ -23,7 +24,8 @@ REQUIRED = (
     "docs/quality.md", "docs/roadmap.md", "catalog/asset-types/core.json",
     "catalog/styles/core.json", "catalog/generation-providers/core.json",
     "src/gameassetai/cli.py", "src/gameassetai/workspace.py", "src/gameassetai/outputs.py",
-    "src/gameassetai/distribution.py", "packaging/skill-entrypoint.py",
+    "src/gameassetai/distribution.py", "src/gameassetai/environment.py",
+    "packaging/skill-entrypoint.py",
     "packaging/workspace-distribution/README.md",
     "packaging/workspace-distribution/.gitattributes",
     "packaging/workspace-distribution/.gitignore",
@@ -101,6 +103,33 @@ def validate_repository(
         if tracked_output:
             errors.append(f"Development experiment output is Git-tracked: {tracked_output}")
 
+    active_legacy_roots = (
+        root / "src" / "gameassetai" / "blender",
+        root / "blender_addon",
+        root / "tests" / "retained_blender",
+    )
+    for path in active_legacy_roots:
+        if path.exists() or is_link(path):
+            errors.append(f"Unverified Blender legacy remains in active product: {path.relative_to(root)}")
+    if tracked_files is not None:
+        old_prefixes = ("src/gameassetai/blender/", "blender_addon/", "tests/retained_blender/")
+        active_legacy = sorted(
+            path for path in tracked_files if any(path.startswith(prefix) for prefix in old_prefixes)
+        )
+        if active_legacy:
+            errors.append(f"Unverified Blender legacy is tracked in active roots: {active_legacy}")
+
+    pyproject = (root / "pyproject.toml").read_text(encoding="utf-8-sig")
+    if 'dynamic = ["version"]' not in pyproject:
+        errors.append("pyproject.toml must obtain the product version dynamically")
+    if 'version = {attr = "gameassetai.__version__"}' not in pyproject:
+        errors.append("pyproject.toml must use gameassetai.__version__ as the version source")
+    for line in pyproject.splitlines():
+        if line.strip().startswith("version = ") and "attr =" not in line:
+            errors.append("pyproject.toml contains a second authored product version")
+    if not __version__ or not all(part.isdigit() for part in __version__.split(".")):
+        errors.append(f"Invalid canonical product version: {__version__!r}")
+
     distribution_ignore = {
         line.strip()
         for line in (root / "packaging" / "workspace-distribution" / ".gitignore")
@@ -108,7 +137,7 @@ def validate_repository(
         if line.strip() and not line.lstrip().startswith("#")
     }
     required_personal_ignores = {
-        "/config/", "/profiles/", "/notes/", "/outputs/", "/AGENTS.local.md",
+        "/config/", "/profiles/", "/notes/", "/outputs/", "/AGENTS.local.md", "/.local/",
     }
     if not required_personal_ignores.issubset(distribution_ignore):
         errors.append("Workspace distribution .gitignore does not protect every personal path")
@@ -131,6 +160,14 @@ def validate_repository(
             compile(path.read_text(encoding="utf-8-sig"), str(path), "exec")
         except (OSError, UnicodeError, SyntaxError) as exc:
             errors.append(f"Python compile failed: {path.relative_to(root)}: {exc}")
+        try:
+            source = path.read_text(encoding="utf-8-sig")
+        except (OSError, UnicodeError):
+            continue
+        if path.resolve() != Path(__file__).resolve() and (
+            "gameassetai.blender" in source or "archive.legacy" in source
+        ):
+            errors.append(f"Active Python depends on isolated legacy: {path.relative_to(root)}")
 
     forbidden_fragments = ("D:/Blender/MCP_Test", "D:\\Blender\\MCP_Test", "B1-B8 is active")
     for area in ("src", "skills", "scripts", "packaging", "workspace-template", "catalog"):

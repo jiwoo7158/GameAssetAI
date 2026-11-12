@@ -16,6 +16,9 @@ from .distribution import (
     write_bundle_zip,
 )
 from .errors import GameAssetAIError
+from .environment import (
+    configure_blender_executable, read_local_environment, validate_blender_environment,
+)
 from .outputs import (
     begin_output_task, continue_output_task, create_experiment, list_experiments,
     plan_artifact_path, register_output_artifact, release_artifact_reservation,
@@ -109,6 +112,20 @@ def build_parser() -> argparse.ArgumentParser:
     spec_validate = spec_sub.add_parser("validate")
     spec_validate.add_argument("path", type=Path)
     spec_validate.add_argument("--catalog-root", type=Path)
+
+    environment = sub.add_parser("environment")
+    environment_sub = environment.add_subparsers(dest="environment_kind", required=True)
+    blender_environment = environment_sub.add_parser("blender")
+    blender_environment_sub = blender_environment.add_subparsers(
+        dest="environment_action", required=True,
+    )
+    blender_set = blender_environment_sub.add_parser("set")
+    blender_set.add_argument("root", type=Path)
+    blender_set.add_argument("executable", type=Path)
+    blender_show = blender_environment_sub.add_parser("show")
+    blender_show.add_argument("root", type=Path)
+    blender_validate = blender_environment_sub.add_parser("validate")
+    blender_validate.add_argument("root", type=Path)
 
     outputs = sub.add_parser("outputs")
     outputs_sub = outputs.add_subparsers(dest="action", required=True)
@@ -246,6 +263,13 @@ def main(argv: list[str] | None = None) -> int:
                 )
         elif args.group == "spec":
             result = {"status": "valid", "specification": load_asset_specification(args.path, args.catalog_root)}
+        elif args.group == "environment":
+            if args.environment_action == "set":
+                result = configure_blender_executable(args.root, args.executable)
+            elif args.environment_action == "show":
+                result = read_local_environment(args.root)
+            else:
+                result = validate_blender_environment(args.root)
         elif args.group == "outputs":
             if args.action == "begin":
                 result = begin_output_task(

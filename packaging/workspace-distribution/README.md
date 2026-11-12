@@ -46,7 +46,7 @@ python -B $GameAssetAICli outputs validate <task-path>
 These commands allocate storage only. They do not claim that an asset generator, Blender export,
 or visual acceptance ran.
 
-`config/`, `profiles/`, `notes/`, `outputs/`, and `AGENTS.local.md` are personal and ignored by
+`config/`, `profiles/`, `notes/`, `outputs/`, `.local/`, and `AGENTS.local.md` are personal and ignored by
 Git. Initialization and product updates never overwrite them. `outputs/` is created only when an
 internal result is needed.
 
@@ -81,8 +81,16 @@ assume a development `scripts/` directory or hard-code a different user's home p
 - `python --version` confirms the interpreter used by the bundled CLI.
 - Confirm the four Skills in Codex Desktop or VS Code + Codex, restarting the host only if changed
   Skills are not rediscovered.
-- Check Blender installation and version using the user's actual installation or `blender
-  --version` when it is on `PATH`.
+- Record and validate the user's existing Blender executable without hard-coding it into product
+  files:
+
+  ```powershell
+  python -B $GameAssetAICli environment blender set . <absolute-blender-executable>
+  python -B $GameAssetAICli environment blender validate .
+  ```
+
+  This writes ignored `.local/environment.json` and runs only unsaved factory-startup background
+  diagnostics. It does not create an asset or configure MCP.
 - Confirm Blender MCP connectivity in the selected Codex host before relying on it.
 
 These are environment checks, not evidence that modeling, rendering, export, visual quality, or an
