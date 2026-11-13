@@ -1,8 +1,10 @@
 """Validate the current product-focused repository layout and offline contracts."""
 from __future__ import annotations
 
+import hashlib
 from pathlib import Path
 import py_compile
+import re
 import subprocess
 import sys
 
@@ -36,6 +38,25 @@ FORBIDDEN_ACTIVE_DOCS = {
     "SESSION_STATE.md", "IMPLEMENTATION_MEMORY.md", "PROJECT_AUDIT.md",
     "SKILL_REUSE_AUDIT.md",
 }
+ISOLATED_LEGACY_CODE_ROOTS = (
+    "archive/legacy/src/gameassetai/blender",
+    "archive/legacy/blender_addon/gameassetai",
+    "archive/legacy/tests/retained_blender",
+)
+ACTIVE_PYTHON_ROOTS = ("src", "scripts", "tests", "packaging", "blender_addon")
+PRODUCT_PYTHON_ROOTS = {"src", "scripts", "packaging", "blender_addon"}
+LEGACY_REFERENCE_FRAGMENTS = ("archive/legacy", "archive\\legacy", "archive.legacy")
+LEGACY_PATH_EXPRESSIONS = (
+    re.compile(r'''["']archive["']\s*\)?\s*/\s*["']legacy["']'''),
+    re.compile(r'''["']archive["']\s*,\s*["']legacy["']'''),
+    re.compile(r'''["']archive["']\s*\)?\s*\.joinpath\(\s*["']legacy["']'''),
+)
+
+
+def _references_isolated_legacy(source: str) -> bool:
+    return any(fragment in source for fragment in LEGACY_REFERENCE_FRAGMENTS) or any(
+        pattern.search(source) for pattern in LEGACY_PATH_EXPRESSIONS
+    )
 
 
 def _git_tracked_files(root: Path) -> tuple[set[str] | None, str | None]:
@@ -103,21 +124,15 @@ def validate_repository(
         if tracked_output:
             errors.append(f"Development experiment output is Git-tracked: {tracked_output}")
 
-    active_legacy_roots = (
-        root / "src" / "gameassetai" / "blender",
-        root / "blender_addon",
-        root / "tests" / "retained_blender",
-    )
-    for path in active_legacy_roots:
-        if path.exists() or is_link(path):
-            errors.append(f"Unverified Blender legacy remains in active product: {path.relative_to(root)}")
+    retained_legacy_tests = root / "tests" / "retained_blender"
+    if retained_legacy_tests.exists() or is_link(retained_legacy_tests):
+        errors.append("Unverified retained Blender tests remain in the active test suite")
     if tracked_files is not None:
-        old_prefixes = ("src/gameassetai/blender/", "blender_addon/", "tests/retained_blender/")
-        active_legacy = sorted(
-            path for path in tracked_files if any(path.startswith(prefix) for prefix in old_prefixes)
+        retained_legacy = sorted(
+            path for path in tracked_files if path.startswith("tests/retained_blender/")
         )
-        if active_legacy:
-            errors.append(f"Unverified Blender legacy is tracked in active roots: {active_legacy}")
+        if retained_legacy:
+            errors.append(f"Unverified retained Blender tests are tracked: {retained_legacy}")
 
     pyproject = (root / "pyproject.toml").read_text(encoding="utf-8-sig")
     if 'dynamic = ["version"]' not in pyproject:
@@ -155,7 +170,25 @@ def validate_repository(
     except Exception as exc:
         errors.append(f"Workspace template validation failed: {exc}")
 
-    for path in sorted((root / "src").rglob("*.py")) + sorted((root / "scripts").glob("*.py")):
+    active_python: list[Path] = []
+    for relative in ACTIVE_PYTHON_ROOTS:
+        directory = root / relative
+        if directory.is_dir() and not is_link(directory):
+            active_python.extend(path for path in directory.rglob("*.py") if path.is_file())
+    active_python = sorted(set(active_python))
+
+    isolated_hashes: dict[str, list[str]] = {}
+    for relative in ISOLATED_LEGACY_CODE_ROOTS:
+        directory = root / relative
+        if not directory.is_dir() or is_link(directory):
+            continue
+        for path in sorted(directory.rglob("*.py")):
+            if path.is_file() and not is_link(path):
+                digest = hashlib.sha256(path.read_bytes()).hexdigest()
+                isolated_hashes.setdefault(digest, []).append(path.relative_to(root).as_posix())
+
+    for path in active_python:
+        relative_path = path.relative_to(root).as_posix()
         try:
             compile(path.read_text(encoding="utf-8-sig"), str(path), "exec")
         except (OSError, UnicodeError, SyntaxError) as exc:
@@ -164,16 +197,25 @@ def validate_repository(
             source = path.read_text(encoding="utf-8-sig")
         except (OSError, UnicodeError):
             continue
-        if path.resolve() != Path(__file__).resolve() and (
-            "gameassetai.blender" in source or "archive.legacy" in source
+        top_level = relative_path.split("/", 1)[0]
+        if (
+            top_level in PRODUCT_PYTHON_ROOTS
+            and relative_path != "scripts/validate_repo.py"
+            and _references_isolated_legacy(source)
         ):
             errors.append(f"Active Python depends on isolated legacy: {path.relative_to(root)}")
+        digest = hashlib.sha256(path.read_bytes()).hexdigest()
+        if digest in isolated_hashes:
+            errors.append(
+                "Active Python duplicates isolated legacy without adoption: "
+                f"{path.relative_to(root)} matches {isolated_hashes[digest]}"
+            )
 
     forbidden_fragments = ("D:/Blender/MCP_Test", "D:\\Blender\\MCP_Test", "B1-B8 is active")
     for area in ("src", "skills", "scripts", "packaging", "workspace-template", "catalog"):
         for path in (root / area).rglob("*"):
             if path.is_file() and path.suffix.lower() in {".py", ".md", ".json", ".toml", ".yaml"}:
-                if path.resolve() == Path(__file__).resolve():
+                if path.relative_to(root).as_posix() == "scripts/validate_repo.py":
                     continue
                 try:
                     text = path.read_text(encoding="utf-8-sig")

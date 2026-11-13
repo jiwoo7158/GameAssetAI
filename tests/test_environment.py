@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -41,6 +42,28 @@ class LocalBlenderEnvironmentTests(unittest.TestCase):
                 read_local_environment(root)
             with self.assertRaisesRegex(ValidationError, "does not exist"):
                 configure_blender_executable(root, root / "missing-blender")
+
+    def test_existing_relative_executable_is_refused_without_changing_configuration(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            executable = root / ("blender.exe" if os.name == "nt" else "blender")
+            executable.write_bytes(b"placeholder")
+            configure_blender_executable(root, executable)
+            configuration = root / ".local" / "environment.json"
+            before = configuration.read_bytes()
+
+            previous = Path.cwd()
+            os.chdir(root)
+            try:
+                relative = Path(executable.name)
+                self.assertTrue(relative.is_file())
+                with self.assertRaisesRegex(ValidationError, "must be absolute"):
+                    configure_blender_executable(root, relative)
+            finally:
+                os.chdir(previous)
+
+            self.assertEqual(before, configuration.read_bytes())
+            self.assertEqual(str(executable.absolute()), read_local_environment(root)["blender"]["executable"])
 
     def test_diagnostic_checks_factory_session_and_python_error_propagation(self) -> None:
         with tempfile.TemporaryDirectory() as temp:

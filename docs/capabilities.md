@@ -9,6 +9,7 @@ are never current evidence by themselves.
 | --- | --- | --- | --- |
 | Catalog and style registry | available | tested | JSON registration and validation; no generator implied. |
 | Asset Specification | available | tested | Provider-neutral validation; no automatic production orchestration yet. |
+| Reusable generation providers | planned | none | `blender-native`, `procedural-python`, and `existing-asset-revision` remain registered planning ids with no adopted reusable implementation or current evidence. This does not prohibit Codex-directed native operations or bounded task-specific code. |
 | Workspace create/connect/update | available | tested | Current v2 plus non-mutating legacy recognition; no automatic legacy migration. |
 | Profile persistence/switching | available | tested | JSON Profiles, exact active selection, explicit atomic field get/set, and catalog/dimension validation of official style ids; freeform game rules remain separate. |
 | Development experiment and user output tasks | available | tested | Explicit goal/game, catalog category, concrete asset, atomic local numbering, on-demand registered artifacts, live review-evidence validation, safe external roots, and disposable result trees. |

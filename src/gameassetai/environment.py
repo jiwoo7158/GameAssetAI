@@ -58,7 +58,7 @@ def configure_blender_executable(root: Path, executable: Path) -> dict[str, Any]
         raise ValidationError(f"Local environment configuration cannot be linked: {path}")
     if path.exists() and not path.is_file():
         raise ValidationError(f"Local environment configuration must be a file: {path}")
-    validated_executable = _validate_executable(str(Path(executable).absolute()))
+    validated_executable = _validate_executable(str(executable))
     data = {
         "schema": LOCAL_ENVIRONMENT_SCHEMA,
         "blender": {"executable": str(validated_executable)},

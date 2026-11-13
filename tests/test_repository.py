@@ -1,5 +1,7 @@
 from pathlib import Path
 import importlib.util
+import shutil
+import tempfile
 import unittest
 
 
@@ -75,13 +77,76 @@ class RepositoryTests(unittest.TestCase):
             self.assertIn(expected, rules)
         self.assertFalse(any(".agents" in rule for rule in rules))
 
-    def test_unverified_blender_legacy_is_not_in_active_roots(self):
-        self.assertFalse((ROOT / "src" / "gameassetai" / "blender").exists())
-        self.assertFalse((ROOT / "blender_addon").exists())
+    def test_isolated_legacy_remains_outside_the_active_test_suite(self):
         self.assertFalse((ROOT / "tests" / "retained_blender").exists())
         inventory = ROOT / "archive" / "legacy" / "INVENTORY.md"
         if (ROOT / "archive").exists():
             self.assertTrue(inventory.is_file())
+
+    def test_future_blender_source_is_allowed_while_isolated_legacy_use_is_rejected(self):
+        with tempfile.TemporaryDirectory(prefix="gameassetai-blender-boundary-") as temporary:
+            checkout = Path(temporary) / "checkout"
+            shutil.copytree(
+                ROOT,
+                checkout,
+                ignore=shutil.ignore_patterns(
+                    ".git", ".local", "output", "__pycache__", "*.pyc",
+                ),
+            )
+
+            blender = checkout / "src" / "gameassetai" / "blender"
+            blender.mkdir(parents=True, exist_ok=True)
+            (blender / "__init__.py").write_text(
+                '"""Approved future Blender product package fixture."""\n', encoding="utf-8",
+            )
+            (blender / "modeling.py").write_text(
+                "def feature_name():\n    return 'future-approved-fixture'\n", encoding="utf-8",
+            )
+            (checkout / "src" / "gameassetai" / "future_feature.py").write_text(
+                "from gameassetai.blender import modeling\n", encoding="utf-8",
+            )
+            addon = checkout / "blender_addon"
+            addon.mkdir()
+            (addon / "approved_addon.py").write_text(
+                "APPROVED_ADDON_FIXTURE = True\n", encoding="utf-8",
+            )
+
+            def tracked() -> set[str]:
+                return {
+                    path.relative_to(checkout).as_posix()
+                    for path in checkout.rglob("*") if path.is_file()
+                }
+
+            self.assertEqual([], MODULE.validate_repository(checkout, tracked_files=tracked()))
+
+            forbidden = checkout / "src" / "gameassetai" / "forbidden_legacy_use.py"
+            forbidden.write_text(
+                "from archive" + ".legacy import unavailable\n", encoding="utf-8",
+            )
+            errors = MODULE.validate_repository(checkout, tracked_files=tracked())
+            self.assertTrue(any(
+                "Active Python depends on isolated legacy" in error
+                and "forbidden_legacy_use.py" in error
+                for error in errors
+            ))
+            forbidden.unlink()
+
+            isolated_root = (
+                checkout / "archive" / "legacy" / "src" / "gameassetai" / "blender"
+            )
+            isolated = next(isolated_root.glob("*.py"), None) if isolated_root.is_dir() else None
+            if isolated is None:
+                isolated_root.mkdir(parents=True, exist_ok=True)
+                isolated = isolated_root / "historical_fixture.py"
+                isolated.write_text("HISTORICAL_FIXTURE = True\n", encoding="utf-8")
+            copied = blender / "copied_legacy.py"
+            copied.write_bytes(isolated.read_bytes())
+            errors = MODULE.validate_repository(checkout, tracked_files=tracked())
+            self.assertTrue(any(
+                "Active Python duplicates isolated legacy without adoption" in error
+                and "copied_legacy.py" in error
+                for error in errors
+            ))
 
     def test_legacy_inventory_names_every_isolated_candidate(self):
         inventory = ROOT / "archive" / "legacy" / "INVENTORY.md"

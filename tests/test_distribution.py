@@ -51,7 +51,6 @@ class DistributionTests(unittest.TestCase):
                 for path in skill.rglob("*") if path.is_file() and path.suffix in {".py", ".md", ".json"}
             )
             self.assertNotIn(str(ROOT), all_text)
-            self.assertFalse((skill / "runtime" / "gameassetai" / "blender").exists())
             self.assertFalse((skill / "archive").exists())
             self.assertTrue((skill / "runtime" / "gameassetai" / "environment.py").is_file())
         entry = self.bundle / "skills" / "gameassetai-workspace" / "scripts" / "gameassetai.py"
@@ -142,6 +141,25 @@ class DistributionTests(unittest.TestCase):
         first = write_bundle_zip(self.bundle, archive_a)
         second = write_bundle_zip(self.bundle, archive_b)
         self.assertEqual(first["sha256"], second["sha256"])
+
+    def test_approved_future_blender_runtime_package_is_distributed(self):
+        checkout = self.root / "future-blender-source"
+        for relative in ("src", "skills", "catalog", "workspace-template", "packaging"):
+            shutil.copytree(ROOT / relative, checkout / relative)
+        blender = checkout / "src" / "gameassetai" / "blender"
+        blender.mkdir()
+        (blender / "__init__.py").write_text('"""Future approved package fixture."""\n')
+        (blender / "modeling.py").write_text("APPROVED_FIXTURE = True\n")
+
+        build_product_bundle(checkout, self.bundle)
+        self.assertEqual("valid", validate_product_bundle(self.bundle)["status"])
+        for name in PRODUCT_SKILLS:
+            packaged = (
+                self.bundle / "skills" / name / "runtime" / "gameassetai"
+                / "blender" / "modeling.py"
+            )
+            self.assertEqual("APPROVED_FIXTURE = True\n", packaged.read_text())
+            self.assertFalse((self.bundle / "skills" / name / "archive").exists())
 
     def test_install_refuses_overwrite_and_update_retains_backup(self):
         self.build()
@@ -394,6 +412,27 @@ class DistributionTests(unittest.TestCase):
         )
         self.assertEqual(0, result.returncode, result.stderr)
         initialize_distribution_workspace(clone)
+        entry = (
+            clone / ".agents" / "skills" / "gameassetai-workspace"
+            / "scripts" / "gameassetai.py"
+        )
+        fake_blender = self.root / ("blender.exe" if os.name == "nt" else "blender")
+        fake_blender.write_bytes(b"test executable placeholder")
+        distribution_before_environment = (clone / "distribution.json").read_bytes()
+        environment_set = subprocess.run(
+            [
+                sys.executable, "-B", str(entry), "environment", "blender", "set",
+                str(clone), str(fake_blender),
+            ],
+            cwd=clone, capture_output=True, text=True,
+        )
+        self.assertEqual(0, environment_set.returncode, environment_set.stderr)
+        environment_path = clone / ".local" / "environment.json"
+        before_environment = environment_path.read_bytes()
+        self.assertEqual(distribution_before_environment, (clone / "distribution.json").read_bytes())
+        self.assertEqual("valid", validate_workspace_distribution(clone)["status"])
+        metadata = json.loads((clone / "distribution.json").read_text(encoding="utf-8"))
+        self.assertFalse(any(path.startswith(".local/") for path in metadata["files"]))
         create_profile(clone, "game-one", "Game One", "Preserved through pull")
         select_profile(clone, "game-one")
         update_profile_setting(clone, "art_direction.palette", ["moss", "bark"])
@@ -474,6 +513,7 @@ class DistributionTests(unittest.TestCase):
         self.assertEqual(before_manifest, (task / "manifest.json").read_bytes())
         self.assertEqual(before_artifact, artifact.read_bytes())
         self.assertEqual("keep note", (clone / "notes" / "personal.md").read_text())
+        self.assertEqual(before_environment, environment_path.read_bytes())
         self.assertEqual("valid", validate_workspace_distribution(clone)["status"])
         self.assertEqual("valid", validate_workspace(clone, require_profile=True)["status"])
         updated_runtime = (
@@ -482,9 +522,17 @@ class DistributionTests(unittest.TestCase):
         ).read_bytes()
         self.assertNotEqual(old_runtime, updated_runtime)
         self.assertFalse((clone / "scripts").exists())
-        entry = (
-            clone / ".agents" / "skills" / "gameassetai-workspace"
-            / "scripts" / "gameassetai.py"
+        environment_show = subprocess.run(
+            [
+                sys.executable, "-B", str(entry), "environment", "blender", "show",
+                str(clone),
+            ],
+            cwd=clone, capture_output=True, text=True,
+        )
+        self.assertEqual(0, environment_show.returncode, environment_show.stderr)
+        self.assertEqual(
+            str(fake_blender.absolute()),
+            json.loads(environment_show.stdout)["blender"]["executable"],
         )
         runtime_build = subprocess.run(
             [sys.executable, "-B", str(entry), "--runtime-build"],

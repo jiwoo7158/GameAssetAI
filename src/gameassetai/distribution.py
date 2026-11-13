@@ -37,10 +37,12 @@ PERSONAL_WORKSPACE_IGNORES = {
     "/notes/",
     "/outputs/",
     "/AGENTS.local.md",
+    "/.local/",
 }
 WORKSPACE_DISTRIBUTION_LOCAL_ROOTS = {
     ".git",
     ".idea",
+    ".local",
     ".vscode",
     ".DS_Store",
     "AGENTS.local.md",

@@ -69,9 +69,12 @@ an active work instruction.
 - `archive/legacy/` is historical holding space, not importable product source, a test suite, a
   package input, or capability evidence. Active Runtime, Skills, CI, and distributions must work
   when the complete archive is absent. Move only specifically adopted code back into active source.
-- Keep one product-owned interface for each adopted external integration. Task-specific scripts
-  stay in an isolated temporary/output task context and are either promoted through review into a
-  durable active responsibility or removed; never accumulate them as numbered production modules.
+- Keep one shared product-owned external-integration interface and adapter structure across
+  adopted external tools. Revise that shared boundary when a concrete tool requires it; do not
+  create a separate interface stack per tool or promise plug-compatible interchangeability.
+  Task-specific scripts stay in an isolated temporary/output task context and are either promoted
+  through review into a durable active responsibility or removed; never accumulate them as
+  numbered production modules.
 - When a capability is replaced, remove obsolete implementation, tests, and active documentation
   in the same package. Git history is the recovery mechanism.
 

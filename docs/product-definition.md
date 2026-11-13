@@ -111,7 +111,9 @@ native operations or writing bounded, reviewed task code; such code is part of t
 not automatically a new reusable provider or production module.
 
 GameAssetAI does not create an abstract integration framework before a concrete external tool is
-selected. Each adopted integration must have one product-owned boundary and a recorded fit,
+selected. Adopted tools share one product-owned external-integration interface and adapter
+structure, which may be revised for a concrete tool rather than multiplied into per-tool interface
+stacks or treated as universally interchangeable. Every adoption still requires a recorded fit,
 version, license, maintenance, automation, rollback, and representative validation decision.
 Unverified historical helpers and Add-on code remain outside the active product in
 `archive/legacy/` and provide no capability claim.

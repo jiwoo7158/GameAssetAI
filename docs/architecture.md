@@ -57,9 +57,13 @@ Approved external providers require a separate bounded decision covering require
 quality, Blender compatibility, license, maintenance, headless behavior, integration cost,
 rollback/removal, and an isolated representative test.
 
-Do not build a generic integration framework before choosing a concrete external tool. An adopted
-tool receives one product-owned boundary so version checks, failure reporting, rollback, and
-removal are not duplicated across Skills. Unverified archived helpers bypass none of these gates.
+Do not build a generic integration framework before choosing a concrete external tool. When a tool
+is adopted, extend or revise the one shared product-owned external-integration interface and
+adapter structure so version checks, failure reporting, rollback, and removal are not duplicated
+across Skills or separate per-tool interface stacks. The shared contract may change for a concrete
+tool and does not promise that unrelated tools are interchangeable without adaptation. External
+tools remain removable, and Workspace, Profile, Catalog, and Output foundations continue without
+them. Unverified archived helpers bypass none of these gates.
 
 ## Skill distribution
 

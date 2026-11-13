@@ -19,7 +19,7 @@ These stable ids express product obligations; they do not imply implementation.
 | `REQ-DISTRIBUTION` | One allowlisted `dist/workspace` product tree plus self-contained Skills using official `.agents/skills` roots, declared runtime/catalog/templates, verified clone initialization, safe install/update, and preserved Git history. |
 | `REQ-BLENDER-ENV` | Select and validate a local Blender executable through ignored product-owned configuration, without a personal path in Git or an implicit dependency from installed Skills to the development checkout. |
 | `REQ-LEGACY` | Unverified historical Runtime, Add-on, and tests remain physically isolated and optional; active code, tests, Skills, and distributions work with the entire archive absent. |
-| `REQ-EXTERNAL` | Adopt an external tool only after a concrete fit/version/license/maintenance/automation/rollback review and expose one product-owned integration boundary; do not prebuild a generic framework. |
+| `REQ-EXTERNAL` | Adopt an external tool only after a concrete fit/version/license/maintenance/automation/rollback review, using one shared product-owned external-integration interface and adapter structure that may be revised for concrete tools; do not create per-tool interface stacks or prebuild universal interchangeability. |
 | `REQ-INTEGRATION` | Optional UnityWorkbench and external projects only through explicit paths and authorization. |
 | `REQ-SAFE` | Inspect-first, copy/checkpoint, rollback, source preservation, and no hidden output dependency. |
 | `REQ-QUALITY` | Structural plus visible/semantic acceptance; engine claims require engine evidence. |
