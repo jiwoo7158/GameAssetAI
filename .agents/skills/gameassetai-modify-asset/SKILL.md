@@ -1,6 +1,6 @@
 ---
 name: gameassetai-modify-asset
-description: Inspect and revise an explicitly selected existing game asset with copy-first preservation, including bounded mesh, material, rig, Mixamo, and Action workflows.
+description: Inspect and revise an explicitly selected existing game asset through a copy-first, evidence-bounded Blender workflow without overstating unverified mesh, rig, or animation support.
 ---
 
 # GameAssetAI Modify Asset
@@ -22,8 +22,9 @@ Workspace root contains the development-only `scripts/gameassetai.py`.
    Profile for a one-off edit.
 4. Inspect the current Blender Scene and create a copy or verified checkpoint before material
    changes. Preserve the original unless replacement was explicitly requested.
-5. Use only a bounded helper whose contract matches the asset, then validate preservation,
-   structure, and visible/semantic invariants from relevant views.
+5. Choose Blender native operations, bounded task-specific code, or a currently adopted helper or
+   provider whose contract matches the asset. Then validate preservation, structure, and
+   visible/semantic invariants from relevant views.
 6. Keep the existing concrete asset id. Continue an in-progress task only when its exact path and
    manifest validate and its recorded inputs still exist. If a completed result will be changed or
    compared, allocate the next numbered task with a descriptive purpose and preserve the old one.
@@ -34,10 +35,11 @@ Inspect experiment metadata rather than guessing from folder names, and ask when
 unclear. For user work, use the active Profile game id and official catalog category. Never create
 a new asset id solely to express `v2`, a changed color, proportion, material, or other revision.
 
-The Runtime retains narrow helpers for static semantic replacement, transform and mesh cleanup,
-humanoid inspection, Mixamo-oriented preparation, Action copying/editing, and template-character
-revision. It does not provide arbitrary semantic mesh editing, automatic clothing/hair fitting,
-facial work, or general nonhumanoid Rig generation. Existing suitable Rigs and Actions are
+The active Runtime does not currently adopt the historical static, humanoid, Mixamo, Action, or 2D
+helper collection; those candidates are isolated and are not an execution fallback. Codex may
+compose bounded task code for the exact revision, but one successful revision is not a reusable
+capability claim. Arbitrary semantic mesh editing, automatic clothing/hair fitting, facial work,
+and general nonhumanoid Rig generation remain unproved. Existing suitable Rigs and Actions are
 first-class inputs; never delete or replace them merely to simplify the task.
 
 Route each preserved revision artifact through the output Skill: obtain an official no-overwrite
