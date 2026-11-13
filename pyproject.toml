@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "gameassetai"
-version = "0.2.0"
+dynamic = ["version"]
 description = "Product foundation for an installable, style-driven game asset workflow"
 requires-python = ">=3.10"
 license = {text = "MIT"}
@@ -14,6 +14,9 @@ gameassetai = "gameassetai.cli:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
+
+[tool.setuptools.dynamic]
+version = {attr = "gameassetai.__version__"}
 
 [tool.setuptools.packages.find]
 where = ["src"]

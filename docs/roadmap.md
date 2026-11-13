@@ -212,7 +212,7 @@ Ubuntu, and the master-only publication workflow created `dist/workspace` at
 `0.2.0` and layout version `1`. Live Codex host discovery, Blender/MCP behavior, movable real
 `.blend` dependencies, visual acceptance, and engine import remain unverified.
 
-## Implemented / Under Review — post-merge foundation hardening work package (2026-11-12)
+## Completed — post-merge foundation hardening work package (2026-11-12)
 
 - Requirements advanced: `REQ-SPEC`, `REQ-DISTRIBUTION`, `REQ-OUTPUT`, `REQ-SAFE`, and
   `REQ-QUALITY`.
@@ -267,8 +267,87 @@ Manifest, while later evidence deletion did not invalidate the historical review
 independent task. No real Workspace, Repository `output/`, Blender asset, external project, or
 `dist/workspace` branch was modified. Python, Git, and Blender installation were inspected locally;
 Blender MCP was not connected, and live Codex host discovery, visual quality, export behavior, and
-engine import remain unverified. Hosted pull-request CI is recorded only after this branch is
-pushed and the workflow completes.
+engine import remain unverified. Hosted pull-request CI subsequently passed on Windows and
+Ubuntu. Pull request #4 was approved and merged to `master` as
+`3331bb9ed8f1c46b837800a55d20527867703be3`. The master-only publication workflow then updated
+`dist/workspace` to `07f14acaf15b330c754bf0afe97f1eacefc2cbfc`. Live Codex host discovery,
+Blender MCP connectivity, visual quality, export behavior, and engine import remain unverified.
+
+## Implemented / Under Review — AI Runtime and legacy-isolation work package (2026-11-13)
+
+- Requirements advanced: `REQ-PRODUCT`, `REQ-DISTRIBUTION`, `REQ-SAFE`, `REQ-QUALITY`, and the
+  Blender-environment, AI-authoring, legacy-isolation, and external-integration requirements
+  introduced by this package.
+- Existing implementation to reuse: the four task-oriented Skills and their generated
+  self-contained Runtime, Workspace/Profile/output contracts, atomic and link-safe filesystem
+  helpers, allowlisted Workspace distribution, repository validation, offline Linux/Windows CI,
+  and master-only `dist/workspace` publication.
+- Concrete gaps: unverified Blender Runtime, Add-on, and retained-test code is mixed into active
+  product and package/test discovery; no product-owned local setting selects and validates a
+  Blender executable; product guidance can imply that only prewritten generators are legitimate
+  even though Codex must be able to compose bounded task-specific Blender work; external Blender
+  integration ownership and capability evidence are not sufficiently explicit; version metadata
+  has more than one authored source; and Foundation CI runs needlessly for the generated
+  distribution branch.
+- Non-goals: producing or visually reviewing an asset; restoring Blender 5.0; enabling or
+  installing a Blender Add-on or MCP server; introducing an asset-generation provider; adding a
+  fifth Skill, installer, public Repository, paid service, or distribution branch; changing user
+  Profiles, Workspaces, Blender files, game projects, or result trees; or deleting historical
+  implementation merely because it is unverified.
+- Affected files: current product instructions and documentation; existing four Skill sources;
+  product version/distribution validation; a bounded local Blender-environment Runtime and CLI;
+  repository and distribution tests; CI triggers; and the exact legacy candidates moved under
+  `archive/legacy/` with an inventory.
+- Validation assets: temporary repository-shaped roots, generated bundles and Workspace
+  distributions, mocked subprocess boundaries, and read-only Blender 5.2 background diagnostics.
+  The real Repository `output/`, user Workspaces, Blender projects, and external projects are not
+  test targets.
+- Representative asset: none. This package establishes development/runtime boundaries before a
+  first asset experiment and is not generation or visual-quality evidence.
+- Acceptance criteria:
+  1. Every tracked candidate formerly under `src/gameassetai/blender/`, `blender_addon/`, and
+     `tests/retained_blender/` is inventoried and physically isolated under `archive/legacy/`,
+     with no active import, package, test-discovery, Skill, or distribution dependency.
+  2. Product validation, offline tests, four-Skill bundle build/execution, and Workspace
+     distribution build/validation pass from a temporary product tree with the entire archive
+     absent.
+  3. A local, ignored, product-owned setting can select an existing Blender executable without a
+     personal path in Git; missing/invalid settings fail clearly; and a read-only Blender 5.2
+     background diagnostic proves executable discovery, Python execution, and error propagation.
+  4. Product guidance consistently treats Codex reasoning plus Blender native capability and
+     bounded task-specific code as the core authoring path, while adopted helpers/providers remain
+     optional verified accelerators rather than the only legitimate route.
+  5. The four existing Skills remain the complete user surface, generated bundles exclude the
+     archive, and task-specific experiment code does not accumulate in active product source.
+  6. Version metadata has one authored source; repository validation enforces it; Foundation CI
+     excludes `dist/workspace`; and master-only publication behavior remains unchanged.
+  7. Current capability and quality documents distinguish environment execution, structural
+     tests, representative evidence, visible/semantic acceptance, and engine proof without
+     promoting archived evidence.
+- Unresolved environment gates: live Codex Desktop/VS Code Skill discovery, a connected Blender
+  MCP session, any future Add-on decision, the first representative asset and visual invariants,
+  export/import behavior, and engine proof remain separate later checks. No external integration
+  framework is selected by this package.
+
+Implementation evidence recorded on 2026-11-13: repository validation and 66 formal offline tests
+passed; three Windows symlink cases were skipped because the process lacks symlink privilege,
+while equivalent Junction refusal tests passed. The suite includes a nested complete product gate
+from a separate temporary Git checkout with `archive/` entirely absent; it builds and executes the
+four-Skill bundle and Workspace distribution there. A standalone temporary bundle and distribution
+also built and validated, and the bundled (not development-checkout) CLI configured and validated
+Blender 5.2.4 LTS in an unsaved factory-startup background process with Python 3.13.13 and expected
+error exit 7. A wheel built as `gameassetai-0.2.0-py3-none-any.whl` from the canonical Runtime
+version. The dedicated Skill quick validator could not start because PyYAML is absent; repository
+frontmatter validation, four-Skill source tracking, bundle manifests/hashes, installed Runtime
+execution, and distribution validation passed instead. The local Codex Blender MCP server entry
+and `uvx` executable exist, but no live Blender connection was available; Blender 5.2 reported no
+enabled GameAssetAI/MCP Add-on. No asset, render, export, user Workspace, game project, or result
+tree was created or modified. Foundation CI run
+[`43290652168`](https://github.com/jiwoo7158/GameAssetAI/actions/runs/43290652168) passed on Ubuntu
+and Windows for implementation commit `fbf91308c243ad23d7b1d4639ee194bdf066bc24`. Live Codex host
+discovery remains pending; later branch commits still require their own PR checks. The Repository
+remained private, and this package enabled no paid GitHub feature, Advanced Security service, or
+Dependency Review workflow.
 
 ## Candidate development areas after the foundation
 

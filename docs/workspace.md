@@ -20,6 +20,46 @@ python -B $GameAssetAICli workspace create <workspace>
 Codex may invoke these commands through `gameassetai-workspace`; users do not need to run them
 manually for every task.
 
+## Local Blender executable
+
+Configure the Blender executable in the root where this environment is used. Development normally
+uses the Repository root; a project-scoped distribution uses its clone root; user-scoped Skills
+may use the selected Workspace root. The command writes ignored `.local/environment.json`, not a
+Profile or committed product file:
+
+```powershell
+# Development checkout
+python -B $DevelopmentCli environment blender set . <absolute-blender-executable>
+python -B $DevelopmentCli environment blender show .
+python -B $DevelopmentCli environment blender validate .
+
+# Project distribution or user-scoped Skill
+python -B $GameAssetAICli environment blender set <configuration-root> `
+  <absolute-blender-executable>
+python -B $GameAssetAICli environment blender validate <configuration-root>
+```
+
+The setter requires an existing real absolute file and rejects linked/reparse-point paths. The
+validator starts an unsaved factory-startup background process, reads Blender/Python versions, and
+confirms that an intentional Python error returns nonzero. It does not open, save, model, render,
+install an Add-on, or connect MCP. A missing local setting produces a clear error; installed Skills
+never read the development checkout's `.local/` file implicitly.
+
+Background execution is the normal production mechanism. GUI review is an explicit later choice,
+not a different GameAssetAI editor. After the Runtime has registered the new editable `.blend`,
+report the exact artifact path and ask or follow the user's stated review preference. A safe manual
+PowerShell launch is:
+
+```powershell
+& "<configured-blender-executable>" --disable-autoexec "<exact-task-artifact>.blend"
+```
+
+Open only the selected result, do not save over it or any unrelated file merely because it was
+opened, and do not treat a successful GUI launch as visual acceptance. If the user requests a
+revision of a completed result, preserve the source and allocate a new numbered task. MCP Scene
+control is optional and must be validated separately from both executable validation and GUI
+opening.
+
 The normal project-scoped product is a `dist/workspace` clone. Its four Skills already live under
 `.agents/skills`; initialize personal state once without a development checkout:
 
@@ -107,6 +147,10 @@ Keep these stages distinct:
 1. concept/reference images supplied before 3D production;
 2. Blender preview renders used for source review;
 3. final game PNG, pixel sprite, animation frames, or sprite sheets.
+
+For a new 3D asset, preserve the editable `.blend` as the first primary deliverable unless the
+user explicitly selects another bounded source contract. FBX and all 2D forms are downstream
+requests and never replace source preservation merely because their artifact paths are supported.
 
 ## Legacy Workspace handling
 

@@ -4,6 +4,7 @@
 /notes/
 /outputs/
 /AGENTS.local.md
+/.local/
 
 # Local editor and platform files.
 .DS_Store

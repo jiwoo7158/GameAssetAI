@@ -6,6 +6,10 @@ GameAssetAI is an installable Codex Skill system for style-driven, extensible ga
 revision, and output through Blender and replaceable generation providers. The current product
 definition supersedes all historical B-stage, M-stage, audit, and session plans.
 
+Codex reasoning is the core authoring system. It may use Blender native tools directly and compose
+bounded task-specific Python for the current asset; a prewritten generator is not a prerequisite.
+Reusable helpers and external providers are optional accelerators only after current verification.
+
 Read current authority in this order:
 
 1. `AGENTS.md`
@@ -58,9 +62,19 @@ an active work instruction.
 - Before a substantial capability change, record one bounded work package in `docs/roadmap.md`
   with requirements, reused components, gap, non-goals, affected files, representative asset,
   acceptance criteria, and unresolved user decisions.
-- Prefer Blender native capability, then an existing GameAssetAI helper, then a reviewed external
-  open-source provider, then bounded project-owned code. External integration requires explicit
-  fit, version, license, maintenance, automation, rollback, and representative-test review.
+- Use Blender native capability and bounded task-specific code when they fit the current request.
+  Adopt a reusable helper or external provider only after explicit fit, version, license,
+  maintenance, automation, rollback, and representative-test review. Do not build a provider
+  framework before choosing and verifying a concrete tool.
+- `archive/legacy/` is historical holding space, not importable product source, a test suite, a
+  package input, or capability evidence. Active Runtime, Skills, CI, and distributions must work
+  when the complete archive is absent. Move only specifically adopted code back into active source.
+- Keep one shared product-owned external-integration interface and adapter structure across
+  adopted external tools. Revise that shared boundary when a concrete tool requires it; do not
+  create a separate interface stack per tool or promise plug-compatible interchangeability.
+  Task-specific scripts stay in an isolated temporary/output task context and are either promoted
+  through review into a durable active responsibility or removed; never accumulate them as
+  numbered production modules.
 - When a capability is replaced, remove obsolete implementation, tests, and active documentation
   in the same package. Git history is the recovery mechanism.
 
@@ -122,8 +136,14 @@ create or connect and validate the Workspace before installing all four Skills i
 ## Blender and acceptance rules
 
 - Verify the current Blender/MCP environment before relying on a tool or behavior.
+- A development checkout records its selected Blender executable only in ignored
+  `.local/environment.json`; validate it through the shared Runtime. Never commit a personal path
+  or assume the installed Skills use the development machine's setting.
 - Inspect before destructive operations; prefer copies, checkpoints, rollback, and no-overwrite
   publication; report exactly what changed.
+- For a new 3D production task, preserve an editable `.blend` source as the first primary artifact
+  unless the user explicitly requests a different bounded source contract. FBX, PNG, sprite, and
+  other downstream outputs are explicit later steps, not substitutes for the source.
 - Existing Rigs and animations are first-class inputs. Do not force Rigify, Mixamo, or a new Rig
   when an existing Rig is suitable.
 - Define visible and semantic invariants for each representative asset. Review relevant views in

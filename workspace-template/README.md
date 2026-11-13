@@ -7,6 +7,8 @@ game-asset work.
 - `config/active-profile.json`: exact active Profile id.
 - `config/projects.json`: optional absolute-path bookmarks, including `unity-workbench`.
 - `config/settings.json`: personal, game-neutral preferences.
+- `.local/environment.json`: optional ignored local Blender executable selection; configure it
+  through the bundled Runtime, never by committing a personal path.
 - `.agents/skills/`: optional project-scoped installed Skills. In a `dist/workspace` clone these
   product files already exist; in bundle onboarding create them only after Workspace validation.
 - `outputs/`: user deliverables under
@@ -19,6 +21,12 @@ game-asset work.
   root. One-task explicit selection has highest priority; external roots are never inferred from
   project bookmarks or silently recreated.
 - `notes/`: optional personal notes.
+
+Codex may use Blender native operations and bounded task-specific code for the current asset; a
+prewritten generator is not required for every noun. Preserve an editable `.blend` as the first
+primary 3D artifact unless another bounded source contract is explicitly selected. Codex reports
+the exact registered path; Blender GUI review is optional and opening the file does not authorize
+an overwrite or implicit revision. Export and 2D artifacts are later explicit steps.
 
 Use `gameassetai-workspace` to create, select, inspect, and explicitly update Profiles. Existing
 game projects and user-supplied reference/source files may remain at their original paths; do not

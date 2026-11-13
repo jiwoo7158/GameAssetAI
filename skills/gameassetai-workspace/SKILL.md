@@ -58,6 +58,21 @@ python -B $GameAssetAICli workspace output-root <workspace> [--set <absolute-dir
 python -B $GameAssetAICli catalog list styles
 ```
 
+Record an already installed Blender executable in the chosen Repository/Workspace root only when
+environment setup is requested:
+
+```powershell
+python -B $GameAssetAICli environment blender set <configuration-root> `
+  <absolute-blender-executable>
+python -B $GameAssetAICli environment blender show <configuration-root>
+python -B $GameAssetAICli environment blender validate <configuration-root>
+```
+
+This writes ignored `.local/environment.json`. The validator runs an unsaved factory-startup
+background diagnostic and Python-error check; it does not configure or prove MCP, install an
+Add-on, or produce an asset. A user-scoped Skill resolves its own CLI but does not inherit the
+development checkout's local Blender path.
+
 ## Procedure
 
 1. Resolve the exact user-selected Workspace path and validate or connect it before any edit.

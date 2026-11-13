@@ -43,6 +43,17 @@ class CatalogTests(unittest.TestCase):
             self.assertIn("fox-like-animal", registry.entries)
             self.assertEqual("animal-wildlife", registry.get("fox-like-animal")["parent"])
 
+    def test_unadopted_generation_providers_do_not_claim_implementation_or_evidence(self):
+        providers = load_registry(ROOT / "catalog", "generation-providers")
+        for identifier in (
+            "blender-native", "procedural-python", "existing-asset-revision",
+        ):
+            with self.subTest(provider=identifier):
+                provider = providers.get(identifier)
+                self.assertEqual("registered", provider["catalog_status"])
+                self.assertEqual("not-implemented", provider["implementation_status"])
+                self.assertEqual("none", provider["evidence"])
+
 
 if __name__ == "__main__":
     unittest.main()

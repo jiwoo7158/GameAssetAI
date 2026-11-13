@@ -4,8 +4,11 @@
 
 GameAssetAI is an installable Codex Skill system for producing usable game assets under a
 persistent game-specific art direction. Natural-language requests flow through a structured Asset
-Specification to one of several replaceable production providers, primarily Blender-native tools.
-It supports creation and revision rather than assuming every asset starts from nothing.
+Specification to a Codex-directed Blender workflow. Codex reasoning may operate Blender native
+tools and compose bounded task-specific Python for the current asset; it does not need a
+prewritten generator for every asset noun. Verified reusable helpers and replaceable local or
+external providers may accelerate selected work without becoming the only legitimate route. The
+product supports creation and revision rather than assuming every asset starts from nothing.
 
 The product aims to support 3D source assets and optional 2D outputs while keeping external AI
 providers optional. It is not currently a universal 3D generator. Quality is judged by visible,
@@ -83,8 +86,8 @@ does not force one provider or humanoid assumptions.
 ```text
 request + active Profile + references
   -> validated Asset Specification
-  -> implemented provider selection
-  -> create or copy-first revise in Blender
+  -> choose Blender-native/task-specific work or a verified provider
+  -> create or copy-first revise in Blender under Codex direction
   -> structural and preservation checks
   -> visible/semantic review and revision
   -> optional asset-appropriate Rig/animation
@@ -102,7 +105,18 @@ must not become mandatory Workspace dependencies.
 
 Candidate techniques include Blender modeling, Python procedural modeling, Geometry Nodes,
 templates/parameters, modular parts, existing-model editing, local AI, external AI APIs, and
-reference-image-conditioned 3D generation. Only providers marked implemented may execute.
+reference-image-conditioned 3D generation. A cataloged provider may execute only when marked
+implemented and verified for the request. This gate does not prohibit Codex from using Blender
+native operations or writing bounded, reviewed task code; such code is part of the current task,
+not automatically a new reusable provider or production module.
+
+GameAssetAI does not create an abstract integration framework before a concrete external tool is
+selected. Adopted tools share one product-owned external-integration interface and adapter
+structure, which may be revised for a concrete tool rather than multiplied into per-tool interface
+stacks or treated as universally interchangeable. Every adoption still requires a recorded fit,
+version, license, maintenance, automation, rollback, and representative validation decision.
+Unverified historical helpers and Add-on code remain outside the active product in
+`archive/legacy/` and provide no capability claim.
 
 Modification goals include proportion, silhouette, parts, materials/colors, structure, equipment,
 hair/clothing, and natural-language semantic changes. Present implementation is narrower; the
@@ -118,8 +132,13 @@ mandatory.
 ## Outputs
 
 Planned formats are `.blend`, `.fbx`, `.png`, PNG sequences, 8-direction sprites, and sprite sheets.
-Files should remain editable in Blender where practical. Support and evidence are tracked by
-format and asset scope; successful Generic FBX does not imply Unity Humanoid support.
+For a new 3D production task, the editable `.blend` is the primary first artifact unless the user
+explicitly chooses another bounded source contract. FBX export, preview PNG, pixel conversion,
+direction frames, and sprite sheets are explicit downstream steps. The exact registered `.blend`
+path is reported for review; opening it in Blender GUI is a user-selected inspection method, not
+permission to overwrite it and not a substitute for recorded visible/semantic acceptance. Support
+and evidence are tracked by format and asset scope; successful Generic FBX does not imply Unity
+Humanoid support.
 
 Asset Specification formats are logical user requests. Their current storage contract maps
 `blend` to a `.blend` model artifact, `fbx` to an `.fbx` export artifact, plain `png` to a `.png`
@@ -159,3 +178,4 @@ ownership domains.
 - automatic UnityWorkbench creation or real game-project modification;
 - public distribution and release;
 - long-running Blender art-quality experiments.
+- adoption of any isolated legacy Blender helper or Add-on without a current bounded review.
