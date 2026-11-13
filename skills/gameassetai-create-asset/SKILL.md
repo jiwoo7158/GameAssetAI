@@ -62,7 +62,9 @@ generator call or structural test is not acceptance evidence.
 
 For new 3D work, reserve and preserve an editable `.blend` model as the first primary artifact
 unless the user explicitly requests a different bounded source contract. Treat FBX, preview PNG,
-pixel frames, and sprite sheets as explicit downstream tasks after source review.
+pixel frames, and sprite sheets as explicit downstream tasks after source review. Report the exact
+registered `.blend` path; open it in Blender GUI only when the user chooses that review method,
+with automatic script execution disabled and without saving or revising the file implicitly.
 
 If neither native/task-specific work nor a verified provider can safely meet the request, return
 the validated specification, missing capability, and needed user input instead of presenting

@@ -74,7 +74,10 @@ system must ask for missing visual information instead of inventing it.
 
 For a new 3D asset, preserve an editable `.blend` as the first primary artifact unless the user
 chooses another bounded source contract. FBX, previews, pixel frames, and sprite sheets are
-explicit downstream steps. Allocate every result through the Runtime:
+explicit downstream steps. Report the exact registered `.blend` path; GUI opening is an optional
+user-selected review step and never implicit permission to overwrite it. See
+[`docs/workspace.md`](docs/workspace.md) for the safe launch procedure. Allocate every result
+through the Runtime:
 
 ```powershell
 python -B $GameAssetAICli outputs begin . --space workspace `

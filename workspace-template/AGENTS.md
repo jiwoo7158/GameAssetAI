@@ -123,6 +123,8 @@ honestly.
 
 For a new 3D task, preserve an editable `.blend` as the first primary artifact unless the user
 explicitly chooses another bounded source contract. FBX, previews, sprites, and sheets are later
-explicit outputs. A local Blender executable may be stored only in ignored
+explicit outputs. Report the exact registered `.blend` path and open it in Blender GUI only when
+the user chooses that review method; disable automatic script execution and do not save, overwrite,
+or revise it implicitly. A local Blender executable may be stored only in ignored
 `.local/environment.json` through `environment blender set`; never commit or copy a personal path
 into a Profile or Skill.

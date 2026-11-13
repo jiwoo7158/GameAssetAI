@@ -154,6 +154,14 @@ a live Blender Add-on connection, so executable validation and MCP connectivity 
 gates. Before an asset operation, inspect the current Scene and exact targets, preserve sources,
 and allocate output through the shared Runtime.
 
+Background Blender is the default deterministic production path; it does not make GUI review or
+MCP mandatory. After a new editable `.blend` has been safely published and registered, report its
+exact path. If the user chooses GUI review, open that exact task artifact with the configured
+Blender executable and automatic script execution disabled; opening is not authorization to save,
+overwrite, or revise it. Keep the file unchanged until the user requests a bounded revision, and
+use a new numbered task when a completed result must be preserved. Do not silently choose GUI
+launch, MCP control, or background-only review on the user's behalf.
+
 Codex reasoning plus Blender native capability is the core authoring boundary. Codex may create a
 bounded task script inside a temporary/output task context, run it through a verified Blender
 execution path, inspect the result, and revise it. Reusable code moves into `src/gameassetai/` only

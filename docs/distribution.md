@@ -68,6 +68,13 @@ roadmaps, source checkout layout, development `output/`, personal settings, Prof
 results are excluded. The product version is authored once in `gameassetai.__version__`; Python
 package metadata and both distribution manifests consume that value.
 
+Version domains remain independent. The SemVer product version is currently `0.2.0`; the generated
+Workspace distribution layout is `1`; Workspace, Profile, Asset Specification, output-task, Skill,
+and bundle schemas retain their own identifiers; and `source_commit` records the exact Git source.
+A pull request does not automatically require a product-version change. A schema or layout change
+must be reviewed and migrated on its own contract rather than being inferred from SemVer. The
+historical Add-on is archived and has no active product Add-on version.
+
 Development and CI can build and validate this tree without publishing it:
 
 ```powershell

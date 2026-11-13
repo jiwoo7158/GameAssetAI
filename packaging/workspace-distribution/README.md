@@ -97,6 +97,11 @@ These are environment checks, not evidence that modeling, rendering, export, vis
 engine round trip works. Setup never enables an Add-on, changes MCP/VS Code settings, or installs
 Blender automatically.
 
+After a new editable `.blend` is registered, Codex reports its exact path. If the user chooses GUI
+review, open only that file with the configured executable and automatic script execution disabled,
+for example `& "<configured-blender-executable>" --disable-autoexec "<artifact>.blend"`. Opening
+does not authorize saving, overwriting, or revising the artifact, and it is not acceptance evidence.
+
 The product distribution does not install Blender, Blender MCP, external AI services, Unity, or
 UnityWorkbench. `distribution.json` records the product version, source commit, layout version,
 and product-file hashes.

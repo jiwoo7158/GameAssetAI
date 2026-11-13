@@ -132,8 +132,11 @@ mandatory.
 Planned formats are `.blend`, `.fbx`, `.png`, PNG sequences, 8-direction sprites, and sprite sheets.
 For a new 3D production task, the editable `.blend` is the primary first artifact unless the user
 explicitly chooses another bounded source contract. FBX export, preview PNG, pixel conversion,
-direction frames, and sprite sheets are explicit downstream steps. Support and evidence are
-tracked by format and asset scope; successful Generic FBX does not imply Unity Humanoid support.
+direction frames, and sprite sheets are explicit downstream steps. The exact registered `.blend`
+path is reported for review; opening it in Blender GUI is a user-selected inspection method, not
+permission to overwrite it and not a substitute for recorded visible/semantic acceptance. Support
+and evidence are tracked by format and asset scope; successful Generic FBX does not imply Unity
+Humanoid support.
 
 Asset Specification formats are logical user requests. Their current storage contract maps
 `blend` to a `.blend` model artifact, `fbx` to an `.fbx` export artifact, plain `png` to a `.png`

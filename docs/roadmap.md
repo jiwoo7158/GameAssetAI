@@ -342,7 +342,12 @@ frontmatter validation, four-Skill source tracking, bundle manifests/hashes, ins
 execution, and distribution validation passed instead. The local Codex Blender MCP server entry
 and `uvx` executable exist, but no live Blender connection was available; Blender 5.2 reported no
 enabled GameAssetAI/MCP Add-on. No asset, render, export, user Workspace, game project, or result
-tree was created or modified. Hosted pull-request CI and live Codex host discovery remain pending.
+tree was created or modified. Foundation CI run
+[`43290652168`](https://github.com/jiwoo7158/GameAssetAI/actions/runs/43290652168) passed on Ubuntu
+and Windows for implementation commit `fbf91308c243ad23d7b1d4639ee194bdf066bc24`. Live Codex host
+discovery remains pending; later branch commits still require their own PR checks. The Repository
+remained private, and this package enabled no paid GitHub feature, Advanced Security service, or
+Dependency Review workflow.
 
 ## Candidate development areas after the foundation
 

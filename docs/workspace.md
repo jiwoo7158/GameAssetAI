@@ -45,6 +45,21 @@ confirms that an intentional Python error returns nonzero. It does not open, sav
 install an Add-on, or connect MCP. A missing local setting produces a clear error; installed Skills
 never read the development checkout's `.local/` file implicitly.
 
+Background execution is the normal production mechanism. GUI review is an explicit later choice,
+not a different GameAssetAI editor. After the Runtime has registered the new editable `.blend`,
+report the exact artifact path and ask or follow the user's stated review preference. A safe manual
+PowerShell launch is:
+
+```powershell
+& "<configured-blender-executable>" --disable-autoexec "<exact-task-artifact>.blend"
+```
+
+Open only the selected result, do not save over it or any unrelated file merely because it was
+opened, and do not treat a successful GUI launch as visual acceptance. If the user requests a
+revision of a completed result, preserve the source and allocate a new numbered task. MCP Scene
+control is optional and must be validated separately from both executable validation and GUI
+opening.
+
 The normal project-scoped product is a `dist/workspace` clone. Its four Skills already live under
 `.agents/skills`; initialize personal state once without a development checkout:
 
