@@ -429,6 +429,35 @@ class DistributionTests(unittest.TestCase):
         self.assertEqual(0, environment_set.returncode, environment_set.stderr)
         environment_path = clone / ".local" / "environment.json"
         before_environment = environment_path.read_bytes()
+        personal_tools_root = self.root / "personal-tools-repository"
+        tools_init = subprocess.run(
+            [
+                sys.executable, "-B", str(entry), "tools", "init", str(clone),
+                "--root", str(personal_tools_root),
+            ],
+            cwd=clone, capture_output=True, text=True,
+        )
+        self.assertEqual(0, tools_init.returncode, tools_init.stderr)
+        tools_register = subprocess.run(
+            [
+                sys.executable, "-B", str(entry), "tools", "register", str(clone),
+                "synthetic-addon", "--name", "Synthetic Add-on", "--kind", "blender-addon",
+                "--source", "https://example.invalid/synthetic-addon",
+                "--install-method", "blender-managed", "--identifier", "synthetic_addon",
+                "--capability", "synthetic-metadata-only",
+            ],
+            cwd=clone, capture_output=True, text=True,
+        )
+        self.assertEqual(0, tools_register.returncode, tools_register.stderr)
+        tools_location_path = clone / ".local" / "external-tools.json"
+        tool_registration_path = (
+            personal_tools_root / "tools" / "synthetic-addon" / "tool.json"
+        )
+        before_tools_location = tools_location_path.read_bytes()
+        before_tool_registration = tool_registration_path.read_bytes()
+        self.assertFalse(
+            (personal_tools_root / "tools" / "synthetic-addon" / "status.json").exists()
+        )
         self.assertEqual(distribution_before_environment, (clone / "distribution.json").read_bytes())
         self.assertEqual("valid", validate_workspace_distribution(clone)["status"])
         metadata = json.loads((clone / "distribution.json").read_text(encoding="utf-8"))
@@ -514,6 +543,8 @@ class DistributionTests(unittest.TestCase):
         self.assertEqual(before_artifact, artifact.read_bytes())
         self.assertEqual("keep note", (clone / "notes" / "personal.md").read_text())
         self.assertEqual(before_environment, environment_path.read_bytes())
+        self.assertEqual(before_tools_location, tools_location_path.read_bytes())
+        self.assertEqual(before_tool_registration, tool_registration_path.read_bytes())
         self.assertEqual("valid", validate_workspace_distribution(clone)["status"])
         self.assertEqual("valid", validate_workspace(clone, require_profile=True)["status"])
         updated_runtime = (
@@ -533,6 +564,22 @@ class DistributionTests(unittest.TestCase):
         self.assertEqual(
             str(fake_blender.absolute()),
             json.loads(environment_show.stdout)["blender"]["executable"],
+        )
+        tools_show = subprocess.run(
+            [sys.executable, "-B", str(entry), "tools", "show", str(clone)],
+            cwd=clone, capture_output=True, text=True,
+        )
+        self.assertEqual(0, tools_show.returncode, tools_show.stderr)
+        self.assertEqual(
+            str(personal_tools_root), json.loads(tools_show.stdout)["tools_root"],
+        )
+        tools_list = subprocess.run(
+            [sys.executable, "-B", str(entry), "tools", "list", str(clone)],
+            cwd=clone, capture_output=True, text=True,
+        )
+        self.assertEqual(0, tools_list.returncode, tools_list.stderr)
+        self.assertEqual(
+            "not-inspected", json.loads(tools_list.stdout)["tools"][0]["inspection_status"],
         )
         runtime_build = subprocess.run(
             [sys.executable, "-B", str(entry), "--runtime-build"],

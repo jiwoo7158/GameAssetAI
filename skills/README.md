@@ -28,3 +28,10 @@ All four Skills share the Runtime output contract. User tasks use
 `outputs/<game>/<category>/<asset>/<number>-<purpose>/`; development experiments use the separate
 Repository `output/experiments/` hierarchy. An explicitly selected external output root keeps the
 same game/category/asset/task hierarchy. Result trees are disposable and never packaged.
+
+The Workspace Skill also owns the optional external-tools metadata workflow. One user-selected
+`GameAssetAI-Tools` root may be connected to the single Workspace through ignored `.local/`
+configuration and shared by all Profiles. Create/Modify may consult its validated registrations
+and last-check status, while Output must never treat it as a deliverable root. Registration alone
+does not install, execute, verify, or advertise a tool; no fifth Skill or concrete tool adapter is
+introduced by this foundation.

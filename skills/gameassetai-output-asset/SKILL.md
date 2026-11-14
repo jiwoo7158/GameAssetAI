@@ -135,6 +135,11 @@ External roots must exist and be explicitly selected; never infer them from proj
 silently recreate a moved/deleted root. External validation and continuation require the owning
 Workspace so its Workspace id and Profile can be checked.
 
+`GameAssetAI-Tools` and `.local/external-tools.json` are external-tool management state, never an
+asset output root or task hierarchy. Do not store generated models, previews, sprites, exports, or
+task Manifests there merely because a tool produced them. Use the normal Runtime-selected output
+root and preserve the same no-overwrite lifecycle.
+
 The allocator rejects link/reparse-point components, path escape, unknown categories, active-game
 mismatches, unidentified experiments, and collisions. Manifests are local descriptions, not hidden
 product state. Users may move or delete any part of either result tree; this removes those copies

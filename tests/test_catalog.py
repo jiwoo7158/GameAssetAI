@@ -54,6 +54,30 @@ class CatalogTests(unittest.TestCase):
                 self.assertEqual("not-implemented", provider["implementation_status"])
                 self.assertEqual("none", provider["evidence"])
 
+    def test_archived_blender_evidence_does_not_promote_catalog_entries(self):
+        assets = load_registry(ROOT / "catalog", "asset-types")
+        styles = load_registry(ROOT / "catalog", "styles")
+        for identifier in (
+            "humanoid-character",
+            "weapon",
+            "shield",
+            "tool",
+            "furniture",
+            "container-storage",
+            "general-prop",
+            "architectural-module",
+            "dungeon-module",
+        ):
+            with self.subTest(asset_type=identifier):
+                entry = assets.get(identifier)
+                self.assertEqual("registered", entry["catalog_status"])
+                self.assertEqual("not-implemented", entry["implementation_status"])
+                self.assertEqual("none", entry["evidence"])
+        sprite = styles.get("animated-sprite-sheet")
+        self.assertEqual("registered", sprite["catalog_status"])
+        self.assertEqual("not-implemented", sprite["implementation_status"])
+        self.assertEqual("none", sprite["evidence"])
+
 
 if __name__ == "__main__":
     unittest.main()

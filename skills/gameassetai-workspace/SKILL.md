@@ -1,6 +1,6 @@
 ---
 name: gameassetai-workspace
-description: Create, connect, validate, diagnose, and safely update a GameAssetAI Workspace; manage persistent game Profiles and inspect catalogs without overwriting personal data.
+description: Create, connect, validate, diagnose, and safely update a GameAssetAI Workspace; manage persistent game Profiles, catalogs, and optional external-tool registration without overwriting personal data.
 ---
 
 # GameAssetAI Workspace
@@ -57,6 +57,39 @@ python -B $GameAssetAICli profile set <workspace> <setting> --value-json <json> 
 python -B $GameAssetAICli workspace output-root <workspace> [--set <absolute-directory> | --clear]
 python -B $GameAssetAICli catalog list styles
 ```
+
+One Workspace may optionally connect to one user-owned Tools root shared by all Profiles. Create or
+connect it only after Workspace initialization/validation and only on explicit request:
+
+```powershell
+python -B $GameAssetAICli tools init <workspace> [--root <absolute-new-tools-root>]
+python -B $GameAssetAICli tools connect <workspace> <absolute-existing-tools-root>
+python -B $GameAssetAICli tools show <workspace>
+python -B $GameAssetAICli tools validate <workspace>
+python -B $GameAssetAICli tools list <workspace>
+python -B $GameAssetAICli tools get <workspace> <tool-id>
+python -B $GameAssetAICli tools status <workspace> <tool-id>
+python -B $GameAssetAICli tools unregister <workspace> <tool-id>
+```
+
+Without `--root`, initialization proposes the Workspace sibling `GameAssetAI-Tools`; it does not
+make that relative layout mandatory. The connection is ignored personal state in
+`.local/external-tools.json`, never a Profile setting. Refuse unknown nonempty, overlapping,
+linked/Junction/reparse paths and never recreate a moved or deleted root. Change the connection
+only after the user confirms the new absolute location.
+
+`tools register` stores validated metadata such as stable id, kind, origin, installation method
+and location, version/revision, environment, modification state, and declared feature ids. Never
+store credentials. Registration creates no `status.json` and proves no installation, activation,
+execution, product support, or functionality. `tools record-status` may persist only a real named
+inspection performed by an appropriate future concrete integration; cached status is not current
+truth. Already installed Add-ons remain in Blender and are not copied into Tools storage.
+
+Unregistering removes only GameAssetAI's `tool.json` and `status.json`; preserve source, models,
+virtual environments, patches, native installs, and other user files. Installation, update,
+uninstall, external configuration changes, deletion, and actual adapter execution are not provided
+by this metadata foundation and require separate explicit authorization. Core Workspace operations
+must continue when Tools is not configured or has been moved/deleted.
 
 Record an already installed Blender executable in the chosen Repository/Workspace root only when
 environment setup is requested:

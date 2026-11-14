@@ -18,7 +18,9 @@ Workspace root contains the development-only `scripts/gameassetai.py`.
 
 The normal input flow is a text description, a selected 3D style preset, and one or more reference
 images supplied by the user, commonly generated with an external image AI. Record each reference's
-role such as concept, front, side, back, or three-quarter. References are not mandatory for every
+role using the built-in concept/front/side/back/three-quarter/source ids or a bounded lowercase
+portable custom id such as top/detail/material/silhouette. A role is not a path or prose.
+References are not mandatory for every
 bounded task: if none are supplied, decide whether the active Profile and request are sufficient;
 otherwise explain which views or design decisions are needed. Never pretend an absent image exists
 or automatically call an external image service.
@@ -32,7 +34,11 @@ Before production:
 4. Inspect the current Blender/MCP environment and preserve unrelated Scene data.
 5. Choose a bounded authoring route: Blender native operations and task-specific code directed by
    Codex, or a provider whose current implementation/evidence covers the request. A prewritten
-   generator is not required merely because the asset noun is new.
+   generator is not required merely because the asset noun is new. If considering a registered
+   external tool, query the Workspace Skill's common Tools registry and last-check status, then
+   verify the current real environment. Registration or cached status alone is not availability
+   or capability evidence. If the user selected an unavailable tool, explain why and request a
+   decision before using an alternative.
 6. Before writing a result, route path allocation through the output Skill. For a user task, use
    the active Profile game id, catalog top-level category, concrete new asset id, and descriptive
    task purpose. For a development experiment, inspect `experiment.json` metadata and explicitly

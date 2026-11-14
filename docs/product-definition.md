@@ -56,8 +56,10 @@ and design rules belong in its Workspace Profile, not the reusable style registr
 The normal creation flow combines a text description, a selected style preset, and reference
 images supplied by the user, commonly created with an external image-generation tool. The same
 flow applies to characters, props/equipment, environments, and VFX meshes. Each reference records
-an explicit role such as front, side, back, three-quarter, concept, or source; references need not
-live in a forced folder and more than one role may be provided.
+an explicit role such as front, side, back, three-quarter, concept, or source. Bounded lowercase
+portable custom roles such as `top`, `detail`, `material`, or `silhouette` keep the contract
+extensible without accepting path expressions or arbitrary prose. References need not live in a
+forced folder and more than one role may be provided.
 
 References remain optional in the data contract so bounded work is not rejected mechanically when
 an active Profile and the text request are sufficient. When visual information is required, the
@@ -117,6 +119,14 @@ stacks or treated as universally interchangeable. Every adoption still requires 
 version, license, maintenance, automation, rollback, and representative validation decision.
 Unverified historical helpers and Add-on code remain outside the active product in
 `archive/legacy/` and provide no capability claim.
+
+One optional user-owned `GameAssetAI-Tools` root may hold management metadata and, only when a
+future concrete tool requires it, local source, environments, models, or patches. It is connected
+to the user's single Workspace through ignored local configuration and is shared across game
+Profiles. Registration records do not prove installation, current availability, product support,
+or functional validation. Already installed programs and Blender Add-ons remain in their native
+locations. The current foundation does not install, activate, update, execute, or remove a
+concrete external tool.
 
 Modification goals include proportion, silhouette, parts, materials/colors, structure, equipment,
 hair/clothing, and natural-language semantic changes. Present implementation is narrower; the

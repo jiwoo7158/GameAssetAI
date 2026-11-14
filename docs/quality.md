@@ -5,7 +5,8 @@
 Offline tests use temporary directories and verify catalogs, specifications, Workspace safety,
 Profile persistence, output-tree independence, package hashes, installed runtime execution,
 field-level Profile updates, link-safe output and installation paths, no-overwrite install, backup
-update, local Blender-environment contracts, legacy isolation, and repository layout. Output tests cover explicit
+update, local Blender-environment contracts, external-tools metadata and path contracts, legacy
+isolation, and repository layout. Output tests cover explicit
 experiment selection, catalog categories, active-game matching, current-maximum numbering,
 concurrent claims, partial/complete deletion, exact continuation, and legacy read-only validation.
 Profile tests cover unknown and dimension-mismatched style ids plus failed-update preservation.
@@ -57,6 +58,14 @@ Use five distinct evidence gates:
 Never skip a gate by citing an archived helper, old contract test, successful render, or file
 existence. The 2026-11-13 Blender 5.2.4 diagnostic reaches gate 1 only.
 
+External tools have additional state distinctions: registration records intended identity and
+location; installation discovery checks that a concrete install exists; activation checks the
+target Blender/Codex/process environment; compatibility checks version and required API; execution
+proves one bounded invocation; functionality proves the specific declared feature; and only the
+normal representative/visible/engine gates can establish asset capability. A `tool.json`, cached
+`status.json`, downloaded model, or installed Add-on alone cannot skip any later state. The current
+foundation tests only metadata and safety contracts and has adopted no concrete external tool.
+
 Every new generator or material revision needs a representative asset and defined visible
 invariants. Validate source preservation and structure, inspect relevant Blender views, record an
 explicit accept/reject result, and stop downstream work on rejection. Synthetic cubes are suitable
@@ -81,11 +90,15 @@ optional. Each experiment records its validation purpose locally, but neither it
 manifests are a global registry. Moving or deleting any part is valid and must not affect new
 independent work, source, tests, or packaging.
 
-Do not commit `.blend`, `.fbx`, generated `.png`, package bundles, Workspace outputs, or development
+Do not commit generated `.blend`, `.fbx`, `.glb`, `.gltf`, `.obj`, model weights, generated `.png`,
+package bundles, Workspace outputs, or development
 experiment directories. Unit/integration tests use operating-system temporary directories and do
 not create Repository `output/` or write to a real user Workspace. Any manually retained
 representative evidence records provenance and reproduction instructions without becoming a
-runtime dependency.
+runtime dependency. A deliberately approved binary test resource belongs under
+`tests/fixtures/approved-assets/` and must be small, licensed, reviewed, and necessary; the
+Repository validator otherwise rejects tracked production/model binaries outside the historical
+archive.
 
 Result-tree deletion tests prove Runtime independence, not Blender-file portability. A future
 representative `.blend` movement test must inventory external images, linked libraries, textures,

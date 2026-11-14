@@ -273,7 +273,7 @@ Ubuntu. Pull request #4 was approved and merged to `master` as
 `dist/workspace` to `07f14acaf15b330c754bf0afe97f1eacefc2cbfc`. Live Codex host discovery,
 Blender MCP connectivity, visual quality, export behavior, and engine import remain unverified.
 
-## Implemented / Under Review — AI Runtime and legacy-isolation work package (2026-11-13)
+## Completed — AI Runtime and legacy-isolation work package (2026-11-13)
 
 - Requirements advanced: `REQ-PRODUCT`, `REQ-DISTRIBUTION`, `REQ-SAFE`, `REQ-QUALITY`, and the
   Blender-environment, AI-authoring, legacy-isolation, and external-integration requirements
@@ -348,6 +348,79 @@ and Windows for implementation commit `fbf91308c243ad23d7b1d4639ee194bdf066bc24`
 discovery remains pending; later branch commits still require their own PR checks. The Repository
 remained private, and this package enabled no paid GitHub feature, Advanced Security service, or
 Dependency Review workflow.
+
+Final completion evidence: pull request #5 was merged to `master` as
+`a0433a71fab9ed8046b78d5f7179b1267ee73fb8`. Its final pre-merge suite ran 70 formal tests; the
+Windows run skipped three symlink cases because the runner lacked symlink privilege while the
+equivalent Junction refusal cases passed, and Ubuntu ran the applicable link cases. The subsequent
+master Foundation CI run
+[`43497782193`](https://github.com/jiwoo7158/GameAssetAI/actions/runs/43497782193) passed on Windows
+and Ubuntu. The master-only publication run
+[`43497783569`](https://github.com/jiwoo7158/GameAssetAI/actions/runs/43497783569) succeeded and
+published source commit `a0433a71fab9ed8046b78d5f7179b1267ee73fb8` as `dist/workspace` commit
+`1d2dfe84ca7c4dc68f3ea9b002d8b978f7ba2103`. These results complete the foundation package; live
+Codex host discovery, Blender MCP connectivity, actual asset creation and visual acceptance,
+export/import behavior, and engine proof remain unverified later gates.
+
+## Implemented / Under Review — External-tools management foundation (2026-11-14)
+
+- Requirements advanced: `REQ-SPEC`, `REQ-WORKSPACE`, `REQ-DISTRIBUTION`, `REQ-EXTERNAL`,
+  `REQ-SAFE`, and `REQ-QUALITY`.
+- Existing implementation to reuse: the single v2 Workspace and Profile model, ignored `.local/`
+  ownership, atomic JSON writes, portable identifiers, link/Junction rejection, four generated
+  self-contained Skills, allowlisted Workspace distribution, and archive-independent CI gate.
+- Concrete gaps: ten catalog entries still claim implementation/evidence inherited from isolated
+  historical code; reference roles are a closed six-value list; no product-owned contract can
+  initialize, connect, validate, inspect, register, or unregister a user-selected external-tools
+  repository; and PR #5 completion/publication is not recorded in current status documents.
+- Non-goals: selecting, cloning, downloading, installing, activating, updating, executing, or
+  uninstalling a concrete open-source tool; implementing a Blender Add-on, MCP, model, provider,
+  or tool-specific execution adapter; creating a fifth Skill, GitHub tools Repository,
+  `dist/tools` branch, generated asset, or new product version; or modifying a real user Workspace.
+- Affected files: the existing asset/style catalogs and specification validator; one durable
+  shared Runtime responsibility plus the existing CLI; existing four Skill instructions,
+  Workspace/distribution templates, product documentation, repository validation, and focused
+  temporary-directory tests.
+- Representative foundation scenario: a temporary v2 Workspace explicitly initializes a sibling
+  or user-selected `GameAssetAI-Tools`, reconnects after a simulated move, registers one synthetic
+  metadata-only tool, records a bounded synthetic inspection result, lists/reads it through a
+  generated Skill Runtime, unregisters it without deleting user-owned payload files, and remains
+  valid after the Tools tree is absent. This is contract evidence only, not external-tool or asset
+  capability evidence.
+- Acceptance criteria:
+  1. The ten named asset/style entries retain their ids and hierarchy but report
+     `not-implemented`/`none`; generation-provider states remain unchanged and current.
+  2. Existing reference roles remain valid while bounded portable custom roles are accepted and
+     empty, non-string, path-like, reserved, control-character, and overlong values are rejected
+     without changing the Asset Specification schema.
+  3. A Tools repository is created only by an explicit command at a validated absolute path,
+     never by Workspace initialization, and an unknown nonempty directory is never overwritten.
+  4. `.local/external-tools.json` stores only one absolute Tools root; root identity, per-tool
+     registration, and optional last-inspection status remain separate validated contracts.
+  5. Registration never claims installation or verification, status cannot claim downstream
+     functionality without prerequisite evidence, and unregister removes only management JSON
+     while preserving source, model, environment, patch, and other user-owned payloads.
+  6. Missing/moved roots fail only Tools operations; Workspace, Profile, Catalog, Output, Skills,
+     distribution validation, and independent work remain usable. Reconnection is explicit and
+     never recreates the old path.
+  7. Link/Junction/reparse paths and escapes are rejected at product-managed boundaries; external
+     payload interiors are not rewritten or recursively treated as GameAssetAI source.
+  8. Four-Skill bundle and Workspace distribution build/execute with no external payload included;
+     ignored local connection data survives the existing normal Git Pull regression.
+  9. Repository validation, the complete offline suite, archive-absent nested gate, and hosted
+     Windows/Ubuntu CI pass before review.
+- Unresolved user decisions: the first concrete external tool, its license/version, actual
+  installation and execution method, adapter contract changes, and representative Blender asset
+  remain deliberately deferred to a separate reviewed work package.
+
+Local implementation evidence: repository validation and 82 formal offline tests passed on
+Windows. Four symlink cases were skipped because the local process lacks symlink privilege; the
+corresponding Windows Junction safety tests passed. The suite includes the archive-absent nested
+product gate, four-Skill bundle build/execution, Workspace distribution build/validation, and a
+normal fast-forward product update that preserves Profile, settings, notes, outputs, Blender
+configuration, external-tools connection, and registered metadata. All Tools and asset fixtures
+used isolated temporary directories. Hosted Windows/Ubuntu CI and publication remain review gates;
+no external tool, Blender Add-on, MCP server, model, asset, render, or export was installed or run.
 
 ## Candidate development areas after the foundation
 

@@ -32,6 +32,26 @@ directly in this branch.
    `.agents/skills/`. Confirm that the host discovers them; file validation does not prove host
    discovery.
 
+## Optional external-tools metadata
+
+Workspace setup does not create or install external tools. When requested, initialize the
+recommended sibling `GameAssetAI-Tools` root or connect another user-selected absolute root:
+
+```powershell
+python -B $GameAssetAICli tools init .
+python -B $GameAssetAICli tools init . --root <absolute-new-tools-root>
+python -B $GameAssetAICli tools connect . <absolute-existing-tools-root>
+python -B $GameAssetAICli tools show .
+python -B $GameAssetAICli tools validate .
+python -B $GameAssetAICli tools list .
+```
+
+The root is outside this distribution. Only its location is stored in ignored
+`.local/external-tools.json`; Git Pull and product validation do not publish or hash the external
+files. Registration is metadata, not installation or functional verification. Missing Tools
+storage does not block Workspace, Profile, catalog, or output operations and is never recreated
+silently.
+
 ## Result-task commands from the clone root
 
 Allocate a new task only when actual work needs a result directory. The command prints the exact

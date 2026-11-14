@@ -12,6 +12,7 @@ are never current evidence by themselves.
 | Reusable generation providers | planned | none | `blender-native`, `procedural-python`, and `existing-asset-revision` remain registered planning ids with no adopted reusable implementation or current evidence. This does not prohibit Codex-directed native operations or bounded task-specific code. |
 | Workspace create/connect/update | available | tested | Current v2 plus non-mutating legacy recognition; no automatic legacy migration. |
 | Profile persistence/switching | available | tested | JSON Profiles, exact active selection, explicit atomic field get/set, and catalog/dimension validation of official style ids; freeform game rules remain separate. |
+| External-tools metadata management | available | tested | Optional user-selected Tools-root initialize/connect/validate, safe Workspace-local connection, validated registration/list/get/unregister, and cached inspection-status contracts. No tool installer, live detector, adapter, or execution capability is implied. |
 | Development experiment and user output tasks | available | tested | Explicit goal/game, catalog category, concrete asset, atomic local numbering, on-demand registered artifacts, live review-evidence validation, safe external roots, and disposable result trees. |
 | Workspace distribution and Skill install/update | available | tested | One allowlisted cloneable product tree, four self-contained Skills under official `.agents/skills` roots, hash validation, safe initialization/update, and ignored personal-data preservation; live Codex discovery remains unverified. |
 | Foundation CI and distribution workflow | available | tested | Linux/Windows product CI and separate master-only non-force publication; generated `dist/workspace` pushes are excluded from Foundation CI. |
@@ -28,7 +29,7 @@ are never current evidence by themselves.
 | 8-direction pixel sprite | planned | none | Style registered; no accepted end-to-end workflow. |
 | Blender Add-on | planned | none | The historical Add-on is isolated under `archive/legacy/`, not installed, packaged, or supported. Blender 5.2 had no GameAssetAI/MCP Add-on enabled in the inspected user configuration. |
 | UnityWorkbench | planned | none | Optional explicit review environment; not created or configured. |
-| External/local AI generation | planned | none | Replaceable provider entries only; no model, subscription, API, or generic integration framework is active. |
+| External/local AI generation | planned | none | Replaceable provider entries and local metadata management only; no model, subscription, API, concrete adapter, or generic execution engine is active. |
 
 ## Legacy boundary
 

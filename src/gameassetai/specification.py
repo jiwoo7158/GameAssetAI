@@ -9,6 +9,10 @@ from .filesystem import read_json_object, validate_identifier
 
 
 SCHEMA = "gameassetai.asset-specification.v1"
+BUILTIN_REFERENCE_ROLES = frozenset({
+    "concept", "front", "side", "back", "three-quarter", "source",
+})
+REFERENCE_ROLE_MAX_LENGTH = 64
 OUTPUT_FORMAT_ARTIFACTS: dict[str, dict[str, frozenset[str]]] = {
     "blend": {"model": frozenset({".blend"})},
     "fbx": {"export": frozenset({".fbx"})},
@@ -68,8 +72,12 @@ def validate_asset_specification(
             raise ValidationError(f"references[{index}] has an invalid contract")
         if not isinstance(reference["path"], str) or not reference["path"].strip():
             raise ValidationError(f"references[{index}].path must be nonempty")
-        if reference["role"] not in {"concept", "front", "side", "back", "three-quarter", "source"}:
-            raise ValidationError(f"references[{index}].role is invalid")
+        role = reference["role"]
+        if isinstance(role, str) and len(role) > REFERENCE_ROLE_MAX_LENGTH:
+            raise ValidationError(
+                f"references[{index}].role must be at most {REFERENCE_ROLE_MAX_LENGTH} characters"
+            )
+        validate_identifier(role, f"references[{index}].role")
         digest = reference["sha256"]
         if digest is not None and (
             not isinstance(digest, str) or len(digest) != 64
