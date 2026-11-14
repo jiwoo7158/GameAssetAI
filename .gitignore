@@ -28,6 +28,20 @@ validation-runs/
 *.blend@
 *.blend@*
 
+# Generated 3D assets and model weights are not product source. A future reviewed
+# binary fixture must live under the explicit test-fixture exception.
+*.blend
+*.fbx
+*.glb
+*.gltf
+*.obj
+*.onnx
+*.safetensors
+*.ckpt
+*.pth
+*.pt
+!tests/fixtures/approved-assets/**
+
 # A personal Workspace created beside this checkout must not be committed here.
 # Root anchoring is required: an unanchored, case-insensitive Windows match also
 # hides the product source directory skills/gameassetai-workspace/.

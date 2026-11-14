@@ -9,6 +9,9 @@ game-asset work.
 - `config/settings.json`: personal, game-neutral preferences.
 - `.local/environment.json`: optional ignored local Blender executable selection; configure it
   through the bundled Runtime, never by committing a personal path.
+- `.local/external-tools.json`: optional ignored absolute connection to one user-owned
+  `GameAssetAI-Tools` root shared by all game Profiles. Workspace initialization does not create
+  it; use the Workspace Skill to initialize or connect one explicitly.
 - `.agents/skills/`: optional project-scoped installed Skills. In a `dist/workspace` clone these
   product files already exist; in bundle onboarding create them only after Workspace validation.
 - `outputs/`: user deliverables under
@@ -21,6 +24,11 @@ game-asset work.
   root. One-task explicit selection has highest priority; external roots are never inferred from
   project bookmarks or silently recreated.
 - `notes/`: optional personal notes.
+
+`GameAssetAI-Tools` is not a Workspace child, output root, Git branch, or bundled product. A
+registration records management information only; it does not prove that a tool is installed,
+active, compatible, executable, or supported. Moving or deleting the Tools root leaves core
+Workspace/Profile/output behavior usable and does not cause the old location to be recreated.
 
 Codex may use Blender native operations and bounded task-specific code for the current asset; a
 prewritten generator is not required for every noun. Preserve an editable `.blend` as the first

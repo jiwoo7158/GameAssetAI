@@ -17,6 +17,7 @@ GameAssetAI-Workspace
   tracked product files + ignored Profiles/settings/notes/results
         |
         +--> Blender/MCP and external source files (explicit targets)
+        +--> GameAssetAI-Tools (optional user-owned external root; explicit connection)
         +--> optional UnityWorkbench (explicit request only)
 ```
 
@@ -35,6 +36,8 @@ does not contain or relocate existing game projects.
 - `src/gameassetai/outputs.py`: experiment metadata plus collision-safe disposable numbered tasks.
 - `src/gameassetai/environment.py`: ignored local Blender executable selection and read-only
   background diagnostics; it contains no asset generator.
+- `src/gameassetai/external_tools.py`: optional Tools-root identity, Workspace connection,
+  registration, and last-inspection status contracts; it installs or executes no concrete tool.
 - `src/gameassetai/distribution.py`: self-contained Skill and Workspace-distribution build,
   validation, install, backup update, and ZIP.
 - `catalog/`: canonical asset/style/provider data.
@@ -64,6 +67,35 @@ across Skills or separate per-tool interface stacks. The shared contract may cha
 tool and does not promise that unrelated tools are interchangeable without adaptation. External
 tools remain removable, and Workspace, Profile, Catalog, and Output foundations continue without
 them. Unverified archived helpers bypass none of these gates.
+
+## External tools ownership and metadata
+
+A user normally operates one Workspace and separates games through Profiles. The optional common
+`GameAssetAI-Tools` directory is a separate user-owned domain, not a Workspace child, Git branch,
+Repository distribution, Profile, output root, or package input. Its recommended location is next
+to the Workspace, but every connection stores the inspected absolute path in ignored
+`<workspace>/.local/external-tools.json`; no relative sibling assumption is required.
+
+The Tools root has one identity marker, `.gameassetai-tools.json`, and per-tool management records
+under `tools/<tool-id>/`. `tool.json` owns stable identity, kind, source, installation method and
+location, version/revision, execution environment, modification information, and claimed feature
+ids. It never stores credentials. `status.json` is optional cached evidence from a named prior
+inspection; it distinguishes installation discovery, activation, compatibility, execution, and
+functionality and is not proof of current availability. Current execution state must be checked by
+a future concrete adapter before use.
+
+Optional `source/`, `.venv/`, `models/`, and `patches/` payloads are owned by the specific tool
+workflow and are never created merely by registration. Already installed Blender Add-ons and
+system tools remain at their native installation locations; only metadata is registered. Removing
+a registration removes only GameAssetAI management records, never payloads or external installs.
+Moving or deleting a Tools root does not recreate it and does not impair the core Workspace.
+
+This management contract is the starting point for the single shared external-integration
+boundary described above. It is deliberately not a universal runner. A concrete approved tool may
+use Blender operators, MCP, a Git project API/CLI, a Python environment, a model process, a system
+CLI, or an external API. Its adapter may revise the common boundary, but installation, update,
+uninstall, credential handling, configuration changes, and functional validation remain explicit
+tool-specific work with user authorization.
 
 ## Skill distribution
 
@@ -99,7 +131,9 @@ installation is a copy of those same four Skill directories and does not require
 Required initialized Workspace state is only `AGENTS.md`, `config/`, and `profiles/`. `outputs/`
 and `notes/` are optional personal data. In a distribution clone, tracked root instructions,
 `.agents/skills`, templates, and distribution metadata are product-managed while `config/`,
-`profiles/`, `notes/`, `outputs/`, and `AGENTS.local.md` are ignored personal paths. Profile JSON
+`profiles/`, `notes/`, `outputs/`, `.local/`, and `AGENTS.local.md` are ignored personal paths.
+Optional `.local/external-tools.json` points to one common Tools root and is not a Profile field.
+Profile JSON
 stores durable game rules and supports explicit validated field-level updates; per-asset requests
 do not become Profile rules implicitly. Project paths are bookmarks and never grant write
 permission.

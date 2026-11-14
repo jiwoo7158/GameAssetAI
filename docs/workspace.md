@@ -99,6 +99,63 @@ without changes. An unknown nonempty directory is refused. There is no force-ove
 safe update adds only missing neutral README files; it never replaces personal `AGENTS.md`,
 configuration, Profiles, notes, or outputs.
 
+## Optional GameAssetAI-Tools connection
+
+One Workspace holds every game Profile and may connect to one common user-owned external-tools
+root. Workspace creation does not create this root. Initialize the recommended sibling location
+only after the Workspace is initialized and validated, or pass another existing-parent absolute
+path chosen by the user:
+
+```powershell
+# Recommended sibling: <workspace-parent>/GameAssetAI-Tools
+python -B $GameAssetAICli tools init <workspace>
+
+# Explicit user-selected location
+python -B $GameAssetAICli tools init <workspace> --root <absolute-new-tools-root>
+
+# Connect a recognized existing repository without recreating it
+python -B $GameAssetAICli tools connect <workspace> <absolute-existing-tools-root>
+python -B $GameAssetAICli tools show <workspace>
+python -B $GameAssetAICli tools validate <workspace>
+```
+
+The recommendation is not a fixed `../GameAssetAI-Tools` dependency. The Runtime stores only the
+validated absolute root in ignored `<workspace>/.local/external-tools.json`. The Tools root remains
+outside the Workspace product tree and identifies itself with `.gameassetai-tools.json`. Moving or
+deleting it makes the connection report `missing`; GameAssetAI does not recreate the old path.
+After the user confirms the new location, `tools connect` safely changes the connection. An
+unknown nonempty directory, overlapping Workspace/root, or linked/Junction/reparse path is refused.
+
+Register management information without claiming that a tool is installed or supported:
+
+```powershell
+python -B $GameAssetAICli tools register <workspace> example-addon `
+  --name "Example Add-on" --kind blender-addon `
+  --source https://example.invalid/project --install-method blender-managed `
+  --identifier example.module --version 1.0.0 --capability sample-operation
+python -B $GameAssetAICli tools list <workspace>
+python -B $GameAssetAICli tools get <workspace> example-addon
+python -B $GameAssetAICli tools status <workspace> example-addon
+python -B $GameAssetAICli tools unregister <workspace> example-addon
+```
+
+Tool ids are stable lowercase letters, digits, and hyphens. Registration keeps origin, install
+method/location, actual version or revision, environment, modification information, and declared
+feature ids in `tools/<tool-id>/tool.json`; never store tokens or credentials. Registration alone
+has `not-inspected` status and creates no `status.json`. The `tools record-status` command is for a
+real named inspection performed by a future concrete integration; its cached result distinguishes
+installation discovery, activation, compatibility, execution, and functionality and never proves
+present-day availability by itself. A failed check requires a concrete failure reason; a failure
+reason cannot be attached to an otherwise non-failing status.
+
+Optional `source/`, `.venv/`, `models/`, and `patches/` content is created only by an approved
+tool-specific workflow. An Add-on already installed in Blender is not copied here. `unregister`
+removes only `tool.json` and `status.json`; it deliberately leaves source, models, environments,
+patches, native installations, and any other user files intact. Installation, update, uninstall,
+configuration changes, and actual deletion are separate authorized operations and are not
+implemented by this metadata foundation. With no Tools root or after it is removed, Workspace,
+Profiles, Catalog, Output, and the four Skills continue to operate.
+
 ## Profiles and durable rules
 
 ```powershell
@@ -138,7 +195,9 @@ not infer and save it automatically.
 ## Reference inputs and output stages
 
 The normal creation flow uses text, a style preset, and user-supplied reference images, commonly
-generated with an external image AI. Label concept/front/side/back/three-quarter roles. A task may
+generated with an external image AI. Label the built-in concept/front/side/back/three-quarter/
+source roles or a bounded lowercase portable custom role such as top/detail/material/silhouette.
+A role is an identifier, not a file path or freeform paragraph. A task may
 continue without images when its Profile and text are sufficient; otherwise explain which visual
 information is needed. GameAssetAI does not require or automatically call an image-generation API.
 

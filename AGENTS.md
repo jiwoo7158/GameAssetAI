@@ -72,6 +72,8 @@ an active work instruction.
 - Keep one shared product-owned external-integration interface and adapter structure across
   adopted external tools. Revise that shared boundary when a concrete tool requires it; do not
   create a separate interface stack per tool or promise plug-compatible interchangeability.
+  The current external-tools Runtime manages user-owned locations, registrations, and last-check
+  records only; it is not a generic execution engine and registration is not capability evidence.
   Task-specific scripts stay in an isolated temporary/output task context and are either promoted
   through review into a durable active responsibility or removed; never accumulate them as
   numbered production modules.
@@ -83,6 +85,18 @@ an active work instruction.
 - The development repository, installed Skills, user Workspace, external projects, and output
   runs are separate ownership domains.
 - Never hard-code a personal Workspace path. Accept a user-selected path.
+- A user normally has one Workspace; games are separated by Profiles. An optional common
+  `GameAssetAI-Tools` root is connected through ignored `.local/external-tools.json`, never stored
+  repeatedly in game Profiles or placed inside the Workspace product tree.
+- Create or connect a Tools root only on explicit request at an inspected absolute path. The
+  sibling `GameAssetAI-Tools` location is a recommendation, not a fixed relative-path contract.
+  Do not overwrite an unknown nonempty directory or recreate a moved/missing Tools root.
+- Tool registration, installation, activation, execution, and accepted asset evidence are
+  distinct states. A `tool.json` or cached `status.json` does not prove present-day availability.
+  Never store plaintext credentials in tool metadata.
+- Registration removal preserves external source, models, environments, and installed programs.
+  Install, update, uninstall, configuration changes, and file deletion require a concrete tool
+  procedure plus explicit user authorization; never perform them as a registration side effect.
 - Never overwrite a personal Workspace's `AGENTS.md`, Profiles, settings, notes, or outputs during
   creation or update. Existing recognized Workspaces connect without recreation.
 - Existing Blender scenes, models, Rigs, Actions, reference images, game projects, and external

@@ -9,7 +9,7 @@ script into a supported reusable capability without product review and represent
 
 When this Workspace is a `dist/workspace` clone, `.agents/skills/`, this file, templates, product
 documentation, and `distribution.json` are product-managed. Personal state belongs in ignored
-`config/`, `profiles/`, `notes/`, `outputs/`, or `AGENTS.local.md`. If `AGENTS.local.md` exists,
+`config/`, `profiles/`, `notes/`, `outputs/`, `.local/`, or `AGENTS.local.md`. If `AGENTS.local.md` exists,
 read it explicitly when its user rules are relevant; do not assume a host discovers it by name.
 
 ## Before every game-specific task
@@ -17,8 +17,10 @@ read it explicitly when its user rules are relevant; do not assume a host discov
 1. Validate this Workspace and read `config/active-profile.json`.
 2. Load the exact selected file from `profiles/`. If no Profile is active, do not invent a game
    concept, style, budget, Rig policy, render setup, or export destination.
-3. Read the current text request and identify each user-supplied reference image as concept, front,
-   side, back, three-quarter, or another explicit role. A user-generated AI concept image is an
+3. Read the current text request and identify each user-supplied reference image with a built-in
+   concept/front/side/back/three-quarter/source role or a bounded lowercase portable custom role
+   such as top/detail/material/silhouette. A role is an identifier, not a path or prose. A
+   user-generated AI concept image is an
    input to 3D work; a Blender render is a review preview; a game PNG/pixel sprite/sprite sheet is
    a later output. Never treat one stage as another or assume a missing image exists.
 4. Compare the request and references with the active Profile. Explain a style conflict instead of
@@ -71,6 +73,34 @@ Workspace contains the development-only root `scripts/gameassetai.py`.
 
 The CLI preserves fields not named by the update. It does not automatically infer rules from an
 image, merge arbitrary Profile documents, or migrate a legacy Markdown Profile.
+
+## Optional external tools
+
+This single Workspace may connect to one common user-owned `GameAssetAI-Tools` root for every game
+Profile. It is separate from the Workspace, game Profiles, and output roots. Create or connect it
+only when the user explicitly requests external-tool management, after validating the Workspace:
+
+```powershell
+python -B $GameAssetAICli tools init <workspace> [--root <absolute-new-tools-root>]
+python -B $GameAssetAICli tools connect <workspace> <absolute-existing-tools-root>
+python -B $GameAssetAICli tools show <workspace>
+python -B $GameAssetAICli tools validate <workspace>
+python -B $GameAssetAICli tools list <workspace>
+```
+
+Without `--root`, `tools init` recommends a sibling named `GameAssetAI-Tools`; this is not a fixed
+relative-path dependency. The ignored `.local/external-tools.json` records only the validated
+absolute root. Never put this location in a Profile, create Tools inside the Workspace, overwrite
+an unknown nonempty directory, or recreate a moved/missing root. Reconnect only after the user
+confirms its new location.
+
+Registration metadata is not installation, activation, execution, product support, or capability
+evidence. `status.json`, when present, is the last named inspection result rather than current
+truth; verify the actual environment before use. Do not store credentials. Do not install,
+activate, update, uninstall, alter external configuration, or delete payloads without a concrete
+approved tool procedure and explicit user authorization. `tools unregister` removes only
+GameAssetAI management records and preserves source, models, environments, patches, Add-ons, and
+other installed files. Missing Tools storage must not block normal Workspace/Profile/output work.
 
 ## Data and output safety
 

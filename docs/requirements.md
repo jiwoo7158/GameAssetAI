@@ -7,7 +7,7 @@ These stable ids express product obligations; they do not imply implementation.
 | `REQ-PRODUCT` | Installable, style-driven Codex workflow for usable game assets. |
 | `REQ-CATALOG` | Extensible data catalog with separate registration, implementation, and evidence state. |
 | `REQ-STYLE` | Independent extensible 3D and 2D styles plus game-specific Profile overrides. |
-| `REQ-SPEC` | Shared structured input whose normal flow is text plus a style preset plus user-provided reference images, with explicit reference roles, asset type, providers, revision, Rig/animation, and outputs. |
+| `REQ-SPEC` | Shared structured input whose normal flow is text plus a style preset plus user-provided reference images, with explicit built-in or portable custom reference-role ids, asset type, providers, revision, Rig/animation, and outputs. |
 | `REQ-GENERATION` | Replaceable Blender/local/external providers; asset type is not tied to one provider. |
 | `REQ-AI-AUTHORING` | Codex reasoning may direct Blender native operations and compose bounded task-specific code; prewritten generators and providers are optional verified accelerators rather than a prerequisite for each asset noun. |
 | `REQ-MODIFY` | Existing assets and natural-language revision are first-class, with preservation and explicit scope. |
@@ -15,11 +15,11 @@ These stable ids express product obligations; they do not imply implementation.
 | `REQ-ANIMATION` | Existing Rig/Action, Mixamo-eligible, cleanup, editing, and asset-specific animation paths. |
 | `REQ-2D` | Optional preview, pixel/cel/toon, direction, action-frame, and sprite outputs from accepted 3D. |
 | `REQ-OUTPUT` | Separate disposable development experiments and user game outputs, with configurable explicit roots, catalog categories, concrete asset ids, atomic local task numbers, purpose names, on-demand artifact directories, no overwrite, registered files, and reviewed local manifests. |
-| `REQ-WORKSPACE` | User-selected persistent Workspace with Profiles, project bookmarks, settings, notes, and outputs. |
+| `REQ-WORKSPACE` | One user-selected persistent Workspace with Profiles for separate games, project bookmarks, settings, notes, outputs, and an optional ignored connection to one common external-tools root. |
 | `REQ-DISTRIBUTION` | One allowlisted `dist/workspace` product tree plus self-contained Skills using official `.agents/skills` roots, declared runtime/catalog/templates, verified clone initialization, safe install/update, and preserved Git history. |
 | `REQ-BLENDER-ENV` | Select and validate a local Blender executable through ignored product-owned configuration, without a personal path in Git or an implicit dependency from installed Skills to the development checkout. |
 | `REQ-LEGACY` | Unverified historical Runtime, Add-on, and tests remain physically isolated and optional; active code, tests, Skills, and distributions work with the entire archive absent. |
-| `REQ-EXTERNAL` | Adopt an external tool only after a concrete fit/version/license/maintenance/automation/rollback review, using one shared product-owned external-integration interface and adapter structure that may be revised for concrete tools; do not create per-tool interface stacks or prebuild universal interchangeability. |
+| `REQ-EXTERNAL` | Manage optional tools through one user-owned external root and one shared product-owned integration boundary. Registration records identity, origin, install location, version and unverified capabilities without implying installation or support. Adopt and execute a tool only after concrete fit/version/license/maintenance/automation/rollback review; revise the shared boundary for real tools instead of creating per-tool interface stacks or prebuilding universal interchangeability. |
 | `REQ-INTEGRATION` | Optional UnityWorkbench and external projects only through explicit paths and authorization. |
 | `REQ-SAFE` | Inspect-first, copy/checkpoint, rollback, source preservation, and no hidden output dependency. |
 | `REQ-QUALITY` | Structural plus visible/semantic acceptance; engine claims require engine evidence. |
@@ -29,8 +29,19 @@ These stable ids express product obligations; they do not imply implementation.
 
 - The catalog can add a type or child through JSON without a Python file or Skill.
 - Asset Specifications validate against catalog and style ids without assuming humanoids.
+- Reference-image roles preserve the six built-in ids and accept bounded lowercase portable custom
+  ids without treating a path expression, blank value, or unbounded prose as a role.
 - Workspace creation accepts a custom path, reconnects safely, refuses unknown nonempty folders,
   recognizes legacy Workspaces without mutation, and never provides a force-overwrite path.
+- Workspace initialization does not create an external-tools root. On explicit request the Runtime
+  can initialize a recommended sibling or another absolute user-selected root, connect a recognized
+  existing root, report a moved/missing root without recreating it, and keep the connection only in
+  ignored `.local/external-tools.json` rather than game Profiles.
+- External-tool ids and metadata are validated, duplicate ids are rejected, registration creates no
+  verification status, cached status distinguishes installation/activation/compatibility/execution/
+  functionality, and unregister removes management records without deleting tool-owned payloads.
+- Workspace, Profile, Catalog, Output, Skill, package, and distribution behavior remains usable
+  with no Tools root, no registrations, or after the complete Tools root is moved or deleted.
 - Profile create/select/clear/list/get/set persists through validated files independently of chat
   sessions; an explicit field update preserves all unnamed settings. Official style fields accept
   only catalog ids of the correct 3D/2D dimension, while freeform game direction remains separate.

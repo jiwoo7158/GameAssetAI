@@ -26,7 +26,8 @@ output/                  optional ignored development experiment results
 ```
 
 Repository source, generated Skills, user Workspace data, existing Blender/game projects, and
-result trees are separate ownership domains. `output/` and Workspace `outputs/` may be partially
+the optional user-owned `GameAssetAI-Tools` root, and result trees are separate ownership domains.
+`output/` and Workspace `outputs/` may be partially
 or completely moved or deleted without breaking Profiles, catalogs, packaging, tests, or new
 independent work.
 
@@ -71,6 +72,23 @@ Repository's local setting.
 The normal request combines text, an official style preset, and user-provided reference images
 with explicit roles. References may be omitted when the request and Profile are sufficient; the
 system must ask for missing visual information instead of inventing it.
+
+Reference roles include the built-in concept/front/side/back/three-quarter/source ids and bounded
+lowercase portable custom ids such as top/detail/material/silhouette. Roles are identifiers rather
+than paths or freeform descriptions.
+
+After Workspace initialization, the optional external-tools metadata root can be initialized or
+connected explicitly:
+
+```powershell
+python -B $GameAssetAICli tools init . [--root <absolute-new-tools-root>]
+python -B $GameAssetAICli tools connect . <absolute-existing-tools-root>
+python -B $GameAssetAICli tools show .
+```
+
+The recommended sibling `GameAssetAI-Tools` location is not mandatory. It is not a Git branch,
+product distribution, output root, or per-game Profile field. Registration records management
+metadata only and does not install, execute, validate, or advertise a concrete external tool.
 
 For a new 3D asset, preserve an editable `.blend` as the first primary artifact unless the user
 chooses another bounded source contract. FBX, previews, pixel frames, and sprite sheets are

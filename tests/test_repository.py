@@ -77,6 +77,28 @@ class RepositoryTests(unittest.TestCase):
             self.assertIn(expected, rules)
         self.assertFalse(any(".agents" in rule for rule in rules))
 
+    def test_generated_asset_binaries_are_blocked_except_reviewed_test_fixtures(self):
+        rules = (ROOT / ".gitignore").read_text(encoding="utf-8").splitlines()
+        for expected in (
+            "*.blend", "*.fbx", "*.glb", "*.gltf", "*.obj", "*.onnx",
+            "*.safetensors", "*.ckpt", "*.pth", "*.pt",
+            "!tests/fixtures/approved-assets/**",
+        ):
+            self.assertIn(expected, rules)
+
+        tracked, error = MODULE._git_tracked_files(ROOT)
+        self.assertIsNone(error)
+        self.assertIsNotNone(tracked)
+        accidental = set(tracked)
+        accidental.add("src/gameassetai/accidental-model.blend")
+        errors = MODULE.validate_repository(ROOT, tracked_files=accidental)
+        self.assertTrue(any("accidental-model.blend" in item for item in errors))
+
+        approved = set(tracked)
+        approved.add("tests/fixtures/approved-assets/reviewed-contract.blend")
+        errors = MODULE.validate_repository(ROOT, tracked_files=approved)
+        self.assertFalse(any("reviewed-contract.blend" in item for item in errors))
+
     def test_isolated_legacy_remains_outside_the_active_test_suite(self):
         self.assertFalse((ROOT / "tests" / "retained_blender").exists())
         inventory = ROOT / "archive" / "legacy" / "INVENTORY.md"

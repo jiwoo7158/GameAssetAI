@@ -101,6 +101,14 @@ After pull request #4, `master` advanced to
 `dist/workspace` commit `07f14acaf15b330c754bf0afe97f1eacefc2cbfc`. These hashes describe the
 pre-current-work baseline, not the unmerged work branch.
 
+Pull request #5 was merged on 2026-11-13 as `master` commit
+`a0433a71fab9ed8046b78d5f7179b1267ee73fb8`. Foundation CI run `43497782193` passed its Python
+3.10 Windows and Ubuntu jobs after the final 70-test product suite (three Windows symlink tests
+skipped because privilege was unavailable; the Windows Junction equivalents passed). The
+master-only publication run `43497783569` then generated `dist/workspace` commit
+`1d2dfe84ca7c4dc68f3ea9b002d8b978f7ba2103`. This proves the versioned file/package/update gate,
+not live Codex host discovery, Blender MCP connectivity, asset production, or visual quality.
+
 The generated `.gitattributes` fixes product text to LF, while distribution and Skill hashes
 canonicalize text line endings. This keeps ordinary Windows and Linux clones verifiable without
 weakening binary-file hashes.
@@ -129,6 +137,14 @@ Blender backup files. It never ignores `.agents/skills`. Templates live under tr
 `/templates/`, never at personal destinations. Ignore rules do not protect a file that was already
 tracked, so the publisher's allowlist and tests also verify that personal paths are absent from the
 distribution commit.
+
+An optional `GameAssetAI-Tools` directory is neither a second distribution branch nor a product
+file tree. It is created or connected explicitly outside the Workspace after initialization.
+Only its absolute location is retained in ignored `.local/external-tools.json`; per-tool metadata
+and optional external source/models remain in the user-owned Tools root. Neither is included in
+`distribution.json`, Skill manifests, or publication hashes. Normal fast-forward Pulls preserve
+the local connection just as they preserve `.local/environment.json` and other ignored personal
+state.
 
 ## User-scoped installation
 

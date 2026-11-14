@@ -10,7 +10,8 @@ sys.path.insert(0, str(ROOT / "src"))
 from gameassetai.errors import ValidationError  # noqa: E402
 from gameassetai.outputs import ARTIFACT_KINDS  # noqa: E402
 from gameassetai.specification import (  # noqa: E402
-    OUTPUT_FORMAT_ARTIFACTS, OUTPUT_FORMATS, validate_asset_specification,
+    BUILTIN_REFERENCE_ROLES, OUTPUT_FORMAT_ARTIFACTS, OUTPUT_FORMATS,
+    REFERENCE_ROLE_MAX_LENGTH, validate_asset_specification,
 )
 
 
@@ -89,6 +90,42 @@ class SpecificationTests(unittest.TestCase):
         document["outputs"] = [{"format": "glb", "options": {}}]
         with self.assertRaisesRegex(ValidationError, r"outputs\[0\]"):
             validate_asset_specification(document, ROOT / "catalog")
+
+    def test_reference_roles_preserve_builtins_and_accept_portable_extensions(self):
+        self.assertEqual(
+            {"concept", "front", "side", "back", "three-quarter", "source"},
+            set(BUILTIN_REFERENCE_ROLES),
+        )
+        for role in (*sorted(BUILTIN_REFERENCE_ROLES), "top", "bottom", "detail", "material", "silhouette"):
+            with self.subTest(role=role):
+                document = valid_spec()
+                document["references"] = [
+                    {"path": "D:/references/view.png", "role": role, "sha256": None},
+                ]
+                validate_asset_specification(document, ROOT / "catalog")
+
+    def test_reference_roles_reject_invalid_or_path_like_values(self):
+        invalid = (
+            None,
+            "",
+            " ",
+            "../front",
+            "front/view",
+            "front\\view",
+            "C:-front",
+            "UPPERCASE",
+            "front\nside",
+            "con",
+            "a" * (REFERENCE_ROLE_MAX_LENGTH + 1),
+        )
+        for role in invalid:
+            with self.subTest(role=role):
+                document = valid_spec()
+                document["references"] = [
+                    {"path": "D:/references/view.png", "role": role, "sha256": None},
+                ]
+                with self.assertRaisesRegex(ValidationError, r"references\[0\]\.role"):
+                    validate_asset_specification(document, ROOT / "catalog")
 
 
 if __name__ == "__main__":

@@ -27,6 +27,7 @@ REQUIRED = (
     "catalog/styles/core.json", "catalog/generation-providers/core.json",
     "src/gameassetai/cli.py", "src/gameassetai/workspace.py", "src/gameassetai/outputs.py",
     "src/gameassetai/distribution.py", "src/gameassetai/environment.py",
+    "src/gameassetai/external_tools.py",
     "packaging/skill-entrypoint.py",
     "packaging/workspace-distribution/README.md",
     "packaging/workspace-distribution/.gitattributes",
@@ -50,6 +51,14 @@ LEGACY_PATH_EXPRESSIONS = (
     re.compile(r'''["']archive["']\s*\)?\s*/\s*["']legacy["']'''),
     re.compile(r'''["']archive["']\s*,\s*["']legacy["']'''),
     re.compile(r'''["']archive["']\s*\)?\s*\.joinpath\(\s*["']legacy["']'''),
+)
+BINARY_ASSET_SUFFIXES = {
+    ".blend", ".fbx", ".glb", ".gltf", ".obj",
+    ".onnx", ".safetensors", ".ckpt", ".pth", ".pt",
+}
+APPROVED_BINARY_PREFIXES = (
+    "archive/legacy/",
+    "tests/fixtures/approved-assets/",
 )
 
 
@@ -119,10 +128,25 @@ def validate_repository(
     }
     if "/output/" not in ignore_lines:
         errors.append("Development experiment root must be ignored with the anchored /output/ rule")
+    required_binary_ignores = {f"*{suffix}" for suffix in BINARY_ASSET_SUFFIXES}
+    if not required_binary_ignores.issubset(ignore_lines):
+        errors.append("Generated 3D assets and model weights must be ignored by suffix")
+    if "!tests/fixtures/approved-assets/**" not in ignore_lines:
+        errors.append("Reviewed binary fixtures require the explicit approved-assets exception")
     if tracked_files is not None:
         tracked_output = sorted(path for path in tracked_files if path.startswith("output/"))
         if tracked_output:
             errors.append(f"Development experiment output is Git-tracked: {tracked_output}")
+        tracked_binary_assets = sorted(
+            path for path in tracked_files
+            if Path(path).suffix.lower() in BINARY_ASSET_SUFFIXES
+            and not path.startswith(APPROVED_BINARY_PREFIXES)
+        )
+        if tracked_binary_assets:
+            errors.append(
+                "Generated asset/model binaries are tracked outside the reviewed fixture area: "
+                f"{tracked_binary_assets}"
+            )
 
     retained_legacy_tests = root / "tests" / "retained_blender"
     if retained_legacy_tests.exists() or is_link(retained_legacy_tests):

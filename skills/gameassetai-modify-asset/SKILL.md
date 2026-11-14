@@ -16,14 +16,19 @@ scope resolve the copied `gameassetai-workspace/scripts/gameassetai.py`. Never a
 Workspace root contains the development-only `scripts/gameassetai.py`.
 
 1. Validate the Workspace, load the active Profile, and resolve the exact source path/object.
-2. Read the text request, selected style, and user references. Label each image's role; do not
+2. Read the text request, selected style, and user references. Use a built-in reference-role id or
+   a bounded lowercase portable custom id such as top/detail/material/silhouette; do not use a
+   path or freeform prose as the role. Do not
    confuse a pre-production AI reference with a Blender preview or final 2D output.
 3. Decide whether the request is asset-local or an explicit durable game rule. Do not update the
    Profile for a one-off edit.
 4. Inspect the current Blender Scene and create a copy or verified checkpoint before material
    changes. Preserve the original unless replacement was explicitly requested.
 5. Choose Blender native operations, bounded task-specific code, or a currently adopted helper or
-   provider whose contract matches the asset. Then validate preservation, structure, and
+   provider whose contract matches the asset. For a registered external tool, query the Workspace
+   Skill's Tools registry and cached last-check status, then verify the current environment before
+   use. Metadata alone is not installation or capability evidence; do not silently substitute a
+   different tool when the user selected one. Then validate preservation, structure, and
    visible/semantic invariants from relevant views.
 6. Keep the existing concrete asset id. Continue an in-progress task only when its exact path and
    manifest validate and its recorded inputs still exist. If a completed result will be changed or

@@ -19,6 +19,25 @@ from .errors import GameAssetAIError
 from .environment import (
     configure_blender_executable, read_local_environment, validate_blender_environment,
 )
+from .external_tools import (
+    ACTIVATION_STATES,
+    COMPATIBILITY_STATES,
+    EXECUTION_STATES,
+    FUNCTIONALITY_STATES,
+    INSTALLATION_STATES,
+    INSTALL_METHODS,
+    TOOL_KINDS,
+    connect_tools_repository,
+    initialize_tools_repository,
+    list_registered_tools,
+    read_tool_registration,
+    read_tool_status,
+    read_tools_connection,
+    record_tool_status,
+    register_tool,
+    unregister_tool,
+    validate_connected_tools_repository,
+)
 from .outputs import (
     begin_output_task, continue_output_task, create_experiment, list_experiments,
     plan_artifact_path, register_output_artifact, release_artifact_reservation,
@@ -126,6 +145,66 @@ def build_parser() -> argparse.ArgumentParser:
     blender_show.add_argument("root", type=Path)
     blender_validate = blender_environment_sub.add_parser("validate")
     blender_validate.add_argument("root", type=Path)
+
+    tools = sub.add_parser("tools")
+    tools_sub = tools.add_subparsers(dest="action", required=True)
+    tools_init = tools_sub.add_parser("init")
+    tools_init.add_argument("workspace", type=Path)
+    tools_init.add_argument("--root", type=Path)
+    tools_connect = tools_sub.add_parser("connect")
+    tools_connect.add_argument("workspace", type=Path)
+    tools_connect.add_argument("tools_root", type=Path)
+    for action in ("show", "validate", "list"):
+        command = tools_sub.add_parser(action)
+        command.add_argument("workspace", type=Path)
+    tools_get = tools_sub.add_parser("get")
+    tools_get.add_argument("workspace", type=Path)
+    tools_get.add_argument("tool_id")
+    tools_register = tools_sub.add_parser("register")
+    tools_register.add_argument("workspace", type=Path)
+    tools_register.add_argument("tool_id")
+    tools_register.add_argument("--name", required=True)
+    tools_register.add_argument("--kind", choices=sorted(TOOL_KINDS), required=True)
+    tools_register.add_argument("--source", required=True)
+    tools_register.add_argument("--license")
+    tools_register.add_argument(
+        "--install-method", choices=sorted(INSTALL_METHODS), required=True,
+    )
+    tools_register.add_argument("--location", type=Path)
+    tools_register.add_argument("--identifier")
+    tools_register.add_argument("--version")
+    tools_register.add_argument("--revision")
+    tools_register.add_argument("--environment", type=Path)
+    tools_register.add_argument("--modified", action="store_true")
+    tools_register.add_argument("--upstream-revision")
+    tools_register.add_argument("--modification-notes")
+    tools_register.add_argument("--capability", action="append", default=[])
+    tools_unregister = tools_sub.add_parser("unregister")
+    tools_unregister.add_argument("workspace", type=Path)
+    tools_unregister.add_argument("tool_id")
+    tools_status = tools_sub.add_parser("status")
+    tools_status.add_argument("workspace", type=Path)
+    tools_status.add_argument("tool_id")
+    tools_record_status = tools_sub.add_parser("record-status")
+    tools_record_status.add_argument("workspace", type=Path)
+    tools_record_status.add_argument("tool_id")
+    tools_record_status.add_argument("--target", required=True)
+    tools_record_status.add_argument(
+        "--installation", choices=sorted(INSTALLATION_STATES), default="not-checked",
+    )
+    tools_record_status.add_argument(
+        "--activation", choices=sorted(ACTIVATION_STATES), default="not-checked",
+    )
+    tools_record_status.add_argument(
+        "--compatibility", choices=sorted(COMPATIBILITY_STATES), default="not-checked",
+    )
+    tools_record_status.add_argument(
+        "--execution", choices=sorted(EXECUTION_STATES), default="not-tested",
+    )
+    tools_record_status.add_argument(
+        "--functionality", choices=sorted(FUNCTIONALITY_STATES), default="not-tested",
+    )
+    tools_record_status.add_argument("--failure")
 
     outputs = sub.add_parser("outputs")
     outputs_sub = outputs.add_subparsers(dest="action", required=True)
@@ -270,6 +349,54 @@ def main(argv: list[str] | None = None) -> int:
                 result = read_local_environment(args.root)
             else:
                 result = validate_blender_environment(args.root)
+        elif args.group == "tools":
+            if args.action == "init":
+                result = initialize_tools_repository(args.workspace, args.root)
+            elif args.action == "connect":
+                result = connect_tools_repository(args.workspace, args.tools_root)
+            elif args.action == "show":
+                result = read_tools_connection(args.workspace)
+            elif args.action == "validate":
+                result = validate_connected_tools_repository(args.workspace)
+            elif args.action == "list":
+                result = list_registered_tools(args.workspace)
+            elif args.action == "get":
+                result = read_tool_registration(args.workspace, args.tool_id)
+            elif args.action == "register":
+                result = register_tool(
+                    args.workspace,
+                    args.tool_id,
+                    name=args.name,
+                    kind=args.kind,
+                    source=args.source,
+                    license_name=args.license,
+                    install_method=args.install_method,
+                    location=None if args.location is None else str(args.location),
+                    external_identifier=args.identifier,
+                    version=args.version,
+                    revision=args.revision,
+                    environment=None if args.environment is None else str(args.environment),
+                    modified=args.modified,
+                    upstream_revision=args.upstream_revision,
+                    modification_notes=args.modification_notes,
+                    capabilities=args.capability,
+                )
+            elif args.action == "unregister":
+                result = unregister_tool(args.workspace, args.tool_id)
+            elif args.action == "status":
+                result = read_tool_status(args.workspace, args.tool_id)
+            else:
+                result = record_tool_status(
+                    args.workspace,
+                    args.tool_id,
+                    target=args.target,
+                    installation=args.installation,
+                    activation=args.activation,
+                    compatibility=args.compatibility,
+                    execution=args.execution,
+                    functionality=args.functionality,
+                    failure=args.failure,
+                )
         elif args.group == "outputs":
             if args.action == "begin":
                 result = begin_output_task(
